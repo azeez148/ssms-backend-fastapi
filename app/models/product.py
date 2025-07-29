@@ -24,3 +24,12 @@ class Product(Base):
         backref="product",
         lazy="joined"  # This will load the sizes eagerly with the product
     )
+    shops = relationship("Shop", secondary="shop_products", back_populates="products")
+
+
+shop_products = Table(
+    "shop_products",
+    Base.metadata,
+    Column("shop_id", Integer, ForeignKey("shops.id"), primary_key=True),
+    Column("product_id", Integer, ForeignKey("products.id"), primary_key=True),
+)

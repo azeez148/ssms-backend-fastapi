@@ -12,3 +12,4 @@ class Shop(Base):
     
     sales = relationship("Sale", back_populates="shop")
     purchases = relationship("Purchase", back_populates="shop")
+    products = relationship("Product", secondary="shop_products", back_populates="shops")
