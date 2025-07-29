@@ -22,12 +22,12 @@ pip install -r requirements.txt
      POSTGRES_DB=ssms_db
      ```
 
-4. Initialize the database:
+4. Apply database migrations:
 ```bash
-python create_tables.py  # Creates the database tables
+alembic upgrade head
 ```
 
-5. Import initial category data:
+5. Import initial category data (after running migrations):
 ```bash
 # For Windows (Option 1) - Using full path to psql:
 "C:\Program Files\PostgreSQL\{version}\bin\psql.exe" -U postgres -d ssms_db -f category_data.sql
@@ -58,6 +58,20 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at `http://localhost:8000`
+
+## Database Migrations
+
+This project uses Alembic to manage database migrations.
+
+To create a new migration script after making changes to the SQLAlchemy models:
+```bash
+alembic revision --autogenerate -m "A descriptive message about the changes"
+```
+
+Then, apply the migrations to the database:
+```bash
+alembic upgrade head
+```
 
 ## API Documentation
 
