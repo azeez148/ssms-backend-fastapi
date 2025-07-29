@@ -1,5 +1,5 @@
 from .category import Category
-from .product import Product
+from .product import Product, shop_products
 from .attribute import Attribute
 from .product_size import ProductSize
 from .sale import Sale, SaleItem
@@ -9,9 +9,9 @@ from .delivery import DeliveryType
 from .shop import Shop
 
 __all__ = [
-    "Category", 
-    "Product", 
-    "Attribute", 
+    "Category",
+    "Product",
+    "Attribute",
     "ProductSize",
     "Sale",
     "SaleItem",
@@ -19,5 +19,6 @@ __all__ = [
     "PurchaseItem",
     "PaymentType",
     "DeliveryType",
-    "Shop"
+    "Shop",
+    "shop_products"
 ]
