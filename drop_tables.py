@@ -4,7 +4,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 def drop_all_tables():
     # Connect to the database
     conn = psycopg2.connect(
-        dbname='ssms_db',
+        dbname='ssms-db',
         user='postgres',
         password='admin',
         host='localhost'
