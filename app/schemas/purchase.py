@@ -1,23 +1,43 @@
 from pydantic import BaseModel
-from datetime import datetime
-from typing import Optional
+from typing import List, Optional
+
+class PurchaseItemBase(BaseModel):
+    product_id: int
+    product_name: str
+    product_category: str
+    size: str
+    quantity_available: int
+    quantity: int
+    purchase_price: float
+    total_price: float
+
+    class Config:
+        from_attributes = True
+
+class PurchaseItemCreate(PurchaseItemBase):
+    pass
+
+class PurchaseItemResponse(PurchaseItemBase):
+    id: int
 
 class PurchaseBase(BaseModel):
-    quantity: int
-    unit_price: float
+    supplier_name: str
+    supplier_address: str
+    supplier_mobile: str
+    supplier_email: str
+    date: str
+    total_quantity: int
     total_price: float
-    product_id: int
-    shop_id: int
+    payment_type_id: int
+    payment_reference_number: str
+    delivery_type_id: int
 
     class Config:
         from_attributes = True
 
 class PurchaseCreate(PurchaseBase):
-    pass
+    purchase_items: List[PurchaseItemCreate]
 
-class PurchaseInDB(PurchaseBase):
+class PurchaseResponse(PurchaseBase):
     id: int
-    purchase_date: datetime
-
-class PurchaseResponse(PurchaseInDB):
-    pass
+    purchase_items: List[PurchaseItemResponse]
