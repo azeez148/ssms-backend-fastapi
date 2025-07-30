@@ -23,11 +23,13 @@ from app.api import (
     payments,
     delivery,
     dashboard,
-    home
+    home,
+    stock
 )
 
 # Include all routers
 app.include_router(products.router, prefix="/products", tags=["products"])
+app.include_router(stock.router, prefix="/stock", tags=["stock"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(sales.router, prefix="/sales", tags=["sales"])
 app.include_router(purchases.router, prefix="/purchases", tags=["purchases"])
