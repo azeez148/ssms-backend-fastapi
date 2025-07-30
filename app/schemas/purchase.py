@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from .shop import ShopResponse
 
 class PurchaseItemBase(BaseModel):
     product_id: int
@@ -37,7 +38,9 @@ class PurchaseBase(BaseModel):
 
 class PurchaseCreate(PurchaseBase):
     purchase_items: List[PurchaseItemCreate]
+    shop_ids: List[int]
 
 class PurchaseResponse(PurchaseBase):
     id: int
     purchase_items: List[PurchaseItemResponse]
+    shops: List[ShopResponse]
