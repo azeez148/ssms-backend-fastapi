@@ -5,7 +5,7 @@ from app.core.database import Base
 class DeliveryType(Base):
     __tablename__ = "delivery_types"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String, index=True)
     description = Column(String)
     

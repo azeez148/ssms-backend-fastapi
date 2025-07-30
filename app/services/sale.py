@@ -38,6 +38,7 @@ class SaleService:
                 db,
                 product_id=item.product_id,
                 size=item.size,
+                
                 quantity_change=-item.quantity  # Decrease stock by sold quantity
             )
 

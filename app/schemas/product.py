@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import Dict, Optional, List
 from typing_extensions import Annotated
 
+from app.schemas.category import CategoryBase
+
 class ProductSizeBase(BaseModel):
     size: str
     quantity: int
@@ -18,6 +20,7 @@ class ProductBase(BaseModel):
     is_active: bool = False  # Changed default to match Java
     can_listed: bool = False  # Changed default to match Java
     size_map: Optional[List[ProductSizeBase]] = None
+    category: CategoryBase
 
     class Config:
         from_attributes = True

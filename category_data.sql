@@ -1,5 +1,5 @@
 -- Category data import
-INSERT INTO category (id, name, description) VALUES
+INSERT INTO public.categories (id, name, description) VALUES
 (1, 'Jersey', 'Jersey'),
 (2, '5s Jersey', 'Fivesleeve'),
 (3, 'Kids Jersey', 'Kids Jersey'),
@@ -35,6 +35,3 @@ INSERT INTO category (id, name, description) VALUES
 (33, 'Hand Sleeve', 'Hand Sleeve'),
 (34, 'GK Glove', 'GK Glove'),
 (35, 'Trophy', 'Trophy');
-
--- Reset the sequence to the next available ID
-SELECT setval('category_id_seq', (SELECT MAX(id) FROM category));

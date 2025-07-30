@@ -5,7 +5,7 @@ from app.core.database import Base
 class Sale(Base):
     __tablename__ = "sales"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     customer_name = Column(String)
     customer_address = Column(String)
     customer_mobile = Column(String)

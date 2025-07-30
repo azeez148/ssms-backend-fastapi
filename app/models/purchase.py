@@ -12,7 +12,7 @@ shop_purchases = Table(
 class Purchase(Base):
     __tablename__ = "purchases"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     supplier_name = Column(String)
     supplier_address = Column(String)
     supplier_mobile = Column(String)

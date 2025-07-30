@@ -6,7 +6,7 @@ from app.models.purchase import shop_purchases
 class Shop(Base):
     __tablename__ = "shops"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String, index=True)
     addressLine1 = Column(String)
     addressLine2 = Column(String)

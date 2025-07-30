@@ -21,7 +21,8 @@ class EmailNotificationService:
             html=f"""
             <h1>Sale Confirmation</h1>
             <p>Dear {sale.customer_name},</p>
-            <p>Thank you for your purchase. Here are the details of your order:</p>
+            <p>Thank you for your purchase. Here are the d
+            etails of your order:</p>
             <ul>
                 <li><strong>Order ID:</strong> {sale.id}</li>
                 <li><strong>Total Quantity:</strong> {sale.total_quantity}</li>

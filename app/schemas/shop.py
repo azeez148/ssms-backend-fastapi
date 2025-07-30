@@ -4,10 +4,10 @@ from typing import Optional, List
 class ShopBase(BaseModel):
     name: str
     addressLine1: str
-    addressLine2: Optional[List[str]] = None
+    addressLine2: str
     city: str
     state: str
-    country: Optional[List[str]] = None
+    country: str
     zipcode: str
     mobileNumber: str
     email: str
