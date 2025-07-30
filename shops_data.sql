@@ -1,3 +1,2 @@
-INSERT INTO public.shops(
-	id, name, location, contact)
-	VALUES (1, 'ADrenaline Sports Store', 'Nellikuzhy', '+918089325733');
+INSERT INTO public.shops(id, name, "addressLine1", "addressLine2", city, state, country, zipcode, "mobileNumber", email)
+VALUES (1, 'ADrenaline Sports Store', '123 Main St', 'Apt 4B', 'Anytown', 'Anystate', 'Anycountry', '12345', '+918089325733', 'shop@example.com');
