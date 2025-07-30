@@ -3,6 +3,7 @@ from typing import List
 from app.models.purchase import Purchase, PurchaseItem
 from app.models.product import Product
 from app.models.product_size import ProductSize
+from app.models.shop import Shop
 from app.schemas.purchase import PurchaseCreate
 
 class PurchaseService:
@@ -24,6 +25,11 @@ class PurchaseService:
             delivery_type_id=purchase.delivery_type_id,
             purchase_items=purchase_items
         )
+
+        # Add shops to the purchase
+        if purchase.shop_ids:
+            shops = db.query(Shop).filter(Shop.id.in_(purchase.shop_ids)).all()
+            db_purchase.shops.extend(shops)
 
         # Update product quantities
         for item in purchase.purchase_items:

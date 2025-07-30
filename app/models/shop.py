@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.models.purchase import shop_purchases
 
 class Shop(Base):
     __tablename__ = "shops"
@@ -11,5 +12,5 @@ class Shop(Base):
     contact = Column(String)
     
     sales = relationship("Sale", back_populates="shop")
-    purchases = relationship("Purchase", back_populates="shop")
+    purchases = relationship("Purchase", secondary=shop_purchases, back_populates="shops")
     products = relationship("Product", secondary="shop_products", back_populates="shops")
