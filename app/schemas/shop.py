@@ -1,10 +1,16 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 class ShopBase(BaseModel):
     name: str
-    location: Optional[str] = None
-    contact: Optional[str] = None
+    addressLine1: str
+    addressLine2: Optional[List[str]] = None
+    city: str
+    state: str
+    country: Optional[List[str]] = None
+    zipcode: str
+    mobileNumber: str
+    email: str
 
 class ShopCreate(ShopBase):
     pass
@@ -13,7 +19,7 @@ class ShopInDB(ShopBase):
     id: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ShopResponse(ShopInDB):
     pass

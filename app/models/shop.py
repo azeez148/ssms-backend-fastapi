@@ -8,8 +8,14 @@ class Shop(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
-    location = Column(String)
-    contact = Column(String)
+    addressLine1 = Column(String)
+    addressLine2 = Column(String)
+    city = Column(String)
+    state = Column(String)
+    country = Column(String)
+    zipcode = Column(String)
+    mobileNumber = Column(String)
+    email = Column(String)
     
     sales = relationship("Sale", back_populates="shop")
     purchases = relationship("Purchase", secondary=shop_purchases, back_populates="shops")
