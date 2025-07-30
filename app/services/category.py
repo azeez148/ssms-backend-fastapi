@@ -19,3 +19,6 @@ class CategoryService:
 
     def get_category_by_id(self, db: Session, category_id: int) -> Category:
         return db.query(Category).filter(Category.id == category_id).first()
+
+    def find_category_by_name(self, db: Session, name: str) -> Category:
+        return db.query(Category).filter(Category.name == name).first()
