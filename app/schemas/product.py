@@ -9,6 +9,9 @@ class ProductSizeBase(BaseModel):
     class Config:
         from_attributes = True
 
+class ProductSizeCreate(ProductSizeBase):
+    pass
+
 class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
