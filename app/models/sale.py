@@ -6,10 +6,6 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    customer_name = Column(String)
-    customer_address = Column(String)
-    customer_mobile = Column(String)
-    customer_email = Column(String, nullable=True)
     date = Column(String)  # Keep as string to match Java model
     total_quantity = Column(Integer)
     total_price = Column(Float)
@@ -20,6 +16,9 @@ class Sale(Base):
     
     delivery_type_id = Column(Integer, ForeignKey("delivery_types.id"))
     delivery_type = relationship("DeliveryType")
+
+    customer_id = Column(Integer, ForeignKey("customers.id"))
+    customer = relationship("Customer", back_populates="sales")
     
     shop_id = Column(Integer, ForeignKey("shops.id"))
     shop = relationship("Shop", back_populates="sales")

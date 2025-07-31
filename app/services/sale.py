@@ -13,8 +13,8 @@ class SaleService:
 
     def create_sale(self, db: Session, sale: SaleCreate) -> Sale:
         # Create the main sale record
-        sale_dict = sale.dict(exclude={'sale_items'})
-        db_sale = Sale(**sale_dict)
+        sale_data = sale.model_dump(exclude={'sale_items'})
+        db_sale = Sale(**sale_data)
         db.add(db_sale)
         db.flush()  # Get the sale ID without committing
 

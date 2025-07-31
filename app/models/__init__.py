@@ -7,6 +7,8 @@ from .purchase import Purchase, PurchaseItem
 from .payment import PaymentType
 from .delivery import DeliveryType
 from .shop import Shop
+from .vendor import Vendor
+from .customer import Customer
 
 __all__ = [
     "Category",
@@ -20,5 +22,7 @@ __all__ = [
     "PaymentType",
     "DeliveryType",
     "Shop",
-    "shop_products"
+    "shop_products",
+    "Vendor",
+    "Customer"
 ]

@@ -18,9 +18,11 @@ from app.api import (
     categories,
     # attributes,
     sales,
+    customers,
     purchases,
     shops,
     payments,
+    vendors,
     delivery,
     dashboard,
     home,
@@ -32,7 +34,9 @@ app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(stock.router, prefix="/stock", tags=["stock"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(sales.router, prefix="/sales", tags=["sales"])
+app.include_router(customers.router, prefix="/customers", tags=["customers"])
 app.include_router(purchases.router, prefix="/purchases", tags=["purchases"])
+app.include_router(vendors.router, prefix="/vendors", tags=["vendors"])
 app.include_router(shops.router, prefix="/shops", tags=["shops"])
 app.include_router(payments.router, prefix="/paymentType", tags=["payments"])
 app.include_router(delivery.router, prefix="/deliveryType", tags=["delivery"])
