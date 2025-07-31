@@ -8,7 +8,7 @@ from app.services import customer as customer_service
 
 router = APIRouter()
 
-@router.post("/", response_model=CustomerResponse, summary="Create a new customer")
+@router.post("/addCustomer", response_model=CustomerResponse, summary="Create a new customer")
 def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     """
     Create a new customer.
@@ -16,7 +16,7 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     return customer_service.create_customer(db=db, customer=customer)
 
 
-@router.get("/", response_model=List[CustomerResponse], summary="Get all customers")
+@router.get("/all", response_model=List[CustomerResponse], summary="Get all customers")
 def read_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     Retrieve all customers.

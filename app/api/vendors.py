@@ -8,7 +8,7 @@ from app.services import vendor as vendor_service
 
 router = APIRouter()
 
-@router.post("/", response_model=VendorResponse, summary="Create a new vendor")
+@router.post("/addVendor", response_model=VendorResponse, summary="Create a new vendor")
 def create_vendor(vendor: VendorCreate, db: Session = Depends(get_db)):
     """
     Create a new vendor.
@@ -16,7 +16,7 @@ def create_vendor(vendor: VendorCreate, db: Session = Depends(get_db)):
     return vendor_service.create_vendor(db=db, vendor=vendor)
 
 
-@router.get("/", response_model=List[VendorResponse], summary="Get all vendors")
+@router.get("/all", response_model=List[VendorResponse], summary="Get all vendors")
 def read_vendors(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     Retrieve all vendors.
