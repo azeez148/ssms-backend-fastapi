@@ -3,6 +3,7 @@ from typing import Dict, Optional, List
 from typing_extensions import Annotated
 
 from app.schemas.category import CategoryBase
+from app.schemas.offer import OfferResponse
 
 class ProductSizeBase(BaseModel):
     size: str
@@ -45,7 +46,10 @@ class ProductInDB(ProductBase):
     id: int
 
 class ProductResponse(ProductInDB):
-    pass
+    offers: List["OfferResponse"] = []
+    discounted_price: Optional[int] = None
+
+ProductResponse.update_forward_refs()
 
 class UpdateSizeMapRequest(BaseModel):
     product_id: int

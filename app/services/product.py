@@ -1,12 +1,16 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from fastapi import HTTPException
 
 from app.models.product import Product
 from app.models.product_size import ProductSize
 from app.schemas.product import ProductCreate, ProductUpdate, UpdateSizeMapRequest
+from app.services.offer import OfferService
 
 class ProductService:
+    def __init__(self):
+        self.offer_service = OfferService()
+
     def create_product(self, db: Session, product: ProductCreate) -> Product:
         db_product = Product(
             name=product.name,
@@ -32,7 +36,13 @@ class ProductService:
         return db_product
 
     def get_all_products(self, db: Session) -> List[Product]:
-        return db.query(Product).all()
+        products = db.query(Product).options(joinedload(Product.offers)).all()
+        for product in products:
+            if product.offers:
+                for offer in product.offers:
+                    if offer.is_active:
+                        product.discounted_price = self.offer_service.calculate_discounted_price(product.selling_price, offer)
+        return products
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         return db.query(Product).filter(Product.id == product_id).first()
@@ -75,7 +85,7 @@ class ProductService:
         category_id: Optional[int] = None,
         product_type_filter: Optional[str] = None
     ) -> List[Product]:
-        query = db.query(Product)
+        query = db.query(Product).options(joinedload(Product.offers))
         
         if category_id:
             query = query.filter(Product.category_id == category_id)
@@ -84,7 +94,13 @@ class ProductService:
             # Add any specific filtering logic based on product type
             pass
             
-        return query.all()
+        products = query.all()
+        for product in products:
+            if product.offers:
+                for offer in product.offers:
+                    if offer.is_active:
+                        product.discounted_price = self.offer_service.calculate_discounted_price(product.selling_price, offer)
+        return products
 
     def update_product_stock(
         self,

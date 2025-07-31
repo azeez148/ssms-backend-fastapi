@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.product_size import ProductSize
+from app.models.offer import offer_products
 
 class Product(Base):
     __tablename__ = "products"
@@ -25,6 +26,7 @@ class Product(Base):
         lazy="joined"  # This will load the sizes eagerly with the product
     )
     shops = relationship("Shop", secondary="shop_products", back_populates="products")
+    offers = relationship("Offer", secondary="offer_products", back_populates="products")
 
 
 shop_products = Table(
