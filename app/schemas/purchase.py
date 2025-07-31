@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from .shop import ShopResponse
+from .vendor import VendorResponse
 
 class PurchaseItemBase(BaseModel):
     product_id: int
@@ -22,16 +23,13 @@ class PurchaseItemResponse(PurchaseItemBase):
     id: int
 
 class PurchaseBase(BaseModel):
-    supplier_name: str
-    supplier_address: str
-    supplier_mobile: str
-    supplier_email: str
     date: str
     total_quantity: int
     total_price: float
     payment_type_id: int
     payment_reference_number: str
     delivery_type_id: int
+    vendor_id: int
 
     class Config:
         from_attributes = True
@@ -44,3 +42,4 @@ class PurchaseResponse(PurchaseBase):
     id: int
     purchase_items: List[PurchaseItemResponse]
     shops: List[ShopResponse]
+    vendor: VendorResponse

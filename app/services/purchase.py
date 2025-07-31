@@ -13,16 +13,13 @@ class PurchaseService:
 
         # Create the main Purchase object
         db_purchase = Purchase(
-            supplier_name=purchase.supplier_name,
-            supplier_address=purchase.supplier_address,
-            supplier_mobile=purchase.supplier_mobile,
-            supplier_email=purchase.supplier_email,
             date=purchase.date,
             total_quantity=purchase.total_quantity,
             total_price=purchase.total_price,
             payment_type_id=purchase.payment_type_id,
             payment_reference_number=purchase.payment_reference_number,
             delivery_type_id=purchase.delivery_type_id,
+            vendor_id=purchase.vendor_id,
             purchase_items=purchase_items
         )
 

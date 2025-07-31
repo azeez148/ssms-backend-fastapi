@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 from .payment import PaymentTypeResponse
 from .delivery import DeliveryTypeResponse
+from .customer import CustomerResponse
 
 class SaleItemBase(BaseModel):
     product_id: int
@@ -28,10 +29,6 @@ class SaleItemResponse(SaleItemInDB):
     pass
 
 class SaleBase(BaseModel):
-    customer_name: str
-    customer_address: str
-    customer_mobile: str
-    customer_email: Optional[str] = None
     date: str
     total_quantity: int
     total_price: float
@@ -39,6 +36,7 @@ class SaleBase(BaseModel):
     payment_reference_number: Optional[str] = None
     delivery_type_id: int
     shop_id: int
+    customer_id: int
 
     class Config:
         from_attributes = True
@@ -51,6 +49,7 @@ class SaleInDB(SaleBase):
     sale_items: List[SaleItemResponse]
     payment_type: Optional[PaymentTypeResponse] = None
     delivery_type: Optional[DeliveryTypeResponse] = None
+    customer: Optional[CustomerResponse] = None
 
 class SaleResponse(SaleInDB):
     pass

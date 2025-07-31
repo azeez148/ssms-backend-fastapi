@@ -13,11 +13,10 @@ class Purchase(Base):
     __tablename__ = "purchases"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    supplier_name = Column(String)
-    supplier_address = Column(String)
-    supplier_mobile = Column(String)
-    supplier_email = Column(String)
     date = Column(String)  # could be Date type if desired
+
+    vendor_id = Column(Integer, ForeignKey("vendors.id"))
+    vendor = relationship("Vendor", back_populates="purchases")
 
     purchase_items = relationship("PurchaseItem", back_populates="purchase", cascade="all, delete-orphan")
 
