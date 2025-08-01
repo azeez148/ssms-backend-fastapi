@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
+from app.schemas.customer import CustomerCreate
 from app.schemas.sale import SaleCreate
+from app.services.customer import get_or_create_customer
 from app.services.notification import WhatsAppNotificationService, EmailNotificationService
 from app.services.product import ProductService
 
@@ -12,8 +14,28 @@ class SaleService:
         self.product_service = ProductService()
 
     def create_sale(self, db: Session, sale: SaleCreate) -> Sale:
+        # Get or create customer
+        customer_id = sale.customer_id
+        if customer_id == 0:
+            if not sale.customer_mobile:
+                raise ValueError("Customer mobile number is required to create a new customer.")
+
+            customer_data = CustomerCreate(
+                name=sale.customer_name,
+                address=sale.customer_address,
+                mobile=sale.customer_mobile,
+                email=sale.customer_email
+            )
+            customer = get_or_create_customer(db, customer_data)
+            customer_id = customer.id
+
         # Create the main sale record
-        sale_data = sale.model_dump(exclude={'sale_items'})
+        sale_data = sale.model_dump(exclude={
+            'sale_items', 'customer_name', 'customer_address',
+            'customer_mobile', 'customer_email'
+        })
+        sale_data['customer_id'] = customer_id
+
         db_sale = Sale(**sale_data)
         db.add(db_sale)
         db.flush()  # Get the sale ID without committing

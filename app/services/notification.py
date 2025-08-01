@@ -5,22 +5,25 @@ import pywhatkit
 
 class WhatsAppNotificationService:
     def send_sale_notification(self, sale: Sale):
-        if sale.customer_mobile:
+        if sale.customer and sale.customer.mobile:
             try:
                 pywhatkit.sendwhatmsg_instantly(
-                    phone_no=sale.customer_mobile,
-                    message=f"Hi {sale.customer_name}, your sale with ID #{sale.id} has been confirmed. Total amount: {sale.total_price}"
+                    phone_no=sale.customer.mobile,
+                    message=f"Hi {sale.customer.name}, your sale with ID #{sale.id} has been confirmed. Total amount: {sale.total_price}"
                 )
             except Exception as e:
-                print(f"Failed to send WhatsApp message to {sale.customer_mobile}: {e}")
+                print(f"Failed to send WhatsApp message to {sale.customer.mobile}: {e}")
 
 class EmailNotificationService:
     def send_sale_notification(self, sale: Sale):
+        if not sale.customer:
+            return
+
         message = emails.Message(
             subject=f"Sale Confirmation #{sale.id}",
             html=f"""
             <h1>Sale Confirmation</h1>
-            <p>Dear {sale.customer_name},</p>
+            <p>Dear {sale.customer.name},</p>
             <p>Thank you for your purchase. Here are the d
             etails of your order:</p>
             <ul>
@@ -42,7 +45,7 @@ class EmailNotificationService:
             "password": settings.MAIL_PASSWORD,
         }
 
-        if sale.customer_email:
-            response = message.send(to=sale.customer_email, smtp=smtp_options)
+        if sale.customer.email:
+            response = message.send(to=sale.customer.email, smtp=smtp_options)
             if not response.success:
-                print(f"Failed to send email to {sale.customer_email}: {response.error}")
+                print(f"Failed to send email to {sale.customer.email}: {response.error}")
