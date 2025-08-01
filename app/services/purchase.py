@@ -6,6 +6,7 @@ from app.models.product_size import ProductSize
 from app.models.shop import Shop
 from app.schemas.purchase import PurchaseCreate
 from app.schemas.vendor import VendorCreate
+from app.services.notification import EmailNotificationService
 from app.services.vendor import create_vendor
 
 class PurchaseService:
@@ -66,6 +67,11 @@ class PurchaseService:
         db.add(db_purchase)
         db.commit()
         db.refresh(db_purchase)
+
+        # Send email notification
+        notification_service = EmailNotificationService()
+        notification_service.send_purchase_notification(db_purchase)
+
         return db_purchase
 
     def get_all_purchases(self, db: Session) -> List[Purchase]:
