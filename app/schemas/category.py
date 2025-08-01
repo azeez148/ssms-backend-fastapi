@@ -11,18 +11,6 @@ class CategoryBase(BaseModel):
 class CategoryCreate(CategoryBase):
     pass
 
-class CategoryInDB(CategoryBase):
-    id: int
-
-class CategoryResponse(CategoryInDB):
-    pass
-
-class CategoryBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class CategoryCreate(CategoryBase):
-    pass
 
 class CategoryInDB(CategoryBase):
     id: int
