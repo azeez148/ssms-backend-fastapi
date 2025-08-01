@@ -15,6 +15,7 @@ from app.schemas.product import (
     UpdateSizeMapRequest,
     ProductFilterRequest
 )
+from app.schemas.category import CategoryBase
 from app.services.product import ProductService
 from app.services.category import CategoryService
 
@@ -81,9 +82,11 @@ async def import_products_from_excel(
             
             # Fetch category
             category_id = int(row['category_id'])
-            category = category_service.get_category_by_id(db, category_id)
-            if not category:
+            category_model = category_service.get_category_by_id(db, category_id)
+            if not category_model:
                 raise HTTPException(status_code=400, detail=f"Category with id {category_id} not found")
+
+            category_schema = CategoryBase.from_orm(category_model)
 
             # Create product data
             product_data = ProductCreate(
@@ -95,7 +98,7 @@ async def import_products_from_excel(
                 is_active=bool(row['is_active']),
                 can_listed=bool(row['can_listed']),
                 size_map=size_map,
-                category=category
+                category=category_schema
             )
             
             # Create product in database
