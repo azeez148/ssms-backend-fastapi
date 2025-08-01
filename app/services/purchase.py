@@ -79,3 +79,15 @@ class PurchaseService:
 
     def get_purchase_by_id(self, db: Session, purchase_id: int) -> Purchase:
         return db.query(Purchase).filter(Purchase.id == purchase_id).first()
+
+    def get_recent_purchases(self, db: Session, limit: int = 10) -> List[Purchase]:
+        return db.query(Purchase).order_by(Purchase.date.desc()).limit(limit).all()
+
+    def get_total_purchases(self, db: Session) -> dict:
+        """Get total purchases summary"""
+        purchases = self.get_all_purchases(db)
+        return {
+            'total_count': len(purchases),
+            'total_cost': sum(purchase.total_price for purchase in purchases),
+            'total_items_purchased': sum(purchase.total_quantity for purchase in purchases)
+        }
