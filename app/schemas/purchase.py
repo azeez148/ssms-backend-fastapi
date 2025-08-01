@@ -37,6 +37,10 @@ class PurchaseBase(BaseModel):
 class PurchaseCreate(PurchaseBase):
     purchase_items: List[PurchaseItemCreate]
     shop_ids: List[int]
+    supplier_name: Optional[str] = None
+    supplier_address: Optional[str] = None
+    supplier_mobile: Optional[str] = None
+    supplier_email: Optional[str] = None
 
 class PurchaseResponse(PurchaseBase):
     id: int

@@ -5,9 +5,22 @@ from app.models.product import Product
 from app.models.product_size import ProductSize
 from app.models.shop import Shop
 from app.schemas.purchase import PurchaseCreate
+from app.schemas.vendor import VendorCreate
+from app.services.vendor import create_vendor
 
 class PurchaseService:
     def create_purchase(self, db: Session, purchase: PurchaseCreate) -> Purchase:
+        vendor_id = purchase.vendor_id
+        if vendor_id == 0:
+            vendor_data = VendorCreate(
+                name=purchase.supplier_name,
+                address=purchase.supplier_address,
+                mobile=purchase.supplier_mobile,
+                email=purchase.supplier_email
+            )
+            new_vendor = create_vendor(db, vendor_data)
+            vendor_id = new_vendor.id
+
         # Create PurchaseItem models from the purchase data
         purchase_items = [PurchaseItem(**item.dict()) for item in purchase.purchase_items]
 
@@ -19,7 +32,7 @@ class PurchaseService:
             payment_type_id=purchase.payment_type_id,
             payment_reference_number=purchase.payment_reference_number,
             delivery_type_id=purchase.delivery_type_id,
-            vendor_id=purchase.vendor_id,
+            vendor_id=vendor_id,
             purchase_items=purchase_items
         )
 
