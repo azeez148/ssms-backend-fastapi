@@ -42,6 +42,10 @@ class SaleBase(BaseModel):
         from_attributes = True
 
 class SaleCreate(SaleBase):
+    customer_name: Optional[str] = None
+    customer_address: Optional[str] = None
+    customer_mobile: Optional[str] = None
+    customer_email: Optional[str] = None
     sale_items: List[SaleItemCreate]
 
 class SaleInDB(SaleBase):
