@@ -16,9 +16,11 @@ from app.schemas.product import (
     ProductFilterRequest
 )
 from app.services.product import ProductService
+from app.services.category import CategoryService
 
 router = APIRouter()
 product_service = ProductService()
+category_service = CategoryService()
 
 @router.post("/addProduct", response_model=ProductResponse)
 async def add_product(
@@ -77,16 +79,23 @@ async def import_products_from_excel(
                 if quantity > 0:
                     size_map.append({"size": size, "quantity": int(quantity)})
             
+            # Fetch category
+            category_id = int(row['category_id'])
+            category = category_service.get_category_by_id(db, category_id)
+            if not category:
+                raise HTTPException(status_code=400, detail=f"Category with id {category_id} not found")
+
             # Create product data
             product_data = ProductCreate(
                 name=row['name'],
                 description=row['description'],
                 unit_price=int(row['unit_price']),
                 selling_price=int(row['selling_price']),
-                category_id=int(row['category_id']),
+                category_id=category_id,
                 is_active=bool(row['is_active']),
                 can_listed=bool(row['can_listed']),
-                size_map=size_map
+                size_map=size_map,
+                category=category
             )
             
             # Create product in database
