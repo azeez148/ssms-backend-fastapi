@@ -1,15 +1,29 @@
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 import os
+from app.core.config import settings
 
 class GoogleDriveService:
-    def __init__(self, client_secrets_path='client_secrets.json', credentials_path='mycreds.txt'):
-        self.client_secrets_path = client_secrets_path
+    def __init__(self, credentials_path='mycreds.txt'):
         self.credentials_path = credentials_path
         self.drive = self._authenticate()
 
     def _authenticate(self):
         gauth = GoogleAuth()
+
+        # Create the settings dictionary from environment variables
+        client_config = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": [settings.GOOGLE_REDIRECT_URIS],
+            "access_type": "offline",
+        }
+
+        # Manually set the client config
+        gauth.client_config = {'web': client_config}
+
         # Try to load saved client credentials
         gauth.LoadCredentialsFile(self.credentials_path)
         if gauth.credentials is None:
