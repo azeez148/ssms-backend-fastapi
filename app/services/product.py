@@ -8,23 +8,6 @@ from app.models.product_size import ProductSize
 from app.schemas.product import ProductCreate, ProductUpdate, UpdateSizeMapRequest
 
 class ProductService:
-    def _get_correct_image_url(self, product_id: int) -> Optional[str]:
-        image_dir = f"images/products/{product_id}"
-        if not os.path.isdir(image_dir):
-            return None
-        try:
-            files = [f for f in os.listdir(image_dir) if os.path.isfile(os.path.join(image_dir, f))]
-            if not files:
-                return None
-            files.sort()
-            return f"/{image_dir}/{files[0]}"
-        except FileNotFoundError:
-            return None
-
-    def _apply_correct_image_url(self, product: Optional[Product]):
-        if product:
-            product.image_url = self._get_correct_image_url(product.id)
-
     def create_product(self, db: Session, product: ProductCreate) -> Product:
         db_product = Product(
             name=product.name,
@@ -47,18 +30,14 @@ class ProductService:
         db.add(db_product)
         db.commit()
         db.refresh(db_product)
-        self._apply_correct_image_url(db_product)
         return db_product
 
     def get_all_products(self, db: Session) -> List[Product]:
         products = db.query(Product).all()
-        for product in products:
-            self._apply_correct_image_url(product)
         return products
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         product = db.query(Product).filter(Product.id == product_id).first()
-        self._apply_correct_image_url(product)
         return product
 
     def update_product(self, db: Session, product_update: ProductUpdate) -> Optional[Product]:
@@ -71,7 +50,6 @@ class ProductService:
             
         db.commit()
         db.refresh(db_product)
-        self._apply_correct_image_url(db_product)
         return db_product
 
     def update_size_map(self, db: Session, update_request: UpdateSizeMapRequest) -> Optional[Product]:
@@ -92,7 +70,6 @@ class ProductService:
             
         db.commit()
         db.refresh(db_product)
-        self._apply_correct_image_url(db_product)
         return db_product
 
     def get_filtered_products(
@@ -111,8 +88,6 @@ class ProductService:
             pass
             
         products = query.all()
-        for p in products:
-            self._apply_correct_image_url(p)
         return products
 
     def update_product_image_url(self, db: Session, product_id: int, image_url: str) -> Optional[Product]:
@@ -123,7 +98,6 @@ class ProductService:
         db_product.image_url = image_url
         db.commit()
         db.refresh(db_product)
-        self._apply_correct_image_url(db_product)
         return db_product
 
     def update_product_stock(
