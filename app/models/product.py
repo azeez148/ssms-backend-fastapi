@@ -13,6 +13,7 @@ class Product(Base):
     selling_price = Column(Integer)  # Changed to Integer as per Java model
     is_active = Column(Boolean, default=False, nullable=False)  # Matches Java default
     can_listed = Column(Boolean, default=False, nullable=False)  # Matches Java default
+    image_url = Column(String, nullable=True)
     
     category_id = Column(Integer, ForeignKey("categories.id"))
     category = relationship("Category", back_populates="products")

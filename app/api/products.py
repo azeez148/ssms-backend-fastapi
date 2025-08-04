@@ -124,10 +124,10 @@ async def get_filtered_products(
         filter_request.product_type_filter
     )
 
-@router.post("/upload-images")
+@router.post("/upload-images", response_model=ProductResponse)
 async def upload_product_images(
     product_id: int,
-    images: List[UploadFile] = File(...),
+    image: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
     product = product_service.get_product_by_id(db, product_id)
@@ -137,11 +137,16 @@ async def upload_product_images(
     upload_dir = Path("images/products") / str(product_id)
     upload_dir.mkdir(parents=True, exist_ok=True)
     
-    saved_files = []
-    for image in images:
-        file_path = upload_dir / image.filename
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-        saved_files.append(str(file_path))
+    file_path = upload_dir / image.filename
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
     
-    return {"message": "Images uploaded successfully", "files": saved_files}
+    # Create a URL path for the image
+    image_url = f"/images/products/{product_id}/{image.filename}"
+
+    # Update the product with the new image URL
+    updated_product = product_service.update_product_image_url(db, product_id, image_url)
+    if not updated_product:
+        raise HTTPException(status_code=404, detail="Product not found after update")
+
+    return updated_product
