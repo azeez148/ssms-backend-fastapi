@@ -1,13 +1,22 @@
 import os
+from pydantic_settings import BaseSettings
 
-class Settings:
+class Settings(BaseSettings):
     # Email settings
-    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "adrenalinesportsstore44@gmail.com")
-    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "oajy ubuh epgr dkrs")
-    MAIL_FROM = os.getenv("MAIL_FROM", "adrenalinesportsstore44@gmail.com")
-    MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
-    MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-    MAIL_TLS = os.getenv("MAIL_TLS", "True").lower() in ("true", "1", "t")
-    MAIL_SSL = os.getenv("MAIL_SSL", "False").lower() in ("true", "1", "t")
+    MAIL_USERNAME: str = "adrenalinesportsstore44@gmail.com"
+    MAIL_PASSWORD: str = "oajy ubuh epgr dkrs"
+    MAIL_FROM: str = "adrenalinesportsstore44@gmail.com"
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_TLS: bool = True
+    MAIL_SSL: bool = False
+
+    # Google Drive settings
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    GOOGLE_REDIRECT_URIS: str = "http://localhost:8080/"
+
+    class Config:
+        env_file = ".env"
 
 settings = Settings()
