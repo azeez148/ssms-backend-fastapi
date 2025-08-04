@@ -86,6 +86,16 @@ class ProductService:
             
         return query.all()
 
+    def update_product_image_url(self, db: Session, product_id: int, image_url: str) -> Optional[Product]:
+        db_product = self.get_product_by_id(db, product_id)
+        if not db_product:
+            return None
+
+        db_product.image_url = image_url
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+
     def update_product_stock(
         self,
         db: Session,

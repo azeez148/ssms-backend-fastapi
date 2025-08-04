@@ -24,6 +24,7 @@ class ProductBase(BaseModel):
     can_listed: bool = False  # Changed default to match Java
     size_map: Optional[List[ProductSizeBase]] = None
     category: CategoryBase
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True
