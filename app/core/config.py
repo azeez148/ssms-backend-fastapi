@@ -11,11 +11,6 @@ class Settings(BaseSettings):
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
 
-    # Google Drive settings
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URIS: str = "http://localhost:8080/"
-
     class Config:
         env_file = ".env"
 
