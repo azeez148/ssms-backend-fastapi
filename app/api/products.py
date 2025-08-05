@@ -18,12 +18,10 @@ from app.schemas.product import (
 from app.schemas.category import CategoryBase
 from app.services.product import ProductService
 from app.services.category import CategoryService
-from app.core.google_drive import GoogleDriveService
 
 router = APIRouter()
 product_service = ProductService()
 category_service = CategoryService()
-google_drive_service = GoogleDriveService()
 
 @router.post("/addProduct", response_model=ProductResponse)
 async def add_product(
@@ -126,37 +124,3 @@ async def get_filtered_products(
         filter_request.product_type_filter
     )
 
-# This should be moved to a config file
-GOOGLE_DRIVE_FOLDER_ID = "1I2zXN23avwFEt4nQ2aFke2OThbF9T3sW"
-@router.post("/upload-images", response_model=ProductResponse)
-async def upload_product_images(
-    product_id: int,
-    image: UploadFile = File(...),
-    db: Session = Depends(get_db)
-):
-    product = product_service.get_product_by_id(db, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    try:
-        # Create a temporary file to store the upload
-        with tempfile.NamedTemporaryFile(delete=False, suffix=image.filename) as temp_file:
-            shutil.copyfileobj(image.file, temp_file)
-            temp_path = temp_file.name
-
-        # Upload the image to Google Drive
-        image_url = google_drive_service.upload_image(temp_path, folder_id=GOOGLE_DRIVE_FOLDER_ID)
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload image to Google Drive: {str(e)}")
-    finally:
-        # Clean up the temporary file
-        if 'temp_path' in locals() and os.path.exists(temp_path):
-            os.unlink(temp_path)
-
-    # Update the product with the new image URL
-    updated_product = product_service.update_product_image_url(db, product_id, image_url)
-    if not updated_product:
-        raise HTTPException(status_code=404, detail="Product not found after update")
-
-    return updated_product
