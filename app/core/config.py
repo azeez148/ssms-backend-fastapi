@@ -1,5 +1,6 @@
 import os
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     # Email settings
@@ -10,6 +11,11 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
+
+    # ImageKit.io settings
+    IMAGEKIT_PRIVATE_KEY: Optional[str] = None
+    IMAGEKIT_PUBLIC_KEY: Optional[str] = None
+    IMAGEKIT_URL_ENDPOINT: Optional[str] = None
 
     class Config:
         env_file = ".env"

@@ -16,3 +16,4 @@ numpy==1.26.4
 openpyxl==3.1.2
 pydantic-settings
 pytest
+imagekitio
