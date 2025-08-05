@@ -18,10 +18,12 @@ from app.schemas.product import (
 from app.schemas.category import CategoryBase
 from app.services.product import ProductService
 from app.services.category import CategoryService
+from app.core.imagekit import ImageKitService
 
 router = APIRouter()
 product_service = ProductService()
 category_service = CategoryService()
+imagekit_service = ImageKitService()
 
 @router.post("/addProduct", response_model=ProductResponse)
 async def add_product(
@@ -124,3 +126,26 @@ async def get_filtered_products(
         filter_request.product_type_filter
     )
 
+@router.post("/upload-images", response_model=ProductResponse)
+async def upload_product_images(
+    product_id: int,
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    product = product_service.get_product_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    try:
+        # Upload the image to ImageKit.io
+        image_url = imagekit_service.upload_image(image.file, image.filename)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload image to ImageKit.io: {str(e)}")
+
+    # Update the product with the new image URL
+    updated_product = product_service.update_product_image_url(db, product_id, image_url)
+    if not updated_product:
+        raise HTTPException(status_code=404, detail="Product not found after update")
+
+    return updated_product
