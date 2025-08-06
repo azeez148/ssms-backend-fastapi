@@ -12,11 +12,6 @@ class Settings(BaseSettings):
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
 
-    # ImageKit.io settings
-    IMAGEKIT_PRIVATE_KEY: Optional[str] = None
-    IMAGEKIT_PUBLIC_KEY: Optional[str] = None
-    IMAGEKIT_URL_ENDPOINT: Optional[str] = None
-
     class Config:
         env_file = ".env"
         extra = 'ignore'
