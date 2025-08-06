@@ -1,6 +1,5 @@
 from imagekitio import ImageKit
 from app.core.config import settings
-from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions
 
 class ImageKitService:
     def __init__(self):
@@ -12,13 +11,9 @@ class ImageKitService:
 
     def upload_image(self, file, file_name):
         try:
-            options = UploadFileRequestOptions(
-                transformation={}
-            )
             upload_info = self.imagekit.upload(
                 file=file,
                 file_name=file_name,
-                options=options,
             )
             return upload_info.url
         except Exception as e:
