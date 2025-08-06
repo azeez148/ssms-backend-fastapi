@@ -1,13 +1,13 @@
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
+from app.core import database
 def drop_all_tables():
     # Connect to the database
     conn = psycopg2.connect(
-        dbname='ssms-db',
-        user='postgres',
-        password='admin',
-        host='localhost'
+        dbname=database.POSTGRES_DB,
+        user=database.POSTGRES_USER,
+        password=database.POSTGRES_PASSWORD,
+        host=database.POSTGRES_SERVER,
     )
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     cur = conn.cursor()
