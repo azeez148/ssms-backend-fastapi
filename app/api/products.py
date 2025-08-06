@@ -123,3 +123,29 @@ async def get_filtered_products(
         filter_request.category_id,
         filter_request.product_type_filter
     )
+
+@router.post("/upload-images", response_model=ProductResponse)
+async def upload_product_images(
+    product_id: int,
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    # Define the directory to store the image
+    upload_dir = Path(f"images/products/{product_id}")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Define the file path
+    file_path = upload_dir / image.filename
+
+    # Save the file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+
+    # Update the product's image_url in the database
+    image_url = str(file_path).replace("\\", "/")
+    updated_product = product_service.update_product_image_url(db, product_id, image_url)
+
+    if not updated_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return updated_product
