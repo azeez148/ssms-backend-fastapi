@@ -1,7 +1,11 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="SSMS API")
+
+# Mount the 'images' directory to serve static files
+app.mount("/images", StaticFiles(directory="images"), name="images")
 
 # Configure CORS
 app.add_middleware(
