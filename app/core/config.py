@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
+    SYSTEM_PASS_KEY: str = "your_secret_pass_key"
 
     class Config:
         env_file = ".env"
