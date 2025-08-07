@@ -1,19 +1,79 @@
+import os
 from app.models.purchase import Purchase
 from app.models.sale import Sale
 from app.core.config import settings
 import emails
-import pywhatkit
+import httpx
+# class WhatsAppNotificationService:
+#     def send_sale_notification(self, sale: Sale):
+#         if sale.customer and sale.customer.mobile:
+#             try:
+#                 pywhatkit.sendwhatmsg_instantly(
+#                     phone_no=sale.customer.mobile,
+#                     message=f"Hi {sale.customer.name}, your sale with ID #{sale.id} has been confirmed. Total amount: {sale.total_price}"
+#                 )
+#             except Exception as e:
+#                 print(f"Failed to send WhatsApp message to {sale.customer.mobile}: {e}")
+
+
 
 class WhatsAppNotificationService:
+    # Get credentials from environment variables.
+    # Set these in your Render service's "Environment" tab.
+    WHATSAPP_API_TOKEN = os.getenv("WHATSAPP_API_TOKEN")
+    PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+
     def send_sale_notification(self, sale: Sale):
-        if sale.customer and sale.customer.mobile:
-            try:
-                pywhatkit.sendwhatmsg_instantly(
-                    phone_no=sale.customer.mobile,
-                    message=f"Hi {sale.customer.name}, your sale with ID #{sale.id} has been confirmed. Total amount: {sale.total_price}"
-                )
-            except Exception as e:
-                print(f"Failed to send WhatsApp message to {sale.customer.mobile}: {e}")
+        """
+        Sends a sale confirmation message via the WhatsApp Business API.
+        """
+        # 1. Check if the service is configured and if the customer has a mobile number.
+        if not self.WHATSAPP_API_TOKEN or not self.PHONE_NUMBER_ID:
+            print("WhatsApp service is not configured. Skipping notification.")
+            return
+
+        if not (sale.customer and sale.customer.mobile):
+            print(f"No mobile number on sale #{sale.id}. Skipping notification.")
+            return
+
+        # 2. Prepare the API request details.
+        api_url = f"https://graph.facebook.com/v20.0/{self.PHONE_NUMBER_ID}/messages"
+        
+        headers = {
+            "Authorization": f"Bearer {self.WHATSAPP_API_TOKEN}",
+            "Content-Type": "application/json",
+        }
+
+        # Construct a clear, user-friendly message.
+        message_body = (
+            f"Hi {sale.customer.name},\n\n"
+            f"Your sale (ID: #{sale.id}) for ₹{sale.total_price:,.2f} has been confirmed.\n\n"
+            "Thank you for your purchase!"
+        )
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": sale.customer.mobile,  # Ensure this number includes the country code, e.g., 919876543210
+            "type": "text",
+            "text": {"body": message_body},
+        }
+
+        # 3. Send the message using httpx.
+        try:
+            with httpx.Client() as client:
+                response = client.post(api_url, headers=headers, json=payload)
+                # Raise an exception for HTTP error codes (4xx or 5xx)
+                response.raise_for_status()
+            
+            print(f"Successfully sent WhatsApp sale notification to {sale.customer.mobile}")
+
+        except httpx.HTTPStatusError as e:
+            # Handle API-specific errors
+            print(f"Failed to send WhatsApp message. Status: {e.response.status_code}. Response: {e.response.text}")
+        except Exception as e:
+            # Handle other errors like network issues
+            print(f"An unexpected error occurred while sending WhatsApp message: {e}")
+
 
 class EmailNotificationService:
     def send_sale_notification(self, sale: Sale):
