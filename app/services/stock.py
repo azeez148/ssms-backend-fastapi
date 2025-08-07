@@ -56,7 +56,8 @@ class StockService:
                     unit_price=unit_price,
                     selling_price=selling_price,
                     is_active=bool(is_active),
-                    can_listed=bool(can_listed)
+                    can_listed=bool(can_listed),
+                    category=category
                 )
                 self.product_service.create_product(db, product_data)
 
