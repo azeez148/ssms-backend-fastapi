@@ -20,7 +20,7 @@ async def create_event_offer(
 async def get_all_event_offers(db: Session = Depends(get_db)):
     return event_offer_service.get_all_event_offers(db)
 
-@router.put("/update/{offer_id}", response_model=EventOfferResponse)
+@router.post("/update/{offer_id}", response_model=EventOfferResponse)
 async def update_event_offer(
     offer_id: int,
     offer_update: EventOfferUpdate,
@@ -31,7 +31,7 @@ async def update_event_offer(
         raise HTTPException(status_code=404, detail="Offer not found")
     return updated_offer
 
-@router.put("/deactivate/{offer_id}", response_model=EventOfferResponse)
+@router.post("/deactivate/{offer_id}", response_model=EventOfferResponse)
 async def deactivate_event_offer(
     offer_id: int,
     db: Session = Depends(get_db)
