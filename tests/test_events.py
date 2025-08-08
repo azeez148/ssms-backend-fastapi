@@ -90,7 +90,7 @@ class TestEvents(unittest.TestCase):
         self.assertEqual(self.mock_product_2.discounted_price, 180) # 200 - 20
 
     @patch('app.services.event.ProductService')
-    def test_deactivate_event_offer(self, MockProductService):
+    def test_set_active_status_deactivate(self, MockProductService):
         # Arrange
         mock_product_service = MockProductService.return_value
         mock_product_service.get_product_by_id.side_effect = self.mock_get_product_by_id
@@ -102,11 +102,31 @@ class TestEvents(unittest.TestCase):
         self.db_session.query(EventOffer).filter.return_value.first.return_value = mock_offer
 
         # Act
-        self.event_offer_service.deactivate_event_offer(self.db_session, 1)
+        self.event_offer_service.set_event_offer_active_status(self.db_session, 1, is_active=False)
 
         # Assert
         self.assertEqual(mock_offer.is_active, False)
         self.assertEqual(self.mock_product_1.offer_id, None)
+
+    @patch('app.services.event.ProductService')
+    def test_set_active_status_activate(self, MockProductService):
+        # Arrange
+        mock_product_service = MockProductService.return_value
+        mock_product_service.get_product_by_id.side_effect = self.mock_get_product_by_id
+
+        mock_offer = EventOffer(
+            id=1, name="Inactive Offer", is_active=False,
+            rate_type=RateType.flat, rate=10,
+            product_ids="1", category_ids=""
+        )
+        self.db_session.query(EventOffer).filter.return_value.first.return_value = mock_offer
+
+        # Act
+        self.event_offer_service.set_event_offer_active_status(self.db_session, 1, is_active=True)
+
+        # Assert
+        self.assertEqual(mock_offer.is_active, True)
+        self.assertEqual(self.mock_product_1.discounted_price, 90)
 
 
 if __name__ == '__main__':
