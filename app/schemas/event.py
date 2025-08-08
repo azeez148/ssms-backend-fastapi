@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from datetime import datetime
+from app.models.event import EventOfferType, RateType
 
 class EventOfferBase(BaseModel):
     name: str
@@ -20,8 +21,30 @@ class EventOfferBase(BaseModel):
 class EventOfferCreate(EventOfferBase):
     pass
 
+class EventOfferResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    type: EventOfferType
+    is_active: bool
+    start_date: datetime
+    end_date: datetime
+    rate_type: RateType
+    rate: int
+    product_ids: List[int] = []
+    category_ids: List[int] = []
+
+    class Config:
+        from_attributes = True
+
+    @field_validator('product_ids', 'category_ids', mode='before')
+    @classmethod
+    def split_string(cls, v):
+        if isinstance(v, str):
+            if not v:
+                return []
+            return [int(x) for x in v.split(',')]
+        return v
+
 class EventOfferInDB(EventOfferBase):
     id: int
-
-class EventOfferResponse(EventOfferInDB):
-    pass
