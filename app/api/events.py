@@ -20,7 +20,7 @@ async def create_event_offer(
 async def get_all_event_offers(db: Session = Depends(get_db)):
     return event_offer_service.get_all_event_offers(db)
 
-@router.put("/update/{offer_id}", response_model=EventOfferResponse)
+@router.post("/update/{offer_id}", response_model=EventOfferResponse)
 async def update_event_offer(
     offer_id: int,
     offer_update: EventOfferUpdate,
@@ -33,6 +33,7 @@ async def update_event_offer(
 
 @router.put("/set_active_status/{offer_id}", response_model=EventOfferResponse)
 async def set_event_offer_active_status(
+
     offer_id: int,
     is_active: bool,
     db: Session = Depends(get_db)
