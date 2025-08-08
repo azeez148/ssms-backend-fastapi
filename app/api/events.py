@@ -31,9 +31,8 @@ async def update_event_offer(
         raise HTTPException(status_code=404, detail="Offer not found")
     return updated_offer
 
-@router.put("/set_active_status/{offer_id}", response_model=EventOfferResponse)
+@router.post("/set_active_status", response_model=EventOfferResponse)
 async def set_event_offer_active_status(
-
     offer_id: int,
     is_active: bool,
     db: Session = Depends(get_db)
