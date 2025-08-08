@@ -99,6 +99,7 @@ class EventOfferService:
                 product.offer_id = None
                 product.discounted_price = None
                 product.offer_price = None
+                product.offer_name = None
                 db.add(product)
 
         db.commit()
@@ -121,9 +122,11 @@ class EventOfferService:
                 if offer.rate_type == RateType.flat:
                     product.discounted_price = product.selling_price - offer.rate
                     product.offer_price = offer.rate
+                    product.offer_name = offer.name
                 elif offer.rate_type == RateType.percentage:
                     product.offer_price = (product.selling_price * offer.rate) / 100
                     product.discounted_price = product.selling_price - product.offer_price
+                    product.offer_name = offer.name
 
                 product.offer_id = offer.id
                 db.add(product)

@@ -28,6 +28,7 @@ class ProductBase(BaseModel):
     offer_id: Optional[int] = None
     discounted_price: Optional[int] = None
     offer_price: Optional[int] = None
+    offer_name: Optional[str] = None  # Added for offer name
 
 
     class Config:
