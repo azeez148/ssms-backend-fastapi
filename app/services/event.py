@@ -64,13 +64,17 @@ class EventOfferService:
         db.refresh(db_offer)
         return db_offer
 
-    def deactivate_event_offer(self, db: Session, offer_id: int) -> Optional[EventOffer]:
+    def set_event_offer_active_status(self, db: Session, offer_id: int, is_active: bool) -> Optional[EventOffer]:
         db_offer = self.get_event_offer_by_id(db, offer_id)
         if not db_offer:
             return None
 
-        db_offer.is_active = False
-        self.remove_offer_from_products(db, db_offer.product_ids, db_offer.category_ids)
+        db_offer.is_active = is_active
+
+        if is_active:
+            self.apply_offer_to_products(db, db_offer)
+        else:
+            self.remove_offer_from_products(db, db_offer.product_ids, db_offer.category_ids)
 
         db.add(db_offer)
         db.commit()

@@ -31,12 +31,13 @@ async def update_event_offer(
         raise HTTPException(status_code=404, detail="Offer not found")
     return updated_offer
 
-@router.put("/deactivate/{offer_id}", response_model=EventOfferResponse)
-async def deactivate_event_offer(
+@router.put("/set_active_status/{offer_id}", response_model=EventOfferResponse)
+async def set_event_offer_active_status(
     offer_id: int,
+    is_active: bool,
     db: Session = Depends(get_db)
 ):
-    deactivated_offer = event_offer_service.deactivate_event_offer(db, offer_id)
-    if not deactivated_offer:
+    updated_offer = event_offer_service.set_event_offer_active_status(db, offer_id, is_active)
+    if not updated_offer:
         raise HTTPException(status_code=404, detail="Offer not found")
-    return deactivated_offer
+    return updated_offer
