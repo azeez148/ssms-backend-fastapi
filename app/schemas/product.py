@@ -25,6 +25,10 @@ class ProductBase(BaseModel):
     size_map: Optional[List[ProductSizeBase]] = None
     category: CategoryBase
     image_url: Optional[str] = None
+    offer_id: Optional[int] = None
+    discounted_price: Optional[int] = None
+    offer_price: Optional[int] = None
+
 
     class Config:
         from_attributes = True

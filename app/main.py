@@ -31,12 +31,14 @@ from app.api import (
     dashboard,
     home,
     stock,
-    system
+    system,
+    events
 )
 
 # Include all routers
 app.include_router(system.router, prefix="/system", tags=["system"])
 app.include_router(products.router, prefix="/products", tags=["products"])
+app.include_router(events.router, prefix="/events", tags=["events"])
 app.include_router(stock.router, prefix="/stock", tags=["stock"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(sales.router, prefix="/sales", tags=["sales"])
