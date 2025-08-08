@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.event import EventOffer
+from app.models.event import EventOffer, RateType
 from app.models.product import Product
 from app.schemas.event import EventOfferCreate
 from typing import Optional, List
@@ -45,10 +45,10 @@ class EventOfferService:
         for product_id in set(product_ids_to_update):
             product = product_service.get_product_by_id(db, product_id)
             if product:
-                if offer.rate_type == "flat":
+                if offer.rate_type == RateType.flat:
                     product.discounted_price = product.selling_price - offer.rate
                     product.offer_price = offer.rate
-                elif offer.rate_type == "percentage":
+                elif offer.rate_type == RateType.percentage:
                     product.offer_price = (product.selling_price * offer.rate) / 100
                     product.discounted_price = product.selling_price - product.offer_price
 

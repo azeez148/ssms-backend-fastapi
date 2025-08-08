@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from app.services.event import EventOfferService
 from app.schemas.event import EventOfferCreate
 from app.models.product import Product
-from app.models.event import EventOffer
+from app.models.event import EventOffer, RateType
 from datetime import datetime
 
 class TestEvents(unittest.TestCase):
@@ -13,6 +13,12 @@ class TestEvents(unittest.TestCase):
         # Arrange
         db_session = MagicMock()
         mock_product_service = MockProductService.return_value
+
+        def mock_refresh(obj):
+            if isinstance(obj, EventOffer):
+                obj.rate_type = RateType(obj.rate_type) # Convert string to enum
+
+        db_session.refresh.side_effect = mock_refresh
 
         event_offer_create = EventOfferCreate(
             name="Test Offer",
