@@ -48,3 +48,15 @@ class EventOfferResponse(BaseModel):
 
 class EventOfferInDB(EventOfferBase):
     id: int
+
+class EventOfferUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    is_active: Optional[bool] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    rate_type: Optional[str] = None
+    rate: Optional[int] = None
+    product_ids: Optional[List[int]] = None
+    category_ids: Optional[List[int]] = None
