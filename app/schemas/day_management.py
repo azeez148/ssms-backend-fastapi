@@ -52,3 +52,8 @@ class DaySummary(BaseModel):
     cash_in_hand: float
     cash_in_account: float
     message: str
+
+
+class StatusResponse(BaseModel):
+    dayStarted: bool
+    opening_balance: float

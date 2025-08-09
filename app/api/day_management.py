@@ -8,7 +8,8 @@ from app.schemas.day_management import (
     Day,
     ExpenseCreate,
     Expense,
-    DaySummary
+    DaySummary,
+    StatusResponse
 )
 from app.services.day_management import DayManagementService
 
@@ -47,3 +48,11 @@ def get_active_day(db: Session = Depends(get_db)):
     if not active_day:
         raise HTTPException(status_code=404, detail="No active day found.")
     return active_day
+
+@router.get("/today", response_model=StatusResponse)
+def get_status(db: Session = Depends(get_db)):
+    active_day = day_management_service.get_active_day(db)
+    if active_day:
+        return StatusResponse(dayStarted=True, opening_balance=active_day.opening_balance)
+    else:
+        return StatusResponse(dayStarted=False, opening_balance=0)
