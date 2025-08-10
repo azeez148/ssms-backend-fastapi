@@ -16,6 +16,9 @@ class Shop(Base):
     zipcode = Column(String)
     mobileNumber = Column(String)
     email = Column(String)
+    whatsapp_group_link = Column(String, nullable=True)
+    instagram_link = Column(String, nullable=True)
+    website_link = Column(String, nullable=True)
     
     sales = relationship("Sale", back_populates="shop")
     purchases = relationship("Purchase", secondary=shop_purchases, back_populates="shops")

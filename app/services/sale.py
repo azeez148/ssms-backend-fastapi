@@ -68,7 +68,7 @@ class SaleService:
         db.refresh(db_sale)
         
         # Send notifications
-        self.whatsapp_notification.send_sale_notification(db_sale)
+        self.whatsapp_notification.send_sale_notification(db, db_sale)
         self.email_notification.send_sale_notification(db_sale)
         
         return db_sale

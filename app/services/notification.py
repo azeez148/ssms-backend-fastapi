@@ -1,19 +1,62 @@
+from sqlalchemy.orm import Session
 from app.models.purchase import Purchase
 from app.models.sale import Sale
+from app.models.product import Product
 from app.core.config import settings
 import emails
 import pywhatkit
 
 class WhatsAppNotificationService:
-    def send_sale_notification(self, sale: Sale):
-        if sale.customer and sale.customer.mobile:
-            try:
+    def send_sale_notification(self, db: Session, sale: Sale):
+        if not sale.customer or not sale.customer.mobile:
+            return
+
+        try:
+            # Constructing the message with sale details
+            message = f"Hi {sale.customer.name}, your sale with ID #{sale.id} has been confirmed.\n\n"
+            message += "Here are the details of your order:\n"
+
+            items_details = []
+            for item in sale.sale_items:
+                items_details.append(
+                    f"- {item.product_name} (Size: {item.size}, Quantity: {item.quantity}, Price: {item.sale_price})"
+                )
+
+            message += "\n".join(items_details)
+            message += f"\n\nTotal amount: {sale.total_price}"
+
+            # Add shop's social media and website links
+            if sale.shop:
+                message += "\n\nFollow us for updates and offers:"
+                if sale.shop.instagram_link:
+                    message += f"\nInstagram: {sale.shop.instagram_link}"
+                if sale.shop.whatsapp_group_link:
+                    message += f"\nWhatsApp Group: {sale.shop.whatsapp_group_link}"
+                if sale.shop.website_link:
+                    message += f"\nWebsite: {sale.shop.website_link}"
+
+            # Get the image of the first product
+            image_path = None
+            if sale.sale_items:
+                first_item = sale.sale_items[0]
+                product = db.query(Product).filter(Product.id == first_item.product_id).first()
+                if product and product.image_url:
+                    image_path = product.image_url
+
+            # Send WhatsApp message
+            if image_path:
+                pywhatkit.sendwhats_image(
+                    receiver=sale.customer.mobile,
+                    img_path=image_path,
+                    caption=message
+                )
+            else:
                 pywhatkit.sendwhatmsg_instantly(
                     phone_no=sale.customer.mobile,
-                    message=f"Hi {sale.customer.name}, your sale with ID #{sale.id} has been confirmed. Total amount: {sale.total_price}"
+                    message=message
                 )
-            except Exception as e:
-                print(f"Failed to send WhatsApp message to {sale.customer.mobile}: {e}")
+        except Exception as e:
+            print(f"Failed to send WhatsApp message to {sale.customer.mobile}: {e}")
 
 class EmailNotificationService:
     def send_sale_notification(self, sale: Sale):
