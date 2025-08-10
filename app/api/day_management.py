@@ -53,6 +53,6 @@ def get_active_day(db: Session = Depends(get_db)):
 def get_status(db: Session = Depends(get_db)):
     active_day = day_management_service.get_active_day(db)
     if active_day:
-        return StatusResponse(dayStarted=True, opening_balance=active_day.opening_balance)
+        return StatusResponse(day_started=True, active_day=active_day)
     else:
-        return StatusResponse(dayStarted=False, opening_balance=0)
+        return StatusResponse(day_started=False, active_day=None)

@@ -55,5 +55,5 @@ class DaySummary(BaseModel):
 
 
 class StatusResponse(BaseModel):
-    dayStarted: bool
-    opening_balance: float
+    day_started: bool
+    active_day: Optional[Day] = None
