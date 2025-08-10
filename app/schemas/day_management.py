@@ -52,6 +52,10 @@ class DaySummary(BaseModel):
     cash_in_hand: float
     cash_in_account: float
     message: str
+    opening_balance: float
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    expenses: List[Expense] = []
 
 
 class StatusResponse(BaseModel):

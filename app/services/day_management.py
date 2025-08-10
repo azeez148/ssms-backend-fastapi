@@ -113,5 +113,9 @@ class DayManagementService:
             total_expense=db_day.total_expense,
             cash_in_hand=db_day.cash_in_hand,
             cash_in_account=db_day.cash_in_account,
+            opening_balance=db_day.opening_balance,
+            start_time=db_day.start_time,
+            end_time=db_day.end_time,
+            expenses=self.get_expenses_for_day(db, day_id),
             message="Day ended successfully."
         )
