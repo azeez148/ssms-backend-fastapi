@@ -35,9 +35,9 @@ def get_expenses(day_id: int, db: Session = Depends(get_db)):
     return day_management_service.get_expenses_for_day(db, day_id)
 
 @router.post("/endDay/{day_id}", response_model=DaySummary)
-def end_day(day_id: int, cash_in_hand: float, cash_in_account: float, db: Session = Depends(get_db)):
+def end_day(day_id: int, db: Session = Depends(get_db)):
     try:
-        day_management_service.end_day(db, day_id, cash_in_hand, cash_in_account)
+        day_management_service.end_day(db, day_id)
         return day_management_service.get_day_summary(db, day_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

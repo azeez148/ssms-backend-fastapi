@@ -1,10 +1,11 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from datetime import datetime
 from typing import List, Optional
 
 from app.models.day_management import Day, Expense
 from app.models.sale import Sale
+from app.models.payment import PaymentType
 from app.schemas.day_management import DayCreate, ExpenseCreate, DaySummary
 
 class DayManagementService:
@@ -54,7 +55,7 @@ class DayManagementService:
         """
         return db.query(Expense).filter(Expense.day_id == day_id).all()
 
-    def end_day(self, db: Session, day_id: int, cash_in_hand: float, cash_in_account: float) -> Day:
+    def end_day(self, db: Session, day_id: int) -> Day:
         """
         Ends the specified day, calculates totals, and updates the day's record.
         """
@@ -73,10 +74,16 @@ class DayManagementService:
         start_time_str = db_day.start_time.isoformat()
         end_time_str = end_time.isoformat()
 
-        total_sales = db.query(func.sum(Sale.total_price)).filter(
+        sales_for_day = db.query(Sale).options(joinedload(Sale.payment_type)).filter(
             Sale.date >= start_time_str,
             Sale.date <= end_time_str
-        ).scalar() or 0.0
+        ).all()
+
+        total_sales = sum(sale.total_price for sale in sales_for_day)
+
+        cash_in_hand = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name == 'Cash')
+        cash_in_account = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name != 'Cash')
+
 
         # Calculate closing balance
         closing_balance = (db_day.opening_balance + total_sales) - total_expense
