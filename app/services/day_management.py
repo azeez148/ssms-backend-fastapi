@@ -74,15 +74,16 @@ class DayManagementService:
         start_time_str = db_day.start_time.isoformat()
         end_time_str = end_time.isoformat()
 
+        target_date = db_day.start_time.date().isoformat()
+
         sales_for_day = db.query(Sale).options(joinedload(Sale.payment_type)).filter(
-            Sale.date >= start_time_str,
-            Sale.date <= end_time_str
+            Sale.date == target_date
         ).all()
 
         total_sales = sum(sale.total_price for sale in sales_for_day)
 
-        cash_in_hand = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name == 'Cash')
-        cash_in_account = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name != 'Cash')
+        cash_in_hand = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name == 'Cash on Delivery')
+        cash_in_account = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name != 'Cash on Delivery')
 
 
         # Calculate closing balance
