@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
-from datetime import datetime
+from sqlalchemy import func, cast, Date
+from datetime import datetime, date
 from typing import List, Optional
 
 from app.models.day_management import Day, Expense
@@ -17,18 +17,37 @@ class DayManagementService:
 
     def start_day(self, db: Session, day: DayCreate) -> Day:
         """
-        Starts a new day with a given opening balance.
-        If a day is already active, it raises an exception.
+        Starts a new day or reopens an existing one for the current date.
+        - If a day is already active for today, it returns the active day.
+        - If a day was started and ended today, it reopens that day.
+        - If no day has been started today, it creates a new one.
         """
-        active_day = self.get_active_day(db)
-        if active_day:
-            raise Exception("An active day already exists. Please end it before starting a new one.")
+        today = datetime.utcnow().date()
 
-        db_day = Day(opening_balance=day.opening_balance)
-        db.add(db_day)
-        db.commit()
-        db.refresh(db_day)
-        return db_day
+        # Query for a day that was started today
+        day_for_today = db.query(Day).filter(cast(Day.start_time, Date) == today).first()
+
+        if day_for_today:
+            if day_for_today.end_time is None:
+                # Day is already active, just return it
+                return day_for_today
+            else:
+                # Day was ended, reopen it
+                day_for_today.end_time = None
+                db.commit()
+                db.refresh(day_for_today)
+                return day_for_today
+        else:
+            # No day started today, create a new one
+            active_day = self.get_active_day(db)
+            if active_day:
+                raise Exception("An active day already exists from a previous date. Please end it before starting a new one.")
+
+            db_day = Day(opening_balance=day.opening_balance)
+            db.add(db_day)
+            db.commit()
+            db.refresh(db_day)
+            return db_day
 
     def add_expense(self, db: Session, expense: ExpenseCreate) -> Expense:
         """
