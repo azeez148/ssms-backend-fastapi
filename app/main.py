@@ -33,10 +33,12 @@ from app.api import (
     stock,
     system,
     events,
-    day_management
+    day_management,
+    auth
 )
 
 # Include all routers
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(system.router, prefix="/system", tags=["system"])
 app.include_router(day_management.router, prefix="/day-management", tags=["day-management"])
 app.include_router(products.router, prefix="/products", tags=["products"])

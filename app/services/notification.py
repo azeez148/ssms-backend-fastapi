@@ -75,9 +75,32 @@ class WhatsAppNotificationService:
             print(f"An unexpected error occurred while sending WhatsApp message: {e}")
 
 
+from app.models.user import User
+
+
 class EmailNotificationService:
+    def _send_email(self, to: str, subject: str, html_content: str):
+        message = emails.Message(
+            subject=subject,
+            html=html_content,
+            mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
+        )
+
+        smtp_options = {
+            "host": settings.MAIL_SERVER,
+            "port": settings.MAIL_PORT,
+            "tls": settings.MAIL_TLS,
+            "ssl": settings.MAIL_SSL,
+            "user": settings.MAIL_USERNAME,
+            "password": settings.MAIL_PASSWORD,
+        }
+
+        response = message.send(to=to, smtp=smtp_options)
+        if not response.success:
+            print(f"Failed to send email to {to}: {response.error}")
+
     def send_sale_notification(self, sale: Sale):
-        if not sale.customer:
+        if not sale.customer or not sale.customer.email:
             return
 
         items_html = "".join([
@@ -111,25 +134,11 @@ class EmailNotificationService:
         <p>Thank you for shopping with us!</p>
         """
 
-        message = emails.Message(
+        self._send_email(
+            to=sale.customer.email,
             subject=f"Sale Confirmation #{sale.id}",
-            html=html_content,
-            mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
+            html_content=html_content
         )
-
-        smtp_options = {
-            "host": settings.MAIL_SERVER,
-            "port": settings.MAIL_PORT,
-            "tls": settings.MAIL_TLS,
-            "ssl": settings.MAIL_SSL,
-            "user": settings.MAIL_USERNAME,
-            "password": settings.MAIL_PASSWORD,
-        }
-
-        if sale.customer.email:
-            response = message.send(to=sale.customer.email, smtp=smtp_options)
-            if not response.success:
-                print(f"Failed to send email to {sale.customer.email}: {response.error}")
 
     def send_purchase_notification(self, purchase: Purchase):
         if not purchase.vendor or not purchase.vendor.email:
@@ -166,21 +175,23 @@ class EmailNotificationService:
         <p>Thank you!</p>
         """
 
-        message = emails.Message(
+        self._send_email(
+            to=purchase.vendor.email,
             subject=f"Purchase Confirmation #{purchase.id}",
-            html=html_content,
-            mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
+            html_content=html_content
         )
 
-        smtp_options = {
-            "host": settings.MAIL_SERVER,
-            "port": settings.MAIL_PORT,
-            "tls": settings.MAIL_TLS,
-            "ssl": settings.MAIL_SSL,
-            "user": settings.MAIL_USERNAME,
-            "password": settings.MAIL_PASSWORD,
-        }
+    def send_password_reset_email(self, user: User, token: str):
+        html_content = f"""
+        <h1>Password Reset Request</h1>
+        <p>Dear {user.username},</p>
+        <p>You have requested to reset your password. Please use the following token to reset your password:</p>
+        <p><strong>Token:</strong> {token}</p>
+        <p>If you did not request a password reset, please ignore this email.</p>
+        """
 
-        response = message.send(to=purchase.vendor.email, smtp=smtp_options)
-        if not response.success:
-            print(f"Failed to send email to {purchase.vendor.email}: {response.error}")
+        self._send_email(
+            to=user.email,
+            subject="Password Reset Request",
+            html_content=html_content
+        )
