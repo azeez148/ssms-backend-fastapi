@@ -1,62 +1,79 @@
+import os
+import httpx
 from sqlalchemy.orm import Session
 from app.models.purchase import Purchase
 from app.models.sale import Sale
-from app.models.product import Product
 from app.core.config import settings
 import emails
-import pywhatkit
+
 
 class WhatsAppNotificationService:
-    def send_sale_notification(self, db: Session, sale: Sale):
-        if not sale.customer or not sale.customer.mobile:
+    # Get credentials from environment variables.
+    # Set these in your Render service's "Environment" tab.
+    WHATSAPP_API_TOKEN = os.getenv("WHATSAPP_API_TOKEN")
+    PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+
+    def send_sale_notification(self, sale: Sale):
+        """
+        Sends a sale confirmation message via the WhatsApp Business API.
+        """
+        # 1. Check if the service is configured and if the customer has a mobile number.
+        if not self.WHATSAPP_API_TOKEN or not self.PHONE_NUMBER_ID:
+            print("WhatsApp service is not configured. Skipping notification.")
             return
 
+        if not (sale.customer and sale.customer.mobile):
+            print(f"No mobile number on sale #{sale.id}. Skipping notification.")
+            return
+
+        # 2. Prepare the API request details.
+        api_url = f"https://graph.facebook.com/v20.0/{self.PHONE_NUMBER_ID}/messages"
+
+        headers = {
+            "Authorization": f"Bearer {self.WHATSAPP_API_TOKEN}",
+            "Content-Type": "application/json",
+        }
+
+        # Construct a clear, user-friendly message.
+        message_body = (
+            f"Hi {sale.customer.name},\n\n"
+            f"Your sale (ID: #{sale.id}) for ₹{sale.total_price:,.2f} has been confirmed.\n\n"
+            "Thank you for your purchase!"
+        )
+
+        # Add shop's social media and website links
+        if sale.shop:
+            message_body += "\n\nFollow us for updates and offers:"
+            if sale.shop.instagram_link:
+                message_body += f"\nInstagram: {sale.shop.instagram_link}"
+            if sale.shop.whatsapp_group_link:
+                message_body += f"\nWhatsApp Group: {sale.shop.whatsapp_group_link}"
+            if sale.shop.website_link:
+                message_body += f"\nWebsite: {sale.shop.website_link}"
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": sale.customer.mobile,  # Ensure this number includes the country code, e.g., 919876543210
+            "type": "text",
+            "text": {"body": message_body},
+        }
+
+        # 3. Send the message using httpx.
         try:
-            # Constructing the message with sale details
-            message = f"Hi {sale.customer.name}, your sale with ID #{sale.id} has been confirmed.\n\n"
-            message += "Here are the details of your order:\n"
+            with httpx.Client() as client:
+                response = client.post(api_url, headers=headers, json=payload)
+                # Raise an exception for HTTP error codes (4xx or 5xx)
+                response.raise_for_status()
 
-            items_details = []
-            for item in sale.sale_items:
-                items_details.append(
-                    f"- {item.product_name} (Size: {item.size}, Quantity: {item.quantity}, Price: {item.sale_price})"
-                )
+            print(f"Successfully sent WhatsApp sale notification to {sale.customer.mobile}")
 
-            message += "\n".join(items_details)
-            message += f"\n\nTotal amount: {sale.total_price}"
-
-            # Add shop's social media and website links
-            if sale.shop:
-                message += "\n\nFollow us for updates and offers:"
-                if sale.shop.instagram_link:
-                    message += f"\nInstagram: {sale.shop.instagram_link}"
-                if sale.shop.whatsapp_group_link:
-                    message += f"\nWhatsApp Group: {sale.shop.whatsapp_group_link}"
-                if sale.shop.website_link:
-                    message += f"\nWebsite: {sale.shop.website_link}"
-
-            # Get the image of the first product
-            image_path = None
-            if sale.sale_items:
-                first_item = sale.sale_items[0]
-                product = db.query(Product).filter(Product.id == first_item.product_id).first()
-                if product and product.image_url:
-                    image_path = product.image_url
-
-            # Send WhatsApp message
-            if image_path:
-                pywhatkit.sendwhats_image(
-                    receiver=sale.customer.mobile,
-                    img_path=image_path,
-                    caption=message
-                )
-            else:
-                pywhatkit.sendwhatmsg_instantly(
-                    phone_no=sale.customer.mobile,
-                    message=message
-                )
+        except httpx.HTTPStatusError as e:
+            # Handle API-specific errors
+            print(f"Failed to send WhatsApp message. Status: {e.response.status_code}. Response: {e.response.text}")
         except Exception as e:
-            print(f"Failed to send WhatsApp message to {sale.customer.mobile}: {e}")
+            # Handle other errors like network issues
+            print(f"An unexpected error occurred while sending WhatsApp message: {e}")
+
 
 class EmailNotificationService:
     def send_sale_notification(self, sale: Sale):
