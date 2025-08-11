@@ -11,6 +11,9 @@ class ShopBase(BaseModel):
     zipcode: str
     mobileNumber: str
     email: str
+    whatsapp_group_link: Optional[str] = None
+    instagram_link: Optional[str] = None
+    website_link: Optional[str] = None
 
 class ShopCreate(ShopBase):
     pass

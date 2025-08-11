@@ -9,6 +9,8 @@ from .delivery import DeliveryType
 from .shop import Shop
 from .vendor import Vendor
 from .customer import Customer
+from .event import EventOffer
+from .day_management import Day, Expense
 
 __all__ = [
     "Category",
@@ -24,5 +26,8 @@ __all__ = [
     "Shop",
     "shop_products",
     "Vendor",
-    "Customer"
+    "Customer",
+    "EventOffer",
+    "Day",
+    "Expense"
 ]

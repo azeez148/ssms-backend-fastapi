@@ -17,7 +17,13 @@ class Product(Base):
     
     category_id = Column(Integer, ForeignKey("categories.id"))
     category = relationship("Category", back_populates="products")
-    
+
+    offer_id = Column(Integer, ForeignKey("event_offers.id"), nullable=True)
+    offer = relationship("EventOffer", back_populates="products")
+    discounted_price = Column(Integer, nullable=True)
+    offer_price = Column(Integer, nullable=True)
+    offer_name = Column(String, nullable=True)
+
     # Size map is handled as a separate table in Java using @ElementCollection
     size_map = relationship(
         ProductSize,  # Direct class reference instead of string

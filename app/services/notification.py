@@ -1,6 +1,7 @@
 import os
 from app.models.purchase import Purchase
 from app.models.sale import Sale
+from app.models.product import Product
 from app.core.config import settings
 import emails
 import httpx
