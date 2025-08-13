@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Dict, Optional, List
 from typing_extensions import Annotated
-
+from app.schemas.base import BaseSchema
 from app.schemas.category import CategoryBase
 
 class ProductSizeBase(BaseModel):
@@ -50,7 +50,7 @@ class ProductUpdate(BaseModel):
 class ProductInDB(ProductBase):
     id: int
 
-class ProductResponse(ProductInDB):
+class ProductResponse(ProductInDB, BaseSchema):
     pass
 
 class UpdateSizeMapRequest(BaseModel):

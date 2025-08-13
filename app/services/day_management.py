@@ -34,6 +34,7 @@ class DayManagementService:
             else:
                 # Day was ended, reopen it
                 day_for_today.end_time = None
+                day_for_today.updated_by = "system"
                 db.commit()
                 db.refresh(day_for_today)
                 return day_for_today
@@ -43,7 +44,7 @@ class DayManagementService:
             if active_day:
                 raise Exception("An active day already exists from a previous date. Please end it before starting a new one.")
 
-            db_day = Day(opening_balance=day.opening_balance)
+            db_day = Day(opening_balance=day.opening_balance, created_by="system", updated_by="system")
             db.add(db_day)
             db.commit()
             db.refresh(db_day)
@@ -61,7 +62,9 @@ class DayManagementService:
         db_expense = Expense(
             day_id=active_day.id,
             description=expense.description,
-            amount=expense.amount
+            amount=expense.amount,
+            created_by="system",
+            updated_by="system"
         )
         db.add(db_expense)
         db.commit()
@@ -115,6 +118,7 @@ class DayManagementService:
         db_day.cash_in_hand = cash_in_hand
         db_day.cash_in_account = cash_in_account
 
+        db_day.updated_by = "system"
         db.commit()
         db.refresh(db_day)
         return db_day

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from app.schemas.base import BaseSchema
 
 class CategoryBase(BaseModel):
     name: str
@@ -18,5 +19,5 @@ class CategoryInDB(CategoryBase):
     class Config:
         orm_mode = True
 
-class CategoryResponse(CategoryInDB):
+class CategoryResponse(CategoryInDB, BaseSchema):
     pass

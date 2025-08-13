@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from app.schemas.base import BaseSchema
 
 class VendorBase(BaseModel):
     name: str
@@ -16,5 +17,5 @@ class VendorCreate(VendorBase):
 class VendorUpdate(VendorBase):
     pass
 
-class VendorResponse(VendorBase):
+class VendorResponse(VendorBase, BaseSchema):
     id: int

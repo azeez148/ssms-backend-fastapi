@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, event
 from sqlalchemy.orm import relationship, sessionmaker
-from app.core.database import Base
+from app.models.base import BaseModel
 
-class Vendor(Base):
+class Vendor(BaseModel):
     __tablename__ = "vendors"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
