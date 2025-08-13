@@ -4,6 +4,7 @@ from app.models.product import Product
 from app.schemas.event import EventOfferCreate
 from typing import Optional, List
 from app.services.product import ProductService
+from datetime import datetime
 
 class EventOfferService:
     def create_event_offer(self, db: Session, event_offer: EventOfferCreate) -> EventOffer:
@@ -34,6 +35,14 @@ class EventOfferService:
 
     def get_all_event_offers(self, db: Session) -> List[EventOffer]:
         return db.query(EventOffer).all()
+
+    def get_active_event_offers(self, db: Session) -> List[EventOffer]:
+        now = datetime.now()
+        return db.query(EventOffer).filter(
+            EventOffer.is_active == True,
+            EventOffer.start_date <= now,
+            EventOffer.end_date >= now
+        ).all()
 
     def update_event_offer(self, db: Session, offer_id: int, offer_update: "EventOfferUpdate") -> Optional[EventOffer]:
         db_offer = self.get_event_offer_by_id(db, offer_id)

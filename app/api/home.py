@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 import os
 from pathlib import Path
 from fastapi.responses import FileResponse
+from typing import List
 
 from app.core.database import get_db
-from app.schemas.home import HomeResponse
+from app.schemas.home import HomeResponse, OfferResponse
 from app.services.home import HomeService
 
 router = APIRouter()
@@ -14,6 +15,10 @@ home_service = HomeService()
 @router.get("/all", response_model=HomeResponse)
 async def get_home_data(db: Session = Depends(get_db)):
     return home_service.get_home_data(db)
+
+@router.get("/offers", response_model=List[OfferResponse])
+async def get_active_offers(db: Session = Depends(get_db)):
+    return home_service.get_active_offers(db)
 
 @router.get("/{product_id}/image")
 async def get_product_image(product_id: int):
