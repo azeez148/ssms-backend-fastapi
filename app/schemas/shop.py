@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from app.schemas.base import BaseSchema
 
 class ShopBase(BaseModel):
     name: str
@@ -24,5 +25,5 @@ class ShopInDB(ShopBase):
     class Config:
         from_attributes = True
 
-class ShopResponse(ShopInDB):
+class ShopResponse(ShopInDB, BaseSchema):
     pass

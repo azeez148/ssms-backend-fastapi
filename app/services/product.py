@@ -16,7 +16,9 @@ class ProductService:
             selling_price=product.selling_price,
             category_id=product.category_id,
             is_active=product.is_active,
-            can_listed=product.can_listed
+            can_listed=product.can_listed,
+            created_by="system",
+            updated_by="system"
         )
         
         # Handle size_map separately
@@ -48,6 +50,7 @@ class ProductService:
         for field, value in product_update.dict().items():
             setattr(db_product, field, value)
             
+        db_product.updated_by = "system"
         db.commit()
         db.refresh(db_product)
         return db_product

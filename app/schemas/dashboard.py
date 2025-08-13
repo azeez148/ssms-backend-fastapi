@@ -2,8 +2,9 @@ from pydantic import BaseModel
 from typing import Dict, List
 from app.schemas.sale import SaleResponse
 from app.schemas.purchase import PurchaseResponse
+from app.schemas.base import BaseSchema
 
-class Dashboard(BaseModel):
+class Dashboard(BaseSchema):
     total_sales: Dict
     total_products: int
     total_categories: int

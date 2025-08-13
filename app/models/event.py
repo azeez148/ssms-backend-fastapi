@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.models.base import BaseModel
 import enum
 
 class EventOfferType(enum.Enum):
@@ -11,7 +11,7 @@ class RateType(enum.Enum):
     flat = "flat"
     percentage = "percentage"
 
-class EventOffer(Base):
+class EventOffer(BaseModel):
     __tablename__ = "event_offers"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)

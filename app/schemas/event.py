@@ -2,6 +2,7 @@ from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from datetime import datetime
 from app.models.event import EventOfferType, RateType
+from app.schemas.base import BaseSchema
 
 class EventOfferBase(BaseModel):
     name: str
@@ -21,7 +22,7 @@ class EventOfferBase(BaseModel):
 class EventOfferCreate(EventOfferBase):
     pass
 
-class EventOfferResponse(BaseModel):
+class EventOfferResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None

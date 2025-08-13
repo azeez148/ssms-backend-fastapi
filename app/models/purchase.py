@@ -1,15 +1,15 @@
 from sqlalchemy import Column, Integer, Float, String, ForeignKey, Table
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.models.base import BaseModel
 
 shop_purchases = Table(
     "shop_purchases",
-    Base.metadata,
+    BaseModel.metadata,
     Column("shop_id", Integer, ForeignKey("shops.id"), primary_key=True),
     Column("purchase_id", Integer, ForeignKey("purchases.id"), primary_key=True),
 )
 
-class Purchase(Base):
+class Purchase(BaseModel):
     __tablename__ = "purchases"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -33,7 +33,7 @@ class Purchase(Base):
 
     shops = relationship("Shop", secondary=shop_purchases, back_populates="purchases")
 
-class PurchaseItem(Base):
+class PurchaseItem(BaseModel):
     __tablename__ = "purchase_items"
 
     id = Column(Integer, primary_key=True, index=True)

@@ -34,7 +34,9 @@ class PurchaseService:
             payment_reference_number=purchase.payment_reference_number,
             delivery_type_id=purchase.delivery_type_id,
             vendor_id=vendor_id,
-            purchase_items=purchase_items
+            purchase_items=purchase_items,
+            created_by="system",
+            updated_by="system"
         )
 
         # Add shops to the purchase

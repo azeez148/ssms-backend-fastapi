@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from .shop import ShopResponse
 from .vendor import VendorResponse
+from app.schemas.base import BaseSchema
 
 class PurchaseItemBase(BaseModel):
     product_id: int
@@ -19,7 +20,7 @@ class PurchaseItemBase(BaseModel):
 class PurchaseItemCreate(PurchaseItemBase):
     pass
 
-class PurchaseItemResponse(PurchaseItemBase):
+class PurchaseItemResponse(PurchaseItemBase, BaseSchema):
     id: int
 
 class PurchaseBase(BaseModel):
@@ -42,7 +43,7 @@ class PurchaseCreate(PurchaseBase):
     supplier_mobile: Optional[str] = None
     supplier_email: Optional[str] = None
 
-class PurchaseResponse(PurchaseBase):
+class PurchaseResponse(PurchaseBase, BaseSchema):
     id: int
     purchase_items: List[PurchaseItemResponse]
     shops: List[ShopResponse]

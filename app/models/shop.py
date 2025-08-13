@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.models.base import BaseModel
 from app.models.purchase import shop_purchases
 
-class Shop(Base):
+class Shop(BaseModel):
     __tablename__ = "shops"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)

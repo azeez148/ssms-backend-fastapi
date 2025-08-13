@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.core.database import Base
+from app.models.base import BaseModel
 
-class Day(Base):
+class Day(BaseModel):
     __tablename__ = "days"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -17,7 +17,7 @@ class Day(Base):
 
     expenses = relationship("Expense", back_populates="day")
 
-class Expense(Base):
+class Expense(BaseModel):
     __tablename__ = "expenses"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)

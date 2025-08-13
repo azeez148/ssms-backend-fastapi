@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from app.schemas.base import BaseSchema
 
 class PaymentTypeBase(BaseModel):
     name: str
@@ -14,5 +15,5 @@ class PaymentTypeInDB(PaymentTypeBase):
     class Config:
         orm_mode = True
 
-class PaymentTypeResponse(PaymentTypeInDB):
+class PaymentTypeResponse(PaymentTypeInDB, BaseSchema):
     pass

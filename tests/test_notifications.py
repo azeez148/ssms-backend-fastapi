@@ -1,20 +1,23 @@
 import unittest
 from unittest.mock import MagicMock, patch
-import sys
-sys.modules['pywhatkit'] = MagicMock()
+import unittest
+from unittest.mock import MagicMock, patch
+import os
 from app.services.sale import SaleService
 from app.schemas.sale import SaleCreate, SaleItemCreate
 from app.models.sale import Sale
 
 class TestNotifications(unittest.TestCase):
+    @patch.dict(os.environ, {"WHATSAPP_API_TOKEN": "test_token", "WHATSAPP_PHONE_NUMBER_ID": "test_phone_id"})
     @patch('app.services.sale.get_or_create_customer')
-    @patch('app.services.notification.pywhatkit.sendwhatmsg_instantly')
+    @patch('app.services.sale.WhatsAppNotificationService')
     @patch('app.services.sale.EmailNotificationService')
     @patch('app.services.sale.ProductService')
-    def test_create_sale_sends_notifications(self, MockProductService, MockEmailNotificationService, mock_sendwhatmsg_instantly, mock_get_or_create_customer):
+    def test_create_sale_sends_notifications(self, MockProductService, MockEmailNotificationService, MockWhatsAppNotificationService, mock_get_or_create_customer):
         # Arrange
         db_session = MagicMock()
         mock_email_service = MockEmailNotificationService.return_value
+        mock_whatsapp_service = MockWhatsAppNotificationService.return_value
         mock_product_service = MockProductService.return_value
 
         # Mock customer
@@ -28,6 +31,7 @@ class TestNotifications(unittest.TestCase):
         def mock_refresh(obj):
             if isinstance(obj, Sale):
                 obj.customer = mock_customer
+                obj.shop = None
         db_session.refresh.side_effect = mock_refresh
 
         sale_create = SaleCreate(
@@ -58,6 +62,7 @@ class TestNotifications(unittest.TestCase):
 
         sale_service = SaleService()
         sale_service.email_notification = mock_email_service
+        sale_service.whatsapp_notification = mock_whatsapp_service
         sale_service.product_service = mock_product_service
 
         # Act
@@ -70,8 +75,7 @@ class TestNotifications(unittest.TestCase):
         self.assertEqual(sent_sale.customer.name, "Test Customer")
 
         # The whatsapp notification should also be called with the correct details
-        mock_sendwhatmsg_instantly.assert_called_once()
-        self.assertIn("Hi Test Customer", mock_sendwhatmsg_instantly.call_args[1]['message'])
+        mock_whatsapp_service.send_sale_notification.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()

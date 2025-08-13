@@ -18,6 +18,8 @@ class EventOfferService:
             rate=event_offer.rate,
             product_ids=",".join(map(str, event_offer.product_ids)),
             category_ids=",".join(map(str, event_offer.category_ids)),
+            created_by="system",
+            updated_by="system"
         )
         db.add(db_event_offer)
         db.commit()
@@ -59,6 +61,7 @@ class EventOfferService:
             # Apply the updated offer
             self.apply_offer_to_products(db, db_offer)
 
+        db_offer.updated_by = "system"
         db.add(db_offer)
         db.commit()
         db.refresh(db_offer)
@@ -76,6 +79,7 @@ class EventOfferService:
         else:
             self.remove_offer_from_products(db, db_offer.product_ids, db_offer.category_ids)
 
+        db_offer.updated_by = "system"
         db.add(db_offer)
         db.commit()
         db.refresh(db_offer)

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from app.schemas.base import BaseSchema
 
 class DeliveryTypeBase(BaseModel):
     name: str
@@ -14,5 +15,5 @@ class DeliveryTypeInDB(DeliveryTypeBase):
     class Config:
         orm_mode = True
 
-class DeliveryTypeResponse(DeliveryTypeInDB):
+class DeliveryTypeResponse(DeliveryTypeInDB, BaseSchema):
     pass

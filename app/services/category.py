@@ -7,7 +7,9 @@ class CategoryService:
     def create_category(self, db: Session, category: CategoryCreate) -> Category:
         db_category = Category(
             name=category.name,
-            description=category.description
+            description=category.description,
+            created_by="system",
+            updated_by="system"
         )
         db.add(db_category)
         db.commit()

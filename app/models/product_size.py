@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.models.base import BaseModel
 
-class ProductSize(Base):
+class ProductSize(BaseModel):
     __tablename__ = "product_sizes"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
