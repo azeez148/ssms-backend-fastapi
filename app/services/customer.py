@@ -21,7 +21,7 @@ def get_or_create_customer(db: Session, customer: CustomerCreate):
     return create_customer(db, customer)
 
 def create_customer(db: Session, customer: CustomerCreate):
-    db_customer = Customer(**customer.model_dump())
+    db_customer = Customer(**customer.model_dump(), created_by="system", updated_by="system")
     db.add(db_customer)
     db.commit()
     db.refresh(db_customer)
@@ -33,6 +33,7 @@ def update_customer(db: Session, customer_id: int, customer: CustomerUpdate):
         update_data = customer.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_customer, key, value)
+        db_customer.updated_by = "system"
         db.commit()
         db.refresh(db_customer)
     return db_customer

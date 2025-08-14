@@ -36,7 +36,7 @@ class SaleService:
         })
         sale_data['customer_id'] = customer_id
 
-        db_sale = Sale(**sale_data)
+        db_sale = Sale(**sale_data, created_by="system", updated_by="system")
         db.add(db_sale)
         db.flush()  # Get the sale ID without committing
 
@@ -51,7 +51,9 @@ class SaleService:
                 quantity_available=item.quantity_available,
                 quantity=item.quantity,
                 sale_price=item.sale_price,
-                total_price=item.total_price
+                total_price=item.total_price,
+                created_by="system",
+                updated_by="system"
             )
             db.add(sale_item)
             
@@ -68,7 +70,7 @@ class SaleService:
         db.refresh(db_sale)
         
         # Send notifications
-        self.whatsapp_notification.send_sale_notification(db, db_sale)
+        self.whatsapp_notification.send_sale_notification(db_sale)
         self.email_notification.send_sale_notification(db_sale)
         
         return db_sale

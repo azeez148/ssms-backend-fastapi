@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from app.schemas.base import BaseSchema
 
 # Expense Schemas
 class ExpenseBase(BaseModel):
@@ -10,7 +11,7 @@ class ExpenseBase(BaseModel):
 class ExpenseCreate(ExpenseBase):
     day_id: int
 
-class Expense(ExpenseBase):
+class Expense(ExpenseBase, BaseSchema):
     id: int
     timestamp: datetime
 
@@ -31,7 +32,7 @@ class DayUpdate(BaseModel):
     cash_in_account: float
     end_time: datetime
 
-class Day(DayBase):
+class Day(DayBase, BaseSchema):
     id: int
     start_time: datetime
     end_time: Optional[datetime] = None
@@ -45,7 +46,7 @@ class Day(DayBase):
         from_attributes = True
 
 # Day Summary Schema
-class DaySummary(BaseModel):
+class DaySummary(BaseSchema):
     day_id: int
     closing_balance: float
     total_expense: float

@@ -4,6 +4,7 @@ from typing import List, Optional
 from .payment import PaymentTypeResponse
 from .delivery import DeliveryTypeResponse
 from .customer import CustomerResponse
+from app.schemas.base import BaseSchema
 
 class SaleItemBase(BaseModel):
     product_id: int
@@ -25,7 +26,7 @@ class SaleItemInDB(SaleItemBase):
     id: int
     sale_id: int
 
-class SaleItemResponse(SaleItemInDB):
+class SaleItemResponse(SaleItemInDB, BaseSchema):
     pass
 
 class SaleBase(BaseModel):
@@ -55,5 +56,5 @@ class SaleInDB(SaleBase):
     delivery_type: Optional[DeliveryTypeResponse] = None
     customer: Optional[CustomerResponse] = None
 
-class SaleResponse(SaleInDB):
+class SaleResponse(SaleInDB, BaseSchema):
     pass

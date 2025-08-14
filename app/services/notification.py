@@ -1,21 +1,10 @@
 import os
+import httpx
+from sqlalchemy.orm import Session
 from app.models.purchase import Purchase
 from app.models.sale import Sale
-from app.models.product import Product
 from app.core.config import settings
 import emails
-import httpx
-# class WhatsAppNotificationService:
-#     def send_sale_notification(self, sale: Sale):
-#         if sale.customer and sale.customer.mobile:
-#             try:
-#                 pywhatkit.sendwhatmsg_instantly(
-#                     phone_no=sale.customer.mobile,
-#                     message=f"Hi {sale.customer.name}, your sale with ID #{sale.id} has been confirmed. Total amount: {sale.total_price}"
-#                 )
-#             except Exception as e:
-#                 print(f"Failed to send WhatsApp message to {sale.customer.mobile}: {e}")
-
 
 
 class WhatsAppNotificationService:
@@ -39,7 +28,7 @@ class WhatsAppNotificationService:
 
         # 2. Prepare the API request details.
         api_url = f"https://graph.facebook.com/v20.0/{self.PHONE_NUMBER_ID}/messages"
-        
+
         headers = {
             "Authorization": f"Bearer {self.WHATSAPP_API_TOKEN}",
             "Content-Type": "application/json",
@@ -51,6 +40,16 @@ class WhatsAppNotificationService:
             f"Your sale (ID: #{sale.id}) for ₹{sale.total_price:,.2f} has been confirmed.\n\n"
             "Thank you for your purchase!"
         )
+
+        # Add shop's social media and website links
+        if sale.shop:
+            message_body += "\n\nFollow us for updates and offers:"
+            if sale.shop.instagram_link:
+                message_body += f"\nInstagram: {sale.shop.instagram_link}"
+            if sale.shop.whatsapp_group_link:
+                message_body += f"\nWhatsApp Group: {sale.shop.whatsapp_group_link}"
+            if sale.shop.website_link:
+                message_body += f"\nWebsite: {sale.shop.website_link}"
 
         payload = {
             "messaging_product": "whatsapp",
@@ -65,7 +64,7 @@ class WhatsAppNotificationService:
                 response = client.post(api_url, headers=headers, json=payload)
                 # Raise an exception for HTTP error codes (4xx or 5xx)
                 response.raise_for_status()
-            
+
             print(f"Successfully sent WhatsApp sale notification to {sale.customer.mobile}")
 
         except httpx.HTTPStatusError as e:

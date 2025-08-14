@@ -1,9 +1,10 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.models.base import BaseModel
 from app.models.product_size import ProductSize
+from app.core.database import Base
 
-class Product(Base):
+class Product(BaseModel):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)

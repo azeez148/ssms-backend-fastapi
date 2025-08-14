@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from app.schemas.base import BaseSchema
 
 class CustomerBase(BaseModel):
     name: str
@@ -16,5 +17,5 @@ class CustomerCreate(CustomerBase):
 class CustomerUpdate(CustomerBase):
     pass
 
-class CustomerResponse(CustomerBase):
+class CustomerResponse(CustomerBase, BaseSchema):
     id: int
