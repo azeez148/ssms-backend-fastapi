@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     MAIL_SSL: bool = False
     SYSTEM_PASS_KEY: str = os.getenv("SYSTEM_PASS_KEY", "7736")
 
+    # Github settings
+    GITHUB_REPO_URL: Optional[str] = os.getenv("GITHUB_REPO_URL", "https://github.com/adrenalines-sports/ssms-db-backup.git")
+    GITHUB_TOKEN: Optional[str] = os.getenv("GITHUB_TOKEN", None)
+
+
     class Config:
         env_file = ".env"
         extra = 'ignore'
