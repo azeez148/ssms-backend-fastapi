@@ -1,2 +1,2 @@
-INSERT INTO public.shops(id, name, "addressLine1", "addressLine2", city, state, country, zipcode, "mobileNumber", email)
-VALUES (1, 'ADrenaline Sports Store', 'IGC Jun', 'Nellikuzhy', 'Kothamangalam', 'Kerala', 'India', '12345', '+918089325733', 'adrenalinesportsstore44@gmail.com');
+INSERT INTO public.shops(id, name, "addressLine1", "addressLine2", city, state, country, zipcode, "mobileNumber", email, whatsapp_group_link, instagram_link, website_link)
+VALUES (1, 'ADrenaline Sports Store', 'IGC Jun', 'Nellikuzhy', 'Kothamangalam', 'Kerala', 'India', '12345', '+918089325733', 'adrenalinesportsstore44@gmail.com', 'https://chat.whatsapp.com/KpVDp2cdms2LnVYbxqdhKf?mode=ac_t', 'https://www.instagram.com/adrenalinesportsstore', 'https://adrenalinesportsstore.com');
