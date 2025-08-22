@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,11 +7,12 @@ app = FastAPI(title="SSMS API")
 
 # Mount the 'images' directory to serve static files
 app.mount("/images", StaticFiles(directory="images"), name="images")
+CORS_URLS = os.getenv("CORS_URLS", "http://localhost:4200").split(",")
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],  # Angular frontend
+    allow_origins=CORS_URLS,  # Angular frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
