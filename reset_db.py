@@ -37,6 +37,8 @@ def reset_database():
     print("Shops data imported.")
     execute_sql_file('payment_types_data.sql')
     print("Payment types data imported.")
+    execute_sql_file('products_22082025.sql')
+    print("Products data imported.")
     print("Data import complete!")
 
 if __name__ == "__main__":
