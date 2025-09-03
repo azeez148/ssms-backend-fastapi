@@ -1,10 +1,10 @@
 import openpyxl
-import json
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from app.services.product import ProductService
 from app.services.category import CategoryService
 from app.schemas.product import ProductCreate, ProductSizeCreate
+from app.schemas.stock import StockRequest, StockResponse
 
 class StockService:
     def __init__(self):
@@ -64,3 +64,23 @@ class StockService:
             return {"message": "Excel uploaded and processed successfully."}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Could not upload/process the file: {str(e)}")
+
+    def hold_stock(self, db: Session, stock_request: StockRequest) -> StockResponse:
+        try:
+            for item in stock_request.items:
+                self.product_service.update_product_stock(db, item.product_id, item.size, -item.quantity)
+            return StockResponse(success=True, message="Stock held successfully.")
+        except HTTPException as e:
+            return StockResponse(success=False, message=e.detail)
+        except Exception as e:
+            return StockResponse(success=False, message=str(e))
+
+    def release_stock(self, db: Session, stock_request: StockRequest) -> StockResponse:
+        try:
+            for item in stock_request.items:
+                self.product_service.update_product_stock(db, item.product_id, item.size, item.quantity)
+            return StockResponse(success=True, message="Stock released successfully.")
+        except HTTPException as e:
+            return StockResponse(success=False, message=e.detail)
+        except Exception as e:
+            return StockResponse(success=False, message=str(e))
