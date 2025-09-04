@@ -20,3 +20,8 @@ def hold_stock(stock_request: StockRequest, db: Session = Depends(get_db)):
 def release_stock(stock_request: StockRequest, db: Session = Depends(get_db)):
     stock_service = StockService()
     return stock_service.release_stock(db, stock_request)
+
+@router.post("/check", response_model=StockResponse)
+def check_stock(stock_request: StockRequest, db: Session = Depends(get_db)):
+    stock_service = StockService()
+    return stock_service.check_stock(db, stock_request)
