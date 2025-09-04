@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
 class StockItem(BaseModel):
-    product_id: int
+    product_id: int = Field(..., alias='productId')
     size: str
     quantity: int
 
