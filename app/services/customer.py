@@ -8,6 +8,9 @@ def get_customer(db: Session, customer_id: int):
 def get_customers(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Customer).offset(skip).limit(limit).all()
 
+def get_customer_by_email(db: Session, email: str):
+    return db.query(Customer).filter(Customer.email == email).first()
+
 def get_customer_by_mobile(db: Session, mobile: str):
     return db.query(Customer).filter(Customer.mobile == mobile).first()
 
@@ -16,6 +19,8 @@ def get_or_create_customer(db: Session, customer: CustomerCreate):
     Get a customer by mobile number, or create a new one if not found.
     """
     db_customer = get_customer_by_mobile(db, customer.mobile)
+    if not db_customer:
+        db_customer = get_customer_by_email(db, customer.email)
     if db_customer:
         return db_customer
     return create_customer(db, customer)

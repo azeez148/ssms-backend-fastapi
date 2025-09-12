@@ -7,7 +7,9 @@ from typing import List
 
 from app.core.database import get_db
 from app.schemas.home import HomeResponse, OfferResponse
+from app.schemas.stock import StockRequest, StockResponse
 from app.services.home import HomeService
+from app.services.stock import StockService
 
 router = APIRouter()
 home_service = HomeService()
@@ -34,3 +36,8 @@ async def get_product_image(product_id: int):
         return FileResponse(str(image_file))
     except StopIteration:
         return FileResponse("images/notfound.png")
+
+@router.post("/check", response_model=StockResponse)
+def check_stock(stock_request: StockRequest, db: Session = Depends(get_db)):
+    stock_service = StockService()
+    return stock_service.check_stock(db, stock_request)
