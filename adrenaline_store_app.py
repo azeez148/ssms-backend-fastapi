@@ -36,14 +36,34 @@ ENDPOINTS = {
 
 # ============================
 
+class Worker(QtCore.QRunnable):
+    finished = QtCore.pyqtSignal(object)
+
+    def __init__(self, fn):
+        super().__init__()
+        self.fn = fn
+        self.signals = WorkerSignals()
+
+    def run(self):
+        result = self.fn()
+        self.signals.result.emit(result)
+
+
+class WorkerSignals(QtCore.QObject):
+    result = QtCore.pyqtSignal(object)
 
 def api_get(path, params=None):
     url = API_BASE_URL.rstrip("/") + path
+    print(f"[API] Making GET request to: {url}")
     try:
         resp = requests.get(url, params=params, timeout=TIMEOUT)
+        print(f"[API] Response status code: {resp.status_code}")
         resp.raise_for_status()
-        return resp.json()
+        json_response = resp.json()
+        print(f"[API] Response JSON received.")
+        return json_response
     except Exception as e:
+        print(f"[API] Error during GET request: {e}")
         # In a real app you'd log
         return {"error": str(e)}
 
@@ -127,7 +147,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         # initial load
         self.load_products()
         self.load_customers()
-        self.load_offers()
+        # self.load_offers()
 
     # ---------------- UI BUILDers ----------------
     def _build_new_sale_tab(self):
@@ -283,14 +303,10 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         else:
             self.loading.hide()
 
-    def run_in_thread(self, fn, on_done=None):
-        def wrapper():
-            res = fn()
-            if on_done:
-                QtCore.QTimer.singleShot(0, lambda: on_done(res))
-
-        t = threading.Thread(target=wrapper, daemon=True)
-        t.start()
+    def run_in_thread(self, fn, callback):
+        worker = Worker(fn)
+        worker.signals.result.connect(callback)
+        QtCore.QThreadPool.globalInstance().start(worker)
 
     # ---------------- API loads ----------------
     def load_products(self):
@@ -643,9 +659,9 @@ class AdrenalineApp(QtWidgets.QMainWindow):
                 return {"error": f"Could not get active day: {active_day_res['error']}"}
             if not active_day_res or "id" not in active_day_res:
                 return {"error": "No active day found to end."}
-
+            
             day_id = active_day_res["id"]
-
+            
             # Step 2: End the day using the ID. The day_id is passed as a path parameter.
             # The API endpoint is defined as "/endDay/{day_id}", so we format the URL accordingly.
             # The backend service calculates the summary, so an empty payload is sufficient.
