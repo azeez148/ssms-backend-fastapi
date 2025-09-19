@@ -12,22 +12,26 @@ Usage:
 import sys
 import threading
 from functools import partial
+from datetime import datetime, timedelta
 
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 # ========== CONFIG ==========
-API_BASE_URL = "https://api.example.com"  # <<--- set to your API base
+API_BASE_URL = "http://127.0.0.1:8000"  # <<--- set to your API base
 TIMEOUT = 8  # seconds for requests
 
 # Endpoints (adjust to your API)
 ENDPOINTS = {
-    "products": "/products",
-    "customers": "/customers",
-    "offers": "/offers",
-    "sales": "/sales",
-    "day/start": "/day/start",
-    "day/end": "/day/end",
+    "products": "/products/all",
+    "customers": "/customers/all",
+    "customers/create": "/customers/addCustomer",
+    "offers": "/events/all",
+    "offers/create": "/events/create",
+    "sales": "/sales/addSale",
+    "day/start": "/day-management/startDay",
+    "day/end": "/day-management/endDay",  # Note: requires /day_id appended
+    "day/active": "/day-management/activeDay",
 }
 
 # ============================
@@ -335,10 +339,10 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             row = self.tbl_products.rowCount()
             self.tbl_products.insertRow(row)
             self.tbl_products.setItem(row, 0, QtWidgets.QTableWidgetItem(str(p.get("name", ""))))
-            self.tbl_products.setItem(row, 1, QtWidgets.QTableWidgetItem(str(p.get("category", ""))))
+            self.tbl_products.setItem(row, 1, QtWidgets.QTableWidgetItem(str(p.get("category", {}).get("name", ""))))
             self.tbl_products.setItem(row, 2, QtWidgets.QTableWidgetItem(str(p.get("size", ""))))
             self.tbl_products.setItem(row, 3, QtWidgets.QTableWidgetItem(str(p.get("available_quantity", ""))))
-            self.tbl_products.setItem(row, 4, QtWidgets.QTableWidgetItem(str(p.get("price", ""))))
+            self.tbl_products.setItem(row, 4, QtWidgets.QTableWidgetItem(str(p.get("selling_price", ""))))
             btn = QtWidgets.QPushButton("Add")
             btn.clicked.connect(partial(self.on_add_product_to_cart, p))
             self.tbl_products.setCellWidget(row, 5, btn)
@@ -349,10 +353,10 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             row = self.tbl_products_full.rowCount()
             self.tbl_products_full.insertRow(row)
             self.tbl_products_full.setItem(row, 0, QtWidgets.QTableWidgetItem(str(p.get("name", ""))))
-            self.tbl_products_full.setItem(row, 1, QtWidgets.QTableWidgetItem(str(p.get("category", ""))))
+            self.tbl_products_full.setItem(row, 1, QtWidgets.QTableWidgetItem(str(p.get("category", {}).get("name", ""))))
             self.tbl_products_full.setItem(row, 2, QtWidgets.QTableWidgetItem(str(p.get("size", ""))))
             self.tbl_products_full.setItem(row, 3, QtWidgets.QTableWidgetItem(str(p.get("available_quantity", ""))))
-            self.tbl_products_full.setItem(row, 4, QtWidgets.QTableWidgetItem(str(p.get("price", ""))))
+            self.tbl_products_full.setItem(row, 4, QtWidgets.QTableWidgetItem(str(p.get("selling_price", ""))))
             w = QtWidgets.QWidget()
             lay = QtWidgets.QHBoxLayout()
             lay.setContentsMargins(0, 0, 0, 0)
@@ -410,13 +414,14 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.populate_customers_table()
 
     def on_add_product_to_cart(self, product):
-        # default qty 1; allow editing from cart table
+        # Add the whole product to the cart item to have access to all its details later
+        # The price from the API is now 'selling_price'
+        # The cart needs to be aware of the full product object to build the sale payload
         cart_item = {
-            "id": product.get("id"),
-            "name": product.get("name"),
+            "product": product,
             "qty": 1,
-            "price": float(product.get("price") or 0),
-            "discounted_price": float(product.get("discounted_price") or product.get("price") or 0),
+            "price": float(product.get("selling_price") or 0),
+            "discounted_price": float(product.get("selling_price") or 0), # Assuming no discount by default
         }
         self.cart.append(cart_item)
         self.refresh_cart_table()
@@ -428,7 +433,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         for item in self.cart:
             row = self.tbl_cart.rowCount()
             self.tbl_cart.insertRow(row)
-            self.tbl_cart.setItem(row, 0, QtWidgets.QTableWidgetItem(item["name"]))
+            self.tbl_cart.setItem(row, 0, QtWidgets.QTableWidgetItem(item["product"]["name"]))
 
             # qty widget
             spin = QtWidgets.QSpinBox()
@@ -467,22 +472,41 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         if not self.cart:
             QtWidgets.QMessageBox.warning(self, "Empty cart", "Cart is empty.")
             return
-        payload = {
-            "customer": {
-                "name": self.cust_name.text(),
-                "mobile": self.cust_mobile.text(),
-                "address": self.cust_address.toPlainText(),
-            },
-            "items": [
-                {"product_id": i["id"], "qty": i["qty"], "unit_price": i["price"], "discounted_price": i["discounted_price"]}
-                for i in self.cart
-            ],
-            "summary": {
-                "subtotal": float(self.lbl_subtotal.text().replace("₹", "")),
-                "total_discount": float(self.lbl_total_discount.text().replace("₹", "")),
-                "total_price": float(self.lbl_total_price.text().replace("₹", "")),
+
+        # Rebuild payload to match the new SaleCreate schema
+        total_quantity = sum(item['qty'] for item in self.cart)
+        total_price = float(self.lbl_total_price.text().replace("₹", ""))
+
+        sale_items = []
+        for item in self.cart:
+            product = item['product']
+            # The product in the cart now contains all necessary details
+            sale_item_payload = {
+                "product_id": product['id'],
+                "product_name": product['name'],
+                "product_category": product['category']['name'] if product.get('category') else 'N/A',
+                "size": product.get('size', 'N/A'),
+                "quantity_available": product.get('available_quantity', 0),
+                "quantity": item['qty'],
+                "sale_price": item['discounted_price'],
+                "total_price": item['qty'] * item['discounted_price'],
             }
+            sale_items.append(sale_item_payload)
+
+        payload = {
+            "date": datetime.now().isoformat(),
+            "total_quantity": total_quantity,
+            "total_price": total_price,
+            "payment_type_id": 1,  # Hardcoded: Assuming 1 for 'Cash'
+            "delivery_type_id": 1, # Hardcoded: Assuming 1 for 'In-Store'
+            "shop_id": 1,          # Hardcoded: Assuming shop_id is 1
+            "customer_id": 1,      # Hardcoded: Assuming a default guest customer ID is 1
+            "customer_name": self.cust_name.text(),
+            "customer_address": self.cust_address.toPlainText(),
+            "customer_mobile": self.cust_mobile.text(),
+            "sale_items": sale_items,
         }
+
         self.show_loading(True, "Submitting sale...")
         def do_submit():
             return api_post(ENDPOINTS["sales"], payload)
@@ -522,7 +546,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             payload = {"name": name.text(), "mobile": mobile.text(), "address": address.toPlainText()}
             self.show_loading(True, "Adding customer...")
             def do_add():
-                return api_post(ENDPOINTS["customers"], payload)
+                return api_post(ENDPOINTS["customers/create"], payload)
             def done(res):
                 self.show_loading(False)
                 if isinstance(res, dict) and res.get("error"):
@@ -550,10 +574,26 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         btns.rejected.connect(dlg.reject)
         layout.addWidget(btns)
         if dlg.exec_() == QtWidgets.QDialog.Accepted:
-            payload = {"name": name.text(), "description": desc.text(), "type": typ.currentText(), "is_active": bool(active.isChecked())}
+            # Map UI type to API RateType
+            rate_type_map = {"percentage": "percentage", "fixed": "flat"}
+            rate_type = rate_type_map.get(typ.currentText(), "flat")
+
+            # Create payload matching EventOfferCreate schema
+            payload = {
+                "name": name.text(),
+                "description": desc.text(),
+                "type": "offer",  # Hardcoded as 'offer'
+                "is_active": bool(active.isChecked()),
+                "start_date": datetime.now().isoformat(),
+                "end_date": (datetime.now() + timedelta(days=30)).isoformat(),
+                "rate_type": rate_type,
+                "rate": 0,  # Hardcoded rate, assuming it needs to be set elsewhere
+                "product_ids": [],
+                "category_ids": [],
+            }
             self.show_loading(True, "Adding offer...")
             def do_add():
-                return api_post(ENDPOINTS["offers"], payload)
+                return api_post(ENDPOINTS["offers/create"], payload)
             def done(res):
                 self.show_loading(False)
                 if isinstance(res, dict) and res.get("error"):
@@ -589,28 +629,47 @@ class AdrenalineApp(QtWidgets.QMainWindow):
 
     def on_end_day(self):
         self.show_loading(True, "Ending day...")
-        def do_end():
-            return api_post(ENDPOINTS["day/end"], {})
+
+        def get_and_end_day():
+            # Step 1: Get the active day
+            active_day_res = api_get(ENDPOINTS["day/active"])
+            if isinstance(active_day_res, dict) and active_day_res.get("error"):
+                return {"error": f"Could not get active day: {active_day_res['error']}"}
+            if not active_day_res or "id" not in active_day_res:
+                return {"error": "No active day found to end."}
+
+            day_id = active_day_res["id"]
+
+            # Step 2: End the day using the ID
+            # The new endpoint might require a payload. From the backend code, it seems
+            # the day_id is passed in the URL and the service calculates the rest.
+            # We will pass an empty payload for now.
+            end_day_res = api_post(f"{ENDPOINTS['day/end']}/{day_id}", {})
+            return end_day_res
+
         def done(res):
             self.show_loading(False)
             if isinstance(res, dict) and res.get("error"):
                 QtWidgets.QMessageBox.critical(self, "Error", f"End day failed:\n{res['error']}")
                 return
-            # expect summary in response
-            summary = res.get("summary") if isinstance(res, dict) else None
+
+            # Response from endDay is now DaySummary
+            summary = res  # The response itself is the summary
             if summary:
                 text = (
+                    f"Day Ended Successfully!\n"
+                    f"Opening Balance: ₹{summary.get('opening_balance', 0):.2f}\n"
+                    f"Total Expenses: ₹{summary.get('total_expense', 0):.2f}\n"
+                    f"Closing Balance: ₹{summary.get('closing_balance', 0):.2f}\n"
                     f"Start Time: {summary.get('start_time')}\n"
                     f"End Time: {summary.get('end_time')}\n"
-                    f"Total Sales: ₹{summary.get('total_sales')}\n"
-                    f"Total Expenses: ₹{summary.get('total_expenses')}\n"
-                    f"Closing Balance: ₹{summary.get('closing_balance')}\n"
                 )
             else:
                 text = "Day ended. (No summary returned)"
             self.lbl_day_summary.setText(text)
             QtWidgets.QMessageBox.information(self, "Day Ended", "Day ended successfully.")
-        self.run_in_thread(do_end, done)
+
+        self.run_in_thread(get_and_end_day, done)
 
 
 def main():
