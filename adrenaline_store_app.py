@@ -493,14 +493,18 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             }
             sale_items.append(sale_item_payload)
 
+        # TODO: The following values are hardcoded because the current UI does not
+        # have elements to select them. For a full implementation, the UI would
+        # need to be updated with dropdowns/selectors for Shop, Payment Type,
+        # Delivery Type, and a way to select an existing customer.
         payload = {
             "date": datetime.now().isoformat(),
             "total_quantity": total_quantity,
             "total_price": total_price,
-            "payment_type_id": 1,  # Hardcoded: Assuming 1 for 'Cash'
-            "delivery_type_id": 1, # Hardcoded: Assuming 1 for 'In-Store'
-            "shop_id": 1,          # Hardcoded: Assuming shop_id is 1
-            "customer_id": 1,      # Hardcoded: Assuming a default guest customer ID is 1
+            "payment_type_id": 1,  # Defaulting to 1 (e.g., 'Cash')
+            "delivery_type_id": 1, # Defaulting to 1 (e.g., 'In-Store')
+            "shop_id": 1,          # Defaulting to shop_id 1
+            "customer_id": 1,      # Defaulting to a guest/default customer
             "customer_name": self.cust_name.text(),
             "customer_address": self.cust_address.toPlainText(),
             "customer_mobile": self.cust_mobile.text(),
@@ -578,18 +582,20 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             rate_type_map = {"percentage": "percentage", "fixed": "flat"}
             rate_type = rate_type_map.get(typ.currentText(), "flat")
 
-            # Create payload matching EventOfferCreate schema
+            # TODO: The following values are hardcoded because the current UI for
+            # creating an offer is very simple. A full implementation would require
+            # UI elements for selecting dates, rate, and associating products/categories.
             payload = {
                 "name": name.text(),
                 "description": desc.text(),
-                "type": "offer",  # Hardcoded as 'offer'
+                "type": "offer",  # Defaulting type to 'offer'
                 "is_active": bool(active.isChecked()),
                 "start_date": datetime.now().isoformat(),
                 "end_date": (datetime.now() + timedelta(days=30)).isoformat(),
                 "rate_type": rate_type,
-                "rate": 0,  # Hardcoded rate, assuming it needs to be set elsewhere
-                "product_ids": [],
-                "category_ids": [],
+                "rate": 0,  # Defaulting rate to 0
+                "product_ids": [], # Not supported in current UI
+                "category_ids": [],# Not supported in current UI
             }
             self.show_loading(True, "Adding offer...")
             def do_add():
@@ -640,10 +646,9 @@ class AdrenalineApp(QtWidgets.QMainWindow):
 
             day_id = active_day_res["id"]
 
-            # Step 2: End the day using the ID
-            # The new endpoint might require a payload. From the backend code, it seems
-            # the day_id is passed in the URL and the service calculates the rest.
-            # We will pass an empty payload for now.
+            # Step 2: End the day using the ID. The day_id is passed as a path parameter.
+            # The API endpoint is defined as "/endDay/{day_id}", so we format the URL accordingly.
+            # The backend service calculates the summary, so an empty payload is sufficient.
             end_day_res = api_post(f"{ENDPOINTS['day/end']}/{day_id}", {})
             return end_day_res
 
