@@ -141,8 +141,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
 
         # In-memory cart
         self.cart = []
-        self.products_cache = []
-        self.customers_cache = []
+        self.all_products_cache = []
+        self.all_customers_cache = []
 
         # initial load
         self.load_products()
@@ -233,8 +233,11 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.input_customer_search.setPlaceholderText("Search customer by name/mobile")
         btn_cust_search = QtWidgets.QPushButton("Search")
         btn_cust_search.clicked.connect(self.on_search_customers)
+        btn_cust_reset = QtWidgets.QPushButton("Reset")
+        btn_cust_reset.clicked.connect(self.on_reset_customer_search)
         h.addWidget(self.input_customer_search)
         h.addWidget(btn_cust_search)
+        h.addWidget(btn_cust_reset)
         layout.addLayout(h)
 
         self.tbl_customers = QtWidgets.QTableWidget(0, 4)
@@ -252,8 +255,11 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.input_prodfilter.setPlaceholderText("Filter products")
         btn_pf = QtWidgets.QPushButton("Filter")
         btn_pf.clicked.connect(self.on_search_products)
+        btn_pr = QtWidgets.QPushButton("Reset")
+        btn_pr.clicked.connect(self.on_reset_product_filter)
         top.addWidget(self.input_prodfilter)
         top.addWidget(btn_pf)
+        top.addWidget(btn_pr)
         layout.addLayout(top)
 
         self.tbl_products_full = QtWidgets.QTableWidget(0, 6)
@@ -319,8 +325,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(self, "Error", f"Products load error:\n{res['error']}")
                 return
             # expect list of products
-            self.products_cache = res if isinstance(res, list) else []
-            self.populate_products_tables()
+            self.all_products_cache = res if isinstance(res, list) else []
+            self.populate_products_tables(self.all_products_cache)
         self.run_in_thread(fetch, done)
 
     def load_customers(self):
@@ -332,8 +338,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             if isinstance(res, dict) and res.get("error"):
                 QtWidgets.QMessageBox.warning(self, "Error", f"Customers load error:\n{res['error']}")
                 return
-            self.customers_cache = res if isinstance(res, list) else []
-            self.populate_customers_table()
+            self.all_customers_cache = res if isinstance(res, list) else []
+            self.populate_customers_table(self.all_customers_cache)
         self.run_in_thread(fetch, done)
 
     def load_offers(self):
@@ -347,9 +353,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.run_in_thread(fetch, done)
 
     # ---------------- Populate UI ----------------
-    def populate_products_tables(self):
+    def populate_products_tables(self, products):
         # small products table (search results)
-        products = self.products_cache or []
         self.tbl_products.setRowCount(0)
         for p in products:
             row = self.tbl_products.rowCount()
@@ -381,10 +386,9 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             w.setLayout(lay)
             self.tbl_products_full.setCellWidget(row, 5, w)
 
-    def populate_customers_table(self):
-        data = self.customers_cache or []
+    def populate_customers_table(self, customers):
         self.tbl_customers.setRowCount(0)
-        for c in data:
+        for c in customers:
             row = self.tbl_customers.rowCount()
             self.tbl_customers.insertRow(row)
             self.tbl_customers.setItem(row, 0, QtWidgets.QTableWidgetItem(str(c.get("name", ""))))
@@ -414,20 +418,26 @@ class AdrenalineApp(QtWidgets.QMainWindow):
     def on_search_products(self):
         term = (self.input_product_search.text() or self.input_prodfilter.text()).strip()
         if not term:
-            self.populate_products_tables()
+            self.populate_products_tables(self.all_products_cache)
             return
-        filtered = [p for p in self.products_cache if term.lower() in str(p.get("name", "")).lower()]
-        self.products_cache = filtered
-        self.populate_products_tables()
+        filtered = [p for p in self.all_products_cache if term.lower() in str(p.get("name", "")).lower()]
+        self.populate_products_tables(filtered)
+
+    def on_reset_product_filter(self):
+        self.input_prodfilter.clear()
+        self.populate_products_tables(self.all_products_cache)
 
     def on_search_customers(self):
         term = self.input_customer_search.text().strip()
         if not term:
-            self.populate_customers_table()
+            self.populate_customers_table(self.all_customers_cache)
             return
-        filtered = [c for c in self.customers_cache if term.lower() in str(c.get("name", "")).lower() or term in str(c.get("mobile", ""))]
-        self.customers_cache = filtered
-        self.populate_customers_table()
+        filtered = [c for c in self.all_customers_cache if term.lower() in str(c.get("name", "")).lower() or term in str(c.get("mobile", ""))]
+        self.populate_customers_table(filtered)
+
+    def on_reset_customer_search(self):
+        self.input_customer_search.clear()
+        self.populate_customers_table(self.all_customers_cache)
 
     def on_add_product_to_cart(self, product):
         # Add the whole product to the cart item to have access to all its details later
