@@ -125,14 +125,17 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.tab_products = QtWidgets.QWidget()
         self.tab_offers = QtWidgets.QWidget()
         self.tab_day = QtWidgets.QWidget()
+        self.tab_sales = QtWidgets.QWidget()
 
         self.tabs.addTab(self.tab_new_sale, "New Sale")
+        self.tabs.addTab(self.tab_sales, "Sales")
         self.tabs.addTab(self.tab_customers, "Customers")
         self.tabs.addTab(self.tab_products, "Products")
         self.tabs.addTab(self.tab_offers, "Offers")
         self.tabs.addTab(self.tab_day, "Day Management")
 
         self._build_new_sale_tab()
+        self._build_sales_tab()
         self._build_customers_tab()
         self._build_products_tab()
         self._build_offers_tab()
@@ -163,11 +166,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
 
     # ---------------- UI BUILDers ----------------
     def _build_new_sale_tab(self):
-        main_layout = QtWidgets.QVBoxLayout(self.tab_new_sale)
-
-        # Top section for sale creation
-        top_widget = QtWidgets.QWidget()
-        layout = QtWidgets.QHBoxLayout(top_widget)
+        layout = QtWidgets.QHBoxLayout(self.tab_new_sale)
 
         # Left: product search + list
         left = QtWidgets.QVBoxLayout()
@@ -176,10 +175,10 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.input_product_search.setPlaceholderText("Enter product name")
         self.category_filter_sale = QtWidgets.QComboBox()
         self.category_filter_sale.setMinimumWidth(120)
-        self.category_filter_sale.currentIndexChanged.connect(self.on_search_products)
+        self.category_filter_sale.currentIndexChanged.connect(self.on_search_products_for_sale_tab)
         btn_search = QtWidgets.QPushButton("Search")
-        btn_search.clicked.connect(self.on_search_products)
-        self.input_product_search.returnPressed.connect(self.on_search_products)
+        btn_search.clicked.connect(self.on_search_products_for_sale_tab)
+        self.input_product_search.returnPressed.connect(self.on_search_products_for_sale_tab)
         search_bar.addWidget(self.input_product_search)
         search_bar.addWidget(self.category_filter_sale)
         search_bar.addWidget(btn_search)
@@ -267,17 +266,27 @@ class AdrenalineApp(QtWidgets.QMainWindow):
 
         layout.addLayout(right, 1)
 
-        main_layout.addWidget(top_widget)
+    def _build_sales_tab(self):
+        layout = QtWidgets.QVBoxLayout(self.tab_sales)
 
-        # Bottom section for sales list
-        sales_group = QtWidgets.QGroupBox("Recent Sales")
-        sales_layout = QtWidgets.QVBoxLayout(sales_group)
+        search_bar = QtWidgets.QHBoxLayout()
+        self.input_sales_search = QtWidgets.QLineEdit()
+        self.input_sales_search.setPlaceholderText("Search by customer name")
+        btn_search_sales = QtWidgets.QPushButton("Search")
+        btn_reset_sales = QtWidgets.QPushButton("Reset")
+        search_bar.addWidget(self.input_sales_search)
+        search_bar.addWidget(btn_search_sales)
+        search_bar.addWidget(btn_reset_sales)
+        layout.addLayout(search_bar)
+
         self.tbl_sales = QtWidgets.QTableWidget(0, 5)
         self.tbl_sales.setHorizontalHeaderLabels(["ID", "Date", "Customer", "Total Price", "Items"])
         self.tbl_sales.horizontalHeader().setStretchLastSection(True)
-        sales_layout.addWidget(self.tbl_sales)
-        main_layout.addWidget(sales_group)
+        layout.addWidget(self.tbl_sales)
 
+        btn_search_sales.clicked.connect(self.on_search_sales)
+        btn_reset_sales.clicked.connect(self.on_reset_sales_search)
+        self.input_sales_search.returnPressed.connect(self.on_search_sales)
 
     def _build_customers_tab(self):
         layout = QtWidgets.QVBoxLayout(self.tab_customers)
@@ -309,10 +318,10 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.input_prodfilter.setPlaceholderText("Filter products by name")
         self.category_filter_products = QtWidgets.QComboBox()
         self.category_filter_products.setMinimumWidth(120)
-        self.category_filter_products.currentIndexChanged.connect(self.on_search_products)
+        self.category_filter_products.currentIndexChanged.connect(self.on_search_products_for_products_tab)
         btn_pf = QtWidgets.QPushButton("Filter")
-        btn_pf.clicked.connect(self.on_search_products)
-        self.input_prodfilter.returnPressed.connect(self.on_search_products)
+        btn_pf.clicked.connect(self.on_search_products_for_products_tab)
+        self.input_prodfilter.returnPressed.connect(self.on_search_products_for_products_tab)
         btn_pr = QtWidgets.QPushButton("Reset")
         btn_pr.clicked.connect(self.on_reset_product_filter)
         top.addWidget(self.input_prodfilter)
@@ -549,17 +558,25 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             self.category_filter_products.addItem(cat["name"], userData=cat["id"])
 
     # ---------------- Actions ----------------
-    def on_search_products(self):
-        # Determine active tab and get corresponding widgets
-        active_tab_idx = self.tabs.currentIndex()
-        is_sales_tab = self.tabs.tabText(active_tab_idx) == "New Sale"
+    def on_search_products_for_sale_tab(self):
+        term = self.input_product_search.text().strip()
+        cat_id = self.category_filter_sale.currentData()
 
-        if is_sales_tab:
-            term = self.input_product_search.text().strip()
-            cat_id = self.category_filter_sale.currentData()
+        # Filter by term
+        if term:
+            filtered = [p for p in self.all_products_cache if term.lower() in str(p.get("name", "")).lower()]
         else:
-            term = self.input_prodfilter.text().strip()
-            cat_id = self.category_filter_products.currentData()
+            filtered = self.all_products_cache[:]
+
+        # Filter by category
+        if cat_id is not None:
+            filtered = [p for p in filtered if p.get("category", {}).get("id") == cat_id]
+
+        self.populate_products_tables(filtered)
+
+    def on_search_products_for_products_tab(self):
+        term = self.input_prodfilter.text().strip()
+        cat_id = self.category_filter_products.currentData()
 
         # Filter by term
         if term:
@@ -589,6 +606,18 @@ class AdrenalineApp(QtWidgets.QMainWindow):
     def on_reset_customer_search(self):
         self.input_customer_search.clear()
         self.populate_customers_table(self.all_customers_cache)
+
+    def on_search_sales(self):
+        term = self.input_sales_search.text().strip()
+        if not term:
+            self.populate_sales_table(self.all_sales_cache)
+            return
+        filtered = [s for s in self.all_sales_cache if term.lower() in str(s.get("customer_name", "")).lower()]
+        self.populate_sales_table(filtered)
+
+    def on_reset_sales_search(self):
+        self.input_sales_search.clear()
+        self.populate_sales_table(self.all_sales_cache)
 
     def on_add_product_to_cart(self, product):
         # Add the whole product to the cart item to have access to all its details later
@@ -729,8 +758,20 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Empty Cart", "Cannot apply offer to an empty cart.")
             return
 
-        # Placeholder for offer logic
-        QtWidgets.QMessageBox.information(self, "Apply Offer", f"Applying offer: {offer.get('name')}. Not implemented.")
+        rate = float(offer.get("rate", 0))
+        rate_type = offer.get("rate_type")
+
+        for item in self.cart:
+            original_price = float(item["product"].get("selling_price", 0))
+            if rate_type == "percentage":
+                item["discounted_price"] = original_price * (1 - rate / 100)
+            elif rate_type == "flat":
+                item["discounted_price"] = original_price - rate
+            else:
+                item["discounted_price"] = original_price # No discount if type is unknown
+
+        self.refresh_cart_table()
+        QtWidgets.QMessageBox.information(self, "Offer Applied", f"Offer '{offer.get('name')}' has been applied to the cart.")
 
     # ---------------- Customers / Offers dialogs ----------------
     def on_add_customer_dialog(self):
