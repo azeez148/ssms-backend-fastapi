@@ -29,6 +29,7 @@ ENDPOINTS = {
     "offers": "/events/all",
     "offers/create": "/events/create",
     "sales": "/sales/addSale",
+    "sales/all": "/sales/all",
     "day/start": "/day-management/startDay",
     "day/end": "/day-management/endDay",  # Note: requires /day_id appended
     "day/active": "/day-management/activeDay",
@@ -148,6 +149,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.all_payment_types_cache = []
         self.all_delivery_types_cache = []
         self.all_offers_cache = []
+        self.all_sales_cache = []
 
 
         # initial load
@@ -157,10 +159,15 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.load_payment_types()
         self.load_delivery_types()
         self.load_offers()
+        self.load_sales()
 
     # ---------------- UI BUILDers ----------------
     def _build_new_sale_tab(self):
-        layout = QtWidgets.QHBoxLayout(self.tab_new_sale)
+        main_layout = QtWidgets.QVBoxLayout(self.tab_new_sale)
+
+        # Top section for sale creation
+        top_widget = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(top_widget)
 
         # Left: product search + list
         left = QtWidgets.QVBoxLayout()
@@ -259,6 +266,18 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         right.addWidget(cart_group, 1)
 
         layout.addLayout(right, 1)
+
+        main_layout.addWidget(top_widget)
+
+        # Bottom section for sales list
+        sales_group = QtWidgets.QGroupBox("Recent Sales")
+        sales_layout = QtWidgets.QVBoxLayout(sales_group)
+        self.tbl_sales = QtWidgets.QTableWidget(0, 5)
+        self.tbl_sales.setHorizontalHeaderLabels(["ID", "Date", "Customer", "Total Price", "Items"])
+        self.tbl_sales.horizontalHeader().setStretchLastSection(True)
+        sales_layout.addWidget(self.tbl_sales)
+        main_layout.addWidget(sales_group)
+
 
     def _build_customers_tab(self):
         layout = QtWidgets.QVBoxLayout(self.tab_customers)
@@ -419,6 +438,14 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             self.populate_delivery_types()
         self.run_in_thread(fetch, done)
 
+    def load_sales(self):
+        def fetch():
+            return api_get(ENDPOINTS["sales/all"])
+        def done(res):
+            self.all_sales_cache = res if isinstance(res, list) else []
+            self.populate_sales_table(self.all_sales_cache)
+        self.run_in_thread(fetch, done)
+
     # ---------------- Populate UI ----------------
     def populate_products_tables(self, products):
         # small products table (search results)
@@ -496,6 +523,17 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.delivery_type_combo.addItem("Select Delivery Type", userData=None)
         for dt in self.all_delivery_types_cache:
             self.delivery_type_combo.addItem(dt["name"], userData=dt["id"])
+
+    def populate_sales_table(self, sales):
+        self.tbl_sales.setRowCount(0)
+        for s in sales:
+            row = self.tbl_sales.rowCount()
+            self.tbl_sales.insertRow(row)
+            self.tbl_sales.setItem(row, 0, QtWidgets.QTableWidgetItem(str(s.get("id", ""))))
+            self.tbl_sales.setItem(row, 1, QtWidgets.QTableWidgetItem(str(s.get("date", ""))))
+            self.tbl_sales.setItem(row, 2, QtWidgets.QTableWidgetItem(str(s.get("customer_name", ""))))
+            self.tbl_sales.setItem(row, 3, QtWidgets.QTableWidgetItem(str(s.get("total_price", ""))))
+            self.tbl_sales.setItem(row, 4, QtWidgets.QTableWidgetItem(str(s.get("total_quantity", ""))))
 
     def populate_category_filters(self):
         # Sales tab
@@ -666,6 +704,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
                 return
             QtWidgets.QMessageBox.information(self, "Success", "Sale submitted successfully.")
             self.on_clear_cart()
+            self.load_sales()
         self.run_in_thread(do_submit, done)
 
     def on_print_receipt(self):
