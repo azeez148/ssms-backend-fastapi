@@ -32,6 +32,9 @@ ENDPOINTS = {
     "day/start": "/day-management/startDay",
     "day/end": "/day-management/endDay",  # Note: requires /day_id appended
     "day/active": "/day-management/activeDay",
+    "categories": "/categories/all",
+    "payment_types": "/paymentType/all",
+    "delivery_types": "/deliveryType/all",
 }
 
 # ============================
@@ -109,8 +112,6 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         title.setStyleSheet("font-size:22px; font-weight:700;")
         header.addWidget(title)
         header.addStretch()
-        btn_print_label = QtWidgets.QPushButton("Print Shipping Label")
-        header.addWidget(btn_print_label)
         self.layout.addLayout(header)
 
         # Main content - tabs
@@ -143,11 +144,19 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.cart = []
         self.all_products_cache = []
         self.all_customers_cache = []
+        self.all_categories_cache = []
+        self.all_payment_types_cache = []
+        self.all_delivery_types_cache = []
+        self.all_offers_cache = []
+
 
         # initial load
         self.load_products()
         self.load_customers()
-        # self.load_offers()
+        self.load_categories()
+        self.load_payment_types()
+        self.load_delivery_types()
+        self.load_offers()
 
     # ---------------- UI BUILDers ----------------
     def _build_new_sale_tab(self):
@@ -157,10 +166,15 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         left = QtWidgets.QVBoxLayout()
         search_bar = QtWidgets.QHBoxLayout()
         self.input_product_search = QtWidgets.QLineEdit()
-        self.input_product_search.setPlaceholderText("Enter product name - all categories")
+        self.input_product_search.setPlaceholderText("Enter product name")
+        self.category_filter_sale = QtWidgets.QComboBox()
+        self.category_filter_sale.setMinimumWidth(120)
+        self.category_filter_sale.currentIndexChanged.connect(self.on_search_products)
         btn_search = QtWidgets.QPushButton("Search")
         btn_search.clicked.connect(self.on_search_products)
+        self.input_product_search.returnPressed.connect(self.on_search_products)
         search_bar.addWidget(self.input_product_search)
+        search_bar.addWidget(self.category_filter_sale)
         search_bar.addWidget(btn_search)
         left.addLayout(search_bar)
 
@@ -182,9 +196,26 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.cust_name = QtWidgets.QLineEdit()
         self.cust_mobile = QtWidgets.QLineEdit()
         self.cust_address = QtWidgets.QTextEdit()
+        self.sale_date = QtWidgets.QDateEdit(datetime.now())
+        self.sale_date.setCalendarPopup(True)
+        self.payment_type_combo = QtWidgets.QComboBox()
+        self.delivery_type_combo = QtWidgets.QComboBox()
+        self.offer_combo = QtWidgets.QComboBox()
+        btn_apply_offer = QtWidgets.QPushButton("Apply Offer")
+        btn_apply_offer.clicked.connect(self.on_apply_offer)
+
         cust_layout.addRow("Customer Name", self.cust_name)
         cust_layout.addRow("Mobile", self.cust_mobile)
         cust_layout.addRow("Address", self.cust_address)
+        cust_layout.addRow("Date", self.sale_date)
+        cust_layout.addRow("Payment Type", self.payment_type_combo)
+        cust_layout.addRow("Delivery Type", self.delivery_type_combo)
+
+        offer_layout = QtWidgets.QHBoxLayout()
+        offer_layout.addWidget(self.offer_combo)
+        offer_layout.addWidget(btn_apply_offer)
+        cust_layout.addRow("Apply Offer", offer_layout)
+
         cust_group.setLayout(cust_layout)
         right.addWidget(cust_group)
 
@@ -212,6 +243,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         btn_print = QtWidgets.QPushButton("Print Receipt")
         btn_whatsapp = QtWidgets.QPushButton("Send via WhatsApp")
         btn_submit.clicked.connect(self.on_submit_sale)
+        btn_print_courier = QtWidgets.QPushButton("Print Courier Label")
+        btn_print_courier.clicked.connect(self.on_print_courier_label)
         btn_cancel.clicked.connect(self.on_clear_cart)
         btn_print.clicked.connect(self.on_print_receipt)
         btn_whatsapp.clicked.connect(self.on_send_whatsapp)
@@ -219,6 +252,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         btns.addWidget(btn_cancel)
         btns.addWidget(btn_print)
         btns.addWidget(btn_whatsapp)
+        btns.addWidget(btn_print_courier)
 
         cart_layout.addLayout(btns)
         cart_group.setLayout(cart_layout)
@@ -233,6 +267,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         self.input_customer_search.setPlaceholderText("Search customer by name/mobile")
         btn_cust_search = QtWidgets.QPushButton("Search")
         btn_cust_search.clicked.connect(self.on_search_customers)
+        self.input_customer_search.returnPressed.connect(self.on_search_customers)
         btn_cust_reset = QtWidgets.QPushButton("Reset")
         btn_cust_reset.clicked.connect(self.on_reset_customer_search)
         h.addWidget(self.input_customer_search)
@@ -252,12 +287,17 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout(self.tab_products)
         top = QtWidgets.QHBoxLayout()
         self.input_prodfilter = QtWidgets.QLineEdit()
-        self.input_prodfilter.setPlaceholderText("Filter products")
+        self.input_prodfilter.setPlaceholderText("Filter products by name")
+        self.category_filter_products = QtWidgets.QComboBox()
+        self.category_filter_products.setMinimumWidth(120)
+        self.category_filter_products.currentIndexChanged.connect(self.on_search_products)
         btn_pf = QtWidgets.QPushButton("Filter")
         btn_pf.clicked.connect(self.on_search_products)
+        self.input_prodfilter.returnPressed.connect(self.on_search_products)
         btn_pr = QtWidgets.QPushButton("Reset")
         btn_pr.clicked.connect(self.on_reset_product_filter)
         top.addWidget(self.input_prodfilter)
+        top.addWidget(self.category_filter_products)
         top.addWidget(btn_pf)
         top.addWidget(btn_pr)
         layout.addLayout(top)
@@ -348,8 +388,35 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         def done(res):
             if isinstance(res, dict) and res.get("error"):
                 return
-            offers = res if isinstance(res, list) else []
-            self.populate_offers_table(offers)
+            self.all_offers_cache = res if isinstance(res, list) else []
+            self.populate_offers_table(self.all_offers_cache)
+        self.run_in_thread(fetch, done)
+
+    def load_categories(self):
+        def fetch():
+            return api_get(ENDPOINTS["categories"])
+        def done(res):
+            if isinstance(res, dict) and res.get("error"):
+                # Silently fail is ok for now
+                return
+            self.all_categories_cache = res if isinstance(res, list) else []
+            self.populate_category_filters()
+        self.run_in_thread(fetch, done)
+
+    def load_payment_types(self):
+        def fetch():
+            return api_get(ENDPOINTS["payment_types"])
+        def done(res):
+            self.all_payment_types_cache = res if isinstance(res, list) else []
+            self.populate_payment_types()
+        self.run_in_thread(fetch, done)
+
+    def load_delivery_types(self):
+        def fetch():
+            return api_get(ENDPOINTS["delivery_types"])
+        def done(res):
+            self.all_delivery_types_cache = res if isinstance(res, list) else []
+            self.populate_delivery_types()
         self.run_in_thread(fetch, done)
 
     # ---------------- Populate UI ----------------
@@ -405,6 +472,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
 
     def populate_offers_table(self, offers):
         self.tbl_offers.setRowCount(0)
+        self.offer_combo.clear()
+        self.offer_combo.addItem("Select an offer", userData=None)
         for o in offers:
             row = self.tbl_offers.rowCount()
             self.tbl_offers.insertRow(row)
@@ -413,18 +482,62 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             self.tbl_offers.setItem(row, 2, QtWidgets.QTableWidgetItem(str(o.get("type", ""))))
             self.tbl_offers.setItem(row, 3, QtWidgets.QTableWidgetItem("Yes" if o.get("is_active") else "No"))
             self.tbl_offers.setItem(row, 4, QtWidgets.QTableWidgetItem(""))
+            if o.get("is_active"):
+                self.offer_combo.addItem(o.get("name"), userData=o)
+
+    def populate_payment_types(self):
+        self.payment_type_combo.clear()
+        self.payment_type_combo.addItem("Select Payment Type", userData=None)
+        for pt in self.all_payment_types_cache:
+            self.payment_type_combo.addItem(pt["name"], userData=pt["id"])
+
+    def populate_delivery_types(self):
+        self.delivery_type_combo.clear()
+        self.delivery_type_combo.addItem("Select Delivery Type", userData=None)
+        for dt in self.all_delivery_types_cache:
+            self.delivery_type_combo.addItem(dt["name"], userData=dt["id"])
+
+    def populate_category_filters(self):
+        # Sales tab
+        self.category_filter_sale.clear()
+        self.category_filter_sale.addItem("All Categories", userData=None)
+        for cat in self.all_categories_cache:
+            self.category_filter_sale.addItem(cat["name"], userData=cat["id"])
+
+        # Products tab
+        self.category_filter_products.clear()
+        self.category_filter_products.addItem("All Categories", userData=None)
+        for cat in self.all_categories_cache:
+            self.category_filter_products.addItem(cat["name"], userData=cat["id"])
 
     # ---------------- Actions ----------------
     def on_search_products(self):
-        term = (self.input_product_search.text() or self.input_prodfilter.text()).strip()
-        if not term:
-            self.populate_products_tables(self.all_products_cache)
-            return
-        filtered = [p for p in self.all_products_cache if term.lower() in str(p.get("name", "")).lower()]
+        # Determine active tab and get corresponding widgets
+        active_tab_idx = self.tabs.currentIndex()
+        is_sales_tab = self.tabs.tabText(active_tab_idx) == "New Sale"
+
+        if is_sales_tab:
+            term = self.input_product_search.text().strip()
+            cat_id = self.category_filter_sale.currentData()
+        else:
+            term = self.input_prodfilter.text().strip()
+            cat_id = self.category_filter_products.currentData()
+
+        # Filter by term
+        if term:
+            filtered = [p for p in self.all_products_cache if term.lower() in str(p.get("name", "")).lower()]
+        else:
+            filtered = self.all_products_cache[:]
+
+        # Filter by category
+        if cat_id is not None:
+            filtered = [p for p in filtered if p.get("category", {}).get("id") == cat_id]
+
         self.populate_products_tables(filtered)
 
     def on_reset_product_filter(self):
         self.input_prodfilter.clear()
+        self.category_filter_products.setCurrentIndex(0)
         self.populate_products_tables(self.all_products_cache)
 
     def on_search_customers(self):
@@ -519,18 +632,24 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             }
             sale_items.append(sale_item_payload)
 
-        # TODO: The following values are hardcoded because the current UI does not
-        # have elements to select them. For a full implementation, the UI would
-        # need to be updated with dropdowns/selectors for Shop, Payment Type,
-        # Delivery Type, and a way to select an existing customer.
+        payment_type_id = self.payment_type_combo.currentData()
+        delivery_type_id = self.delivery_type_combo.currentData()
+
+        if not payment_type_id:
+            QtWidgets.QMessageBox.warning(self, "Input required", "Please select a payment type.")
+            return
+        if not delivery_type_id:
+            QtWidgets.QMessageBox.warning(self, "Input required", "Please select a delivery type.")
+            return
+
         payload = {
-            "date": datetime.now().isoformat(),
+            "date": self.sale_date.date().toString(QtCore.Qt.ISODate),
             "total_quantity": total_quantity,
             "total_price": total_price,
-            "payment_type_id": 1,  # Defaulting to 1 (e.g., 'Cash')
-            "delivery_type_id": 1, # Defaulting to 1 (e.g., 'In-Store')
-            "shop_id": 1,          # Defaulting to shop_id 1
-            "customer_id": 1,      # Defaulting to a guest/default customer
+            "payment_type_id": payment_type_id,
+            "delivery_type_id": delivery_type_id,
+            "shop_id": 1,  # Defaulting to shop_id 1
+            "customer_id": 1,  # Defaulting to a guest/default customer
             "customer_name": self.cust_name.text(),
             "customer_address": self.cust_address.toPlainText(),
             "customer_mobile": self.cust_mobile.text(),
@@ -553,9 +672,26 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         # Placeholder: implement printing logic (generate PDF or system print)
         QtWidgets.QMessageBox.information(self, "Print", "Print receipt: Not implemented. Generate PDF/print here.")
 
+    def on_print_courier_label(self):
+        # Placeholder: implement printing logic (generate PDF or system print)
+        QtWidgets.QMessageBox.information(self, "Print", "Print courier label: Not implemented. Generate PDF/print here.")
+
     def on_send_whatsapp(self):
         # Placeholder: integrate WhatsApp Business API or open web.whatsapp with prefilled message
         QtWidgets.QMessageBox.information(self, "WhatsApp", "Send via WhatsApp: Not implemented. Hook here to send message.")
+
+    def on_apply_offer(self):
+        offer = self.offer_combo.currentData()
+        if not offer:
+            QtWidgets.QMessageBox.warning(self, "No offer selected", "Please select an offer to apply.")
+            return
+
+        if not self.cart:
+            QtWidgets.QMessageBox.warning(self, "Empty Cart", "Cannot apply offer to an empty cart.")
+            return
+
+        # Placeholder for offer logic
+        QtWidgets.QMessageBox.information(self, "Apply Offer", f"Applying offer: {offer.get('name')}. Not implemented.")
 
     # ---------------- Customers / Offers dialogs ----------------
     def on_add_customer_dialog(self):
