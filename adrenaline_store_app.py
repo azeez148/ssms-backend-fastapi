@@ -625,6 +625,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         # The cart needs to be aware of the full product object to build the sale payload
         cart_item = {
             "product": product,
+            "size": product.get("size"),
+            "available_quantity": product.get("available_quantity"),
             "qty": 1,
             "price": float(product.get("selling_price") or 0),
             "discounted_price": float(product.get("selling_price") or 0), # Assuming no discount by default
@@ -640,8 +642,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             row = self.tbl_cart.rowCount()
             self.tbl_cart.insertRow(row)
             self.tbl_cart.setItem(row, 0, QtWidgets.QTableWidgetItem(item["product"]["name"]))
-            self.tbl_cart.setItem(row, 1, QtWidgets.QTableWidgetItem(str(item["product"].get("size", "N/A"))))
-            self.tbl_cart.setItem(row, 2, QtWidgets.QTableWidgetItem(str(item["product"].get("available_quantity", "N/A"))))
+            self.tbl_cart.setItem(row, 1, QtWidgets.QTableWidgetItem(str(item.get("size", "N/A"))))
+            self.tbl_cart.setItem(row, 2, QtWidgets.QTableWidgetItem(str(item.get("available_quantity", "N/A"))))
 
             # qty widget
             spin = QtWidgets.QSpinBox()
