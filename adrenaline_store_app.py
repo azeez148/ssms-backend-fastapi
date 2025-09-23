@@ -228,8 +228,8 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         # Cart table
         cart_group = QtWidgets.QGroupBox("Cart")
         cart_layout = QtWidgets.QVBoxLayout()
-        self.tbl_cart = QtWidgets.QTableWidget(0, 5)
-        self.tbl_cart.setHorizontalHeaderLabels(["Name", "Qty", "Price", "Discounted", "Total"])
+        self.tbl_cart = QtWidgets.QTableWidget(0, 7)
+        self.tbl_cart.setHorizontalHeaderLabels(["Name", "Size", "Available", "Qty", "Price", "Discounted", "Total"])
         cart_layout.addWidget(self.tbl_cart)
 
         # Cart summary
@@ -640,19 +640,21 @@ class AdrenalineApp(QtWidgets.QMainWindow):
             row = self.tbl_cart.rowCount()
             self.tbl_cart.insertRow(row)
             self.tbl_cart.setItem(row, 0, QtWidgets.QTableWidgetItem(item["product"]["name"]))
+            self.tbl_cart.setItem(row, 1, QtWidgets.QTableWidgetItem(str(item["product"].get("size", "N/A"))))
+            self.tbl_cart.setItem(row, 2, QtWidgets.QTableWidgetItem(str(item["product"].get("available_quantity", "N/A"))))
 
             # qty widget
             spin = QtWidgets.QSpinBox()
             spin.setValue(item["qty"])
             spin.setMinimum(1)
             spin.valueChanged.connect(partial(self.on_cart_qty_changed, row))
-            self.tbl_cart.setCellWidget(row, 1, spin)
+            self.tbl_cart.setCellWidget(row, 3, spin)
 
-            self.tbl_cart.setItem(row, 2, QtWidgets.QTableWidgetItem(f"{item['price']:.2f}"))
-            self.tbl_cart.setItem(row, 3, QtWidgets.QTableWidgetItem(f"{item['discounted_price']:.2f}"))
+            self.tbl_cart.setItem(row, 4, QtWidgets.QTableWidgetItem(f"{item['price']:.2f}"))
+            self.tbl_cart.setItem(row, 5, QtWidgets.QTableWidgetItem(f"{item['discounted_price']:.2f}"))
 
             total = item["qty"] * item["discounted_price"]
-            self.tbl_cart.setItem(row, 4, QtWidgets.QTableWidgetItem(f"{total:.2f}"))
+            self.tbl_cart.setItem(row, 6, QtWidgets.QTableWidgetItem(f"{total:.2f}"))
 
             subtotal += item["qty"] * item["price"]
             total_disc += item["qty"] * (item["price"] - item["discounted_price"])
