@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, Float, ForeignKey, String
+from sqlalchemy import Column, Integer, Float, ForeignKey, String, Enum
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
+from app.schemas.enums import SaleStatus
 
 class Sale(BaseModel):
     __tablename__ = "sales"
@@ -24,6 +25,7 @@ class Sale(BaseModel):
     shop = relationship("Shop", back_populates="sales")
     
     sale_items = relationship("SaleItem", back_populates="sale", cascade="all, delete-orphan")
+    status = Column(Enum(SaleStatus), default=SaleStatus.OPEN, nullable=False)
 
 class SaleItem(BaseModel):
     __tablename__ = "sale_items"

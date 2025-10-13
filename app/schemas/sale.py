@@ -5,6 +5,7 @@ from .payment import PaymentTypeResponse
 from .delivery import DeliveryTypeResponse
 from .customer import CustomerResponse
 from app.schemas.base import BaseSchema
+from app.schemas.enums import SaleStatus
 
 class SaleItemBase(BaseModel):
     product_id: int
@@ -38,6 +39,7 @@ class SaleBase(BaseModel):
     delivery_type_id: int
     shop_id: int
     customer_id: int
+    status: Optional[SaleStatus] = SaleStatus.OPEN
 
     class Config:
         from_attributes = True
@@ -55,6 +57,7 @@ class SaleInDB(SaleBase):
     payment_type: Optional[PaymentTypeResponse] = None
     delivery_type: Optional[DeliveryTypeResponse] = None
     customer: Optional[CustomerResponse] = None
+    status: SaleStatus
 
 class SaleResponse(SaleInDB, BaseSchema):
     pass
