@@ -15,8 +15,7 @@ class EventOfferBase(BaseModel):
     rate: int
     product_ids: List[int] = []
     category_ids: List[int] = []
-    code: Optional[str] = None
-
+    code: str = ""
     class Config:
         from_attributes = True
 

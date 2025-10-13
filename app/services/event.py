@@ -20,7 +20,8 @@ class EventOfferService:
             product_ids=",".join(map(str, event_offer.product_ids)),
             category_ids=",".join(map(str, event_offer.category_ids)),
             created_by="system",
-            updated_by="system"
+            updated_by="system",
+            code=event_offer.code
         )
         db.add(db_event_offer)
         db.commit()
