@@ -3,6 +3,7 @@ from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
 from app.schemas.customer import CustomerCreate
 from app.schemas.sale import SaleCreate
+from app.schemas.enums import SaleStatus
 from app.services.customer import get_or_create_customer
 from app.services.notification import WhatsAppNotificationService, EmailNotificationService
 from app.services.product import ProductService
@@ -112,3 +113,11 @@ class SaleService:
             'total_revenue': sum(sale.total_price for sale in sales),
             'total_items_sold': sum(sale.total_quantity for sale in sales)
         }
+
+    def update_sale_status(self, db: Session, sale_id: int, status: str) -> Optional[Sale]:
+        sale = self.get_sale(db, sale_id)
+        if sale:
+            sale.status = SaleStatus(status)
+            db.commit()
+            db.refresh(sale)
+        return sale
