@@ -33,11 +33,14 @@ class SaleService:
         # Create the main sale record
         sale_data = sale.model_dump(exclude={
             'sale_items', 'customer_name', 'customer_address',
-            'customer_mobile', 'customer_email'
+            'customer_mobile', 'customer_email', 'status'
         })
         sale_data['customer_id'] = customer_id
 
-        db_sale = Sale(**sale_data, created_by="system", updated_by="system")
+        # Set status: if provided in sale, use OPEN, else use COMPLETED
+        status = SaleStatus.OPEN if getattr(sale, "status", None) else SaleStatus.COMPLETED
+
+        db_sale = Sale(**sale_data, created_by="system", updated_by="system", status=status)
         db.add(db_sale)
         db.flush()  # Get the sale ID without committing
 
@@ -118,6 +121,25 @@ class SaleService:
         sale = self.get_sale(db, sale_id)
         if sale:
             sale.status = SaleStatus(status)
+            db.commit()
+            db.refresh(sale)
+        return sale
+
+    # implement cancel_sale
+    def cancel_sale(self, db: Session, sale_id: int) -> Optional[Sale]:
+        sale = self.get_sale(db, sale_id)
+        if sale and sale.status != SaleStatus.CANCELLED:
+            sale.status = SaleStatus.CANCELLED
+            
+            # Restore product stock
+            for item in sale.sale_items:
+                self.product_service.update_product_stock(
+                    db,
+                    product_id=item.product_id,
+                    size=item.size,
+                    quantity_change=item.quantity  # Increase stock by cancelled quantity
+                )
+            
             db.commit()
             db.refresh(sale)
         return sale

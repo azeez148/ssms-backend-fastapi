@@ -39,7 +39,7 @@ class SaleBase(BaseModel):
     delivery_type_id: int
     shop_id: int
     customer_id: int
-    status: Optional[SaleStatus] = SaleStatus.OPEN
+    status: Optional[SaleStatus] = None
 
     class Config:
         from_attributes = True
