@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, event
 from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.ext.hybrid import hybrid_property
 from app.models.base import BaseModel
 
 class Customer(BaseModel):
@@ -17,6 +18,15 @@ class Customer(BaseModel):
 
     sales = relationship("Sale", back_populates="customer")
     user = relationship("User", back_populates="customer", uselist=False)
+
+    @hybrid_property
+    def name(self):
+        parts = []
+        if self.first_name:
+            parts.append(self.first_name)
+        if self.last_name:
+            parts.append(self.last_name)
+        return " ".join(parts) if parts else "N/A"
 
 # Listener to check for unique mobile number before insert/update
 @event.listens_for(Customer, 'before_insert')
