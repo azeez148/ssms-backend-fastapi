@@ -73,9 +73,13 @@ class SaleService:
         db.commit()
         db.refresh(db_sale)
         
-        # Send notifications
-        self.whatsapp_notification.send_sale_notification(db_sale)
-        self.email_notification.send_sale_notification(db_sale)
+        try:
+            # Send notifications
+            self.whatsapp_notification.send_sale_notification(db_sale)
+            self.email_notification.send_sale_notification(db_sale)
+        except Exception as e:
+            print(str(e))
+            pass
         
         return db_sale
 

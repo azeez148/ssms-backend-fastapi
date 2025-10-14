@@ -18,7 +18,8 @@ async def add_sale(
 
 @router.get("/all", response_model=List[SaleResponse])
 async def get_all_sales(db: Session = Depends(get_db)):
-    return sale_service.get_all_sales(db)
+    sales = sale_service.get_all_sales(db)
+    return sales
 
 @router.get("/recent", response_model=List[SaleResponse])
 async def get_recent_sales(db: Session = Depends(get_db)):

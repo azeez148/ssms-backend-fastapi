@@ -6,12 +6,17 @@ class Customer(BaseModel):
     __tablename__ = "customers"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String, index=True)
+    first_name = Column(String)
+    last_name = Column(String)
     address = Column(String)
+    city = Column(String)
+    state = Column(String)
+    zip_code = Column(String)
     mobile = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=True)
 
     sales = relationship("Sale", back_populates="customer")
+    user = relationship("User", back_populates="customer", uselist=False)
 
 # Listener to check for unique mobile number before insert/update
 @event.listens_for(Customer, 'before_insert')
