@@ -134,8 +134,15 @@ async def upload_product_images(
     upload_dir = Path(f"images/products/{product_id}")
     os.makedirs(upload_dir, exist_ok=True)
 
-    # Define the file path
-    file_path = upload_dir / image.filename
+    # Delete any existing files in the directory
+    for existing_file in upload_dir.iterdir():
+        if existing_file.is_file():
+            existing_file.unlink()
+
+    # Rename the uploaded file to product_id with its original extension
+    file_ext = Path(image.filename).suffix
+    new_filename = f"{product_id}{file_ext}"
+    file_path = upload_dir / new_filename
 
     # Save the file
     with open(file_path, "wb") as buffer:

@@ -87,7 +87,7 @@ class EmailNotificationService:
 
         html_content = f"""
         <h1>Sale Confirmation</h1>
-        <p>Dear {sale.customer.name},</p>
+        <p>Dear {sale.customer.first_name} {sale.customer.last_name},</p>
         <p>Thank you for your purchase. Here are the details of your order:</p>
         <p><strong>Order ID:</strong> {sale.id}</p>
         <p><strong>Date:</strong> {sale.date}</p>

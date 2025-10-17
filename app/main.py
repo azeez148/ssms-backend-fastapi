@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from app.api import auth, orders
 
 app = FastAPI(title="SSMS API")
 
@@ -27,6 +28,8 @@ from app.api import (
     customers,
     purchases,
     shops,
+    auth,
+    orders,
     payments,
     vendors,
     delivery,
@@ -54,6 +57,8 @@ app.include_router(payments.router, prefix="/paymentType", tags=["payments"])
 app.include_router(delivery.router, prefix="/deliveryType", tags=["delivery"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(home.router, prefix="/public", tags=["public"])
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(orders.router, prefix="/orders", tags=["orders"])
 
 @app.get("/")
 async def root():

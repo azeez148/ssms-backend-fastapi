@@ -1,8 +1,9 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
 from app.schemas.customer import CustomerCreate
 from app.schemas.sale import SaleCreate
+from app.schemas.enums import SaleStatus
 from app.services.customer import get_or_create_customer
 from app.services.notification import WhatsAppNotificationService, EmailNotificationService
 from app.services.product import ProductService
@@ -32,11 +33,14 @@ class SaleService:
         # Create the main sale record
         sale_data = sale.model_dump(exclude={
             'sale_items', 'customer_name', 'customer_address',
-            'customer_mobile', 'customer_email'
+            'customer_mobile', 'customer_email', 'status'
         })
         sale_data['customer_id'] = customer_id
 
-        db_sale = Sale(**sale_data, created_by="system", updated_by="system")
+        # Set status: if provided in sale, use OPEN, else use COMPLETED
+        status = SaleStatus.OPEN if getattr(sale, "status", None) else SaleStatus.COMPLETED
+
+        db_sale = Sale(**sale_data, created_by="system", updated_by="system", status=status)
         db.add(db_sale)
         db.flush()  # Get the sale ID without committing
 
@@ -69,9 +73,13 @@ class SaleService:
         db.commit()
         db.refresh(db_sale)
         
-        # Send notifications
-        self.whatsapp_notification.send_sale_notification(db_sale)
-        self.email_notification.send_sale_notification(db_sale)
+        try:
+            # Send notifications
+            self.whatsapp_notification.send_sale_notification(db_sale)
+            self.email_notification.send_sale_notification(db_sale)
+        except Exception as e:
+            print(str(e))
+            pass
         
         return db_sale
 
@@ -79,10 +87,10 @@ class SaleService:
         return db.query(Sale).filter(Sale.id == sale_id).first()
 
     def get_all_sales(self, db: Session) -> List[Sale]:
-        return db.query(Sale).all()
+        return db.query(Sale).options(joinedload(Sale.customer)).all()
 
     def get_recent_sales(self, db: Session, limit: int = 10) -> List[Sale]:
-        return db.query(Sale).order_by(Sale.date.desc()).limit(limit).all()
+        return db.query(Sale).options(joinedload(Sale.customer)).order_by(Sale.date.desc()).limit(limit).all()
 
     def get_most_sold_items(self, db: Session) -> Dict[int, Dict]:
         """Get a summary of most sold items with product details"""
@@ -113,64 +121,29 @@ class SaleService:
             'total_items_sold': sum(sale.total_quantity for sale in sales)
         }
 
-    def update_sale(self, db: Session, sale_id: int, sale_data: SaleCreate) -> Optional[Sale]:
-        db_sale = self.get_sale(db, sale_id)
-        if not db_sale:
-            return None
-        
-        # Update sale fields
-        for key, value in sale_data.model_dump(exclude={'sale_items', 'customer_name', 'customer_address', 'customer_mobile', 'customer_email'}).items():
-            setattr(db_sale, key, value)
-        
-        db_sale.updated_by = "system"
-        
-        # update sale items and stock adjustments
-        existing_items = {item.product_id: item for item in db_sale.sale_items}
-        existing_item_ids = {item.product_id for item in db_sale.sale_items}
-        new_items = {item.product_id: item for item in sale_data.sale_items}
-        for item in sale_data.sale_items:
-            if item.product_id in existing_item_ids:
-                db_item = existing_items[item.product_id]
-                quantity_diff = item.quantity - db_item.quantity
-                
-                # Update existing item
-                for key, value in item.model_dump(exclude={'id', 'sale_id'}).items():
-                    setattr(db_item, key, value)
-                
-                # Update product stock
-                self.product_service.update_product_stock(
-                    db,
-                    product_id=item.product_id,
-                    size=item.size,
-                    quantity_change=-quantity_diff  # Adjust stock based on quantity difference
-                )
-            else:
-                # New sale item
-                new_sale_item = SaleItem(
-                    sale_id=db_sale.id,
-                    product_id=item.product_id,
-                    product_name=item.product_name,
-                    product_category=item.product_category,
-                    size=item.size,
-                    quantity_available=item.quantity_available,
-                    quantity=item.quantity,
-                    sale_price=item.sale_price,
-                    total_price=item.total_price,
-                    created_by="system",
-                    updated_by="system"
-                )
-                db.add(new_sale_item)
-                
-                # Decrease stock for new item
-                self.product_service.update_product_stock(
-                    db,
-                    product_id=item.product_id,
-                    size=item.size,
-                    quantity_change=-item.quantity
-                )
-        
-        db.commit()
-        db.refresh(db_sale)
+    def update_sale_status(self, db: Session, sale_id: int, status: str) -> Optional[Sale]:
+        sale = self.get_sale(db, sale_id)
+        if sale:
+            sale.status = SaleStatus(status)
+            db.commit()
+            db.refresh(sale)
+        return sale
 
-        
-        return db_sale
+    # implement cancel_sale
+    def cancel_sale(self, db: Session, sale_id: int) -> Optional[Sale]:
+        sale = self.get_sale(db, sale_id)
+        if sale and sale.status != SaleStatus.CANCELLED:
+            sale.status = SaleStatus.CANCELLED
+            
+            # Restore product stock
+            for item in sale.sale_items:
+                self.product_service.update_product_stock(
+                    db,
+                    product_id=item.product_id,
+                    size=item.size,
+                    quantity_change=item.quantity  # Increase stock by cancelled quantity
+                )
+            
+            db.commit()
+            db.refresh(sale)
+        return sale
