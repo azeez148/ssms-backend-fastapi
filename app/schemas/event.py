@@ -15,7 +15,7 @@ class EventOfferBase(BaseModel):
     rate: int
     product_ids: List[int] = []
     category_ids: List[int] = []
-
+    code: str = ""
     class Config:
         from_attributes = True
 
@@ -34,6 +34,7 @@ class EventOfferResponse(BaseSchema):
     rate: int
     product_ids: List[int] = []
     category_ids: List[int] = []
+    code: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -61,3 +62,4 @@ class EventOfferUpdate(BaseModel):
     rate: Optional[int] = None
     product_ids: Optional[List[int]] = None
     category_ids: Optional[List[int]] = None
+    code: Optional[str] = None

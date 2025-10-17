@@ -1,10 +1,11 @@
 import openpyxl
-import json
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from app.services.product import ProductService
 from app.services.category import CategoryService
 from app.schemas.product import ProductCreate, ProductSizeCreate
+from app.schemas.stock import StockRequest, StockResponse
+from app.models.product_size import ProductSize
 
 class StockService:
     def __init__(self):
@@ -64,3 +65,45 @@ class StockService:
             return {"message": "Excel uploaded and processed successfully."}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Could not upload/process the file: {str(e)}")
+
+    def hold_stock(self, db: Session, stock_request: StockRequest) -> StockResponse:
+        try:
+            for item in stock_request.items:
+                self.product_service.update_product_stock(db, item.product_id, item.size, -item.quantity)
+            return StockResponse(success=True, message="Stock held successfully.")
+        except HTTPException as e:
+            return StockResponse(success=False, message=e.detail)
+        except Exception as e:
+            return StockResponse(success=False, message=str(e))
+
+    def release_stock(self, db: Session, stock_request: StockRequest) -> StockResponse:
+        try:
+            for item in stock_request.items:
+                self.product_service.update_product_stock(db, item.product_id, item.size, item.quantity)
+            return StockResponse(success=True, message="Stock released successfully.")
+        except HTTPException as e:
+            return StockResponse(success=False, message=e.detail)
+        except Exception as e:
+            return StockResponse(success=False, message=str(e))
+
+    def check_stock(self, db: Session, stock_request: StockRequest) -> StockResponse:
+        try:
+            for item in stock_request.items:
+                product_size = db.query(ProductSize).filter(
+                    ProductSize.product_id == item.product_id,
+                    ProductSize.size == item.size
+                ).first()
+
+                if not product_size or product_size.quantity < item.quantity:
+                    product = self.product_service.get_product_by_id(db, item.product_id)
+                    product_name = product.name if product else "Unknown"
+                    size_name = item.size
+                    available_stock = product_size.quantity if product_size else 0
+
+                    return StockResponse(
+                        success=False,
+                        message=f"Insufficient stock for {product_name} (Size: {size_name}). Available: {available_stock}, Requested: {item.quantity}"
+                    )
+            return StockResponse(success=True, message="Stock is available.")
+        except Exception as e:
+            return StockResponse(success=False, message=str(e))

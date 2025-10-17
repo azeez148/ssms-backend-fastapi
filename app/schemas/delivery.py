@@ -5,6 +5,7 @@ from app.schemas.base import BaseSchema
 class DeliveryTypeBase(BaseModel):
     name: str
     description: Optional[str] = None
+    charge: int=0
 
 class DeliveryTypeCreate(DeliveryTypeBase):
     pass

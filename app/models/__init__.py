@@ -11,6 +11,7 @@ from .vendor import Vendor
 from .customer import Customer
 from .event import EventOffer
 from .day_management import Day, Expense
+from .user import User  # Add the User model import
 
 __all__ = [
     "Category",
@@ -18,6 +19,7 @@ __all__ = [
     "Attribute",
     "ProductSize",
     "Sale",
+    "User",  # Add User to __all__
     "SaleItem",
     "Purchase",
     "PurchaseItem",

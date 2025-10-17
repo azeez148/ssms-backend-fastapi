@@ -23,6 +23,7 @@ class EventOffer(BaseModel):
     end_date = Column(DateTime)
     rate_type = Column(Enum(RateType))
     rate = Column(Integer)
+    code = Column(String, unique=True, index=True, nullable=True)
 
     products = relationship("Product", back_populates="offer")
 
