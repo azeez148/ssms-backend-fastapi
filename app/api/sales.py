@@ -31,3 +31,12 @@ async def get_most_sold_items(db: Session = Depends(get_db)):
 @router.get("/total")
 async def get_total_sales(db: Session = Depends(get_db)):
     return {"total_sales": sale_service.get_total_sales(db)}
+
+# update sale endpoint
+@router.put("/updateSale/{sale_id}", response_model=SaleResponse)
+async def update_sale(
+    sale_id: int,
+    sale: SaleCreate,
+    db: Session = Depends(get_db)
+):
+    return sale_service.update_sale(db, sale_id, sale)
