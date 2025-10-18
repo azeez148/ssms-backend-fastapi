@@ -68,5 +68,5 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
 
 @app.get("/")
-async def root():
-    return {"message": "Welcome to SSMS API"}
+def read_root():
+    return {"message": "CORS URLs configured", "allowed_origins": origins}
