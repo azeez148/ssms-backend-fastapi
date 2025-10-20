@@ -1,3 +1,4 @@
+from http.client import HTTPException
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -40,3 +41,18 @@ async def complete_sale(sale_id: int, db: Session = Depends(get_db)):
 @router.put("/{sale_id}/cancel", response_model=SaleResponse)
 async def cancel_sale(sale_id: int, db: Session = Depends(get_db)):
     return sale_service.cancel_sale(db, sale_id)
+
+@router.put("/{sale_id}/update_status", response_model=SaleResponse)
+async def update_sale_status_background(
+    sale_id: int,
+    status: str,
+    db: Session = Depends(get_db)  # ✅ Proper dependency injection
+):
+    sale = sale_service.update_sale_status(db, sale_id, status)
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    return sale  # ✅ Must return ORM or Pydantic object
+
+@router.post("/updateSale", response_model=SaleResponse)
+async def update_sale(sale: SaleCreate, db: Session = Depends(get_db)):
+    return sale_service.update_sale(db, sale)
