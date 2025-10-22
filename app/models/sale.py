@@ -25,7 +25,7 @@ class Sale(BaseModel):
     shop = relationship("Shop", back_populates="sales")
     
     sale_items = relationship("SaleItem", back_populates="sale", cascade="all, delete-orphan")
-    status = Column(Enum(SaleStatus), default=SaleStatus.OPEN, nullable=False)
+    status = Column(Enum(SaleStatus), default=SaleStatus.PENDING, nullable=False)
 
 class SaleItem(BaseModel):
     __tablename__ = "sale_items"

@@ -147,3 +147,36 @@ class SaleService:
             db.commit()
             db.refresh(sale)
         return sale
+
+    def update_sale(self, db: Session, sale_data: SaleCreate, sale_id: int) -> Optional[Sale]:
+        sale = self.get_sale(db, sale_id)
+        if not sale:
+            return None
+
+        # Update main sale fields
+        for field, value in sale_data.model_dump(exclude={'sale_items'}).items():
+            setattr(sale, field, value)
+
+        # Clear existing sale items
+        db.query(SaleItem).filter(SaleItem.sale_id == sale.id).delete()
+
+        # Add updated sale items and adjust stock
+        for item in sale_data.sale_items:
+            sale_item = SaleItem(
+                sale_id=sale.id,
+                product_id=item.product_id,
+                product_name=item.product_name,
+                product_category=item.product_category,
+                size=item.size,
+                quantity_available=item.quantity_available,
+                quantity=item.quantity,
+                sale_price=item.sale_price,
+                total_price=item.total_price,
+                created_by="system",
+                updated_by="system"
+            )
+            db.add(sale_item)
+
+        db.commit()
+        db.refresh(sale)
+        return sale

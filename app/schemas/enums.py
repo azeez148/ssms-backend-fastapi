@@ -1,6 +1,8 @@
 from enum import Enum
 
 class SaleStatus(str, Enum):
-    OPEN = "OPEN"
+    PENDING = "PENDING"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
+    SHIPPED = "SHIPPED"
+    RETURNED = "RETURNED"
