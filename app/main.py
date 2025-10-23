@@ -3,17 +3,24 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, orders
+from dotenv import load_dotenv
 
 app = FastAPI(title="SSMS API")
 
 # Mount the 'images' directory to serve static files
 app.mount("/images", StaticFiles(directory="images"), name="images")
-CORS_URLS = os.getenv("CORS_URLS", "http://localhost:4200").split(",")
 
-# Configure CORS
+# Load .env variables
+load_dotenv()
+
+# Get CORS URLs as a list
+cors_urls = os.getenv("CORS_URLS", "")
+origins = [url.strip() for url in cors_urls.split(",") if url.strip()]
+
+# Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_URLS,  # Angular frontend
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,5 +68,5 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
 
 @app.get("/")
-async def root():
-    return {"message": "Welcome to SSMS API"}
+def read_root():
+    return {"message": "CORS URLs configured", "allowed_origins": origins}
