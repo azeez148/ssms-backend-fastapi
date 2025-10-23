@@ -61,3 +61,6 @@ class SaleInDB(SaleBase):
 
 class SaleResponse(SaleInDB, BaseSchema):
     pass
+
+class SaleStatusUpdate(BaseModel):
+    status: SaleStatus
