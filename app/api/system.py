@@ -10,8 +10,8 @@ from app.core.database import POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POS
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from reset_db import reset_database
-from run_sql_fix import run_sql_fix
 from app.core.config import settings
+from run_new_sql_migration import run_sql_migrations
 
 router = APIRouter()
 
@@ -117,8 +117,29 @@ async def restore_db_endpoint(item: PassKey):
     return {"message": "Restore functionality not implemented yet."}
 
 
-@router.post("/run-sql-fix", tags=["system"])
-async def run_sql_fix_endpoint(item: PassKey):
+# @router.post("/run-sql-fix", tags=["system"])
+# async def run_sql_fix_endpoint(item: PassKey):
+#     """
+#     Executes the SQL fix script.
+#     Requires a valid pass_key.
+#     """
+#     if item.pass_key != settings.SYSTEM_PASS_KEY:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid pass_key",
+#         )
+#     try:
+#         run_sql_fix()
+#         return {"message": "SQL fix script executed successfully!"}
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"An error occurred during SQL fix execution: {e}"
+#         )
+
+
+@router.post("/run-sql-migrations", tags=["system"])
+async def run_sql_migrations_endpoint(item: PassKey):
     """
     Executes the SQL fix script.
     Requires a valid pass_key.
@@ -129,10 +150,10 @@ async def run_sql_fix_endpoint(item: PassKey):
             detail="Invalid pass_key",
         )
     try:
-        run_sql_fix()
-        return {"message": "SQL fix script executed successfully!"}
+        run_sql_migrations()
+        return {"message": "SQL script executed successfully!"}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred during SQL fix execution: {e}"
+            detail=f"An error occurred during SQL execution: {e}"
         )
