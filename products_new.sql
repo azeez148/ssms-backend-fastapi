@@ -55,7 +55,6 @@ VALUES
 (394, 'Italy Totti 10 White', 'Italy Totti 10 White', 195, 350, TRUE, TRUE, NULL, 3, NULL, 300, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (395, 'Arsenal Black Henry O2', 'Arsenal Black Henry O2', 195, 350, TRUE, TRUE, NULL, 3, NULL, 300, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (396, 'Arsenal Blue Henry O2', 'Arsenal Blue Henry O2', 195, 350, TRUE, TRUE, NULL, 3, NULL, 300, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
-(396, 'Manchester City 24/25 Home', 'Manchester City 24/25 Home', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (397, 'England Away 25/26', 'England Away 25/26', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (398, 'Barcelona 2014/15 Home', 'Barcelona 2014/15 Home', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (399, 'Barcelona 2025/26 Away', 'Barcelona 2025/26 Away', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
@@ -89,3 +88,4 @@ VALUES
 (427, 'Arsenal Away Jersey 2025/26', 'Arsenal Away Jersey 2025/26', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (428, 'Liverpool FC 2024/25 Home', 'Liverpool FC 2024/25 Home', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (429, 'Brazil 22/23 Home Collar Button', 'Brazil 22/23 Home Collar Button', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin');
+(430, 'Manchester City 24/25 Home', 'Manchester City 24/25 Home', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
