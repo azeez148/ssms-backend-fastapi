@@ -87,5 +87,5 @@ VALUES
 (426, 'France Home Retro 1998 Collar', 'France Home Retro 1998 Collar', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (427, 'Arsenal Away Jersey 2025/26', 'Arsenal Away Jersey 2025/26', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
 (428, 'Liverpool FC 2024/25 Home', 'Liverpool FC 2024/25 Home', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
-(429, 'Brazil 22/23 Home Collar Button', 'Brazil 22/23 Home Collar Button', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin');
-(430, 'Manchester City 24/25 Home', 'Manchester City 24/25 Home', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
+(429, 'Brazil 22/23 Home Collar Button', 'Brazil 22/23 Home Collar Button', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin'),
+(430, 'Manchester City 24/25 Home', 'Manchester City 24/25 Home', 450, 700, TRUE, TRUE, NULL, 5, NULL, 650, NULL, NULL, NOW(), NOW(), 'admin', 'admin');
