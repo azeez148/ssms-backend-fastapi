@@ -1,0 +1,1 @@
+"""AI Assistant module for intelligent product search and ordering."""

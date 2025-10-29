@@ -14,7 +14,7 @@ app.mount("/images", StaticFiles(directory="images"), name="images")
 load_dotenv()
 
 # Get CORS URLs as a list
-cors_urls = os.getenv("CORS_URLS", "")
+cors_urls = os.getenv("CORS_URLS", "http://localhost:4200")
 origins = [url.strip() for url in cors_urls.split(",") if url.strip()]
 
 # Configure CORS middleware
@@ -47,6 +47,7 @@ from app.api import (
     events,
     day_management
 )
+from app.ai_assistant import routes as ai_routes
 
 # Include all routers
 app.include_router(system.router, prefix="/system", tags=["system"])
@@ -66,6 +67,7 @@ app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(home.router, prefix="/public", tags=["public"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
+app.include_router(ai_routes.router, prefix="/ai", tags=["ai-assistant"])
 
 @app.get("/")
 def read_root():
