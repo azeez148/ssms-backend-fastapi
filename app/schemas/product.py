@@ -50,11 +50,18 @@ class ProductCreate(BaseModel):
     offer_name: Optional[str] = None  # Added for offer name
 
 class ProductUpdate(BaseModel):
-    unit_price: Annotated[int, Field(gt=0)]  # Changed to int
-    selling_price: Annotated[int, Field(gt=0)]  # Changed to int
-    is_active: bool
-    can_listed: bool
-    size_map: Optional[List[ProductSizeBase]] = None
+    id: int    
+    name: str
+    description: Optional[str] = None
+    unit_price: Annotated[int, Field(gt=0)]  # Changed to int as per Java model
+    selling_price: Annotated[int, Field(gt=0)]  # Changed to int as per Java model
+    category_id: int
+    is_active: bool = False  # Changed default to match Java
+    can_listed: bool = False  # Changed default to match Java
+    offer_id: Optional[int] = None
+    discounted_price: Optional[int] = None
+    offer_price: Optional[int] = None
+    offer_name: Optional[str] = None  # Added for offer name
 
     class Config:
         from_attributes = True
