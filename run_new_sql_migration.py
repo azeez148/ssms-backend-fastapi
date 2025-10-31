@@ -46,7 +46,7 @@ def find_product_image(product_id):
         image_files = [f for f in files if any(f.lower().endswith(ext) for ext in image_formats)]
         if image_files:
             # Return the first found image
-            return f"/images/products/{product_id}/{image_files[0]}"
+            return f"images/products/{product_id}/{image_files[0]}"
     
     return None
 
