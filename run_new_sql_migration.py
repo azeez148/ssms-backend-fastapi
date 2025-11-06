@@ -38,7 +38,7 @@ def find_product_image(product_id):
         image_path = os.path.join(image_dir, f"{product_id}{ext}")
         if os.path.exists(image_path):
             # Return relative URL path for FastAPI static files
-            return f"/images/products/{product_id}/{product_id}{ext}"
+            return f"images/products/{product_id}/{product_id}{ext}"
     
     # Check if there's any image file in the directory
     if os.path.exists(image_dir):
@@ -46,7 +46,7 @@ def find_product_image(product_id):
         image_files = [f for f in files if any(f.lower().endswith(ext) for ext in image_formats)]
         if image_files:
             # Return the first found image
-            return f"/images/products/{product_id}/{image_files[0]}"
+            return f"images/products/{product_id}/{image_files[0]}"
     
     return None
 
