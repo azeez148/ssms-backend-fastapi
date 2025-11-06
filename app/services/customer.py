@@ -19,7 +19,7 @@ def get_or_create_customer(db: Session, customer: CustomerCreate):
     Get a customer by mobile number, or create a new one if not found.
     """
     db_customer = get_customer_by_mobile(db, customer.mobile)
-    if not db_customer:
+    if not db_customer and customer.email and customer.email.strip():  # Only check email if it's not empty
         db_customer = get_customer_by_email(db, customer.email)
     if db_customer:
         return db_customer
@@ -32,6 +32,9 @@ def create_customer(db: Session, customer: CustomerCreate):
         name_parts = name.split(' ', 1)
         customer_data['first_name'] = name_parts[0]
         customer_data['last_name'] = name_parts[1] if len(name_parts) > 1 else None
+    
+    # Use normalized email to handle empty strings
+    customer_data['email'] = customer.normalized_email
 
     db_customer = Customer(**customer_data, created_by="system", updated_by="system")
     db.add(db_customer)
