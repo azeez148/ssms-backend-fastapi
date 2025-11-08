@@ -7,6 +7,9 @@ class CustomerBase(BaseModel):
     address: Optional[str] = None
     mobile: str
     email: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
 
     class Config:
         from_attributes = True
