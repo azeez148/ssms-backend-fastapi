@@ -80,7 +80,7 @@ class TestNotifications(unittest.TestCase):
         # The pywhatkit function should be called with the correct details
         mock_pywhatkit.sendwhatmsg_instantly.assert_called_once()
         args, kwargs = mock_pywhatkit.sendwhatmsg_instantly.call_args
-        self.assertEqual(args[0], "+1234567890")
+        self.assertEqual(args[0], "+911234567890")
         self.assertIn("Hi Test Customer", args[1])
         self.assertIn("Your sale (ID: #", args[1])
         self.assertIn("for ₹100.00 has been confirmed", args[1])
