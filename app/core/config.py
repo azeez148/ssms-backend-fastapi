@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
     SYSTEM_PASS_KEY: str = os.getenv("SYSTEM_PASS_KEY", "7736")
+    ADMIN_PHONE_NUMBER: str = os.getenv("ADMIN_PHONE_NUMBER", "+917736994429")
 
     # Github settings
     GITHUB_REPO_URL: Optional[str] = os.getenv("GITHUB_REPO_URL", "https://github.com/adrenalines-sports/ssms-db-backup.git")

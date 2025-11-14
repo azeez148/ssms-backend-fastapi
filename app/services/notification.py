@@ -1,47 +1,28 @@
-import os
-import httpx
+import pywhatkit
 from sqlalchemy.orm import Session
 from app.models.purchase import Purchase
 from app.models.sale import Sale
 from app.core.config import settings
+from app.core.utils import format_phone_number
 import emails
+from app.schemas.day_management import DaySummary
 
 
 class WhatsAppNotificationService:
-    # Get credentials from environment variables.
-    # Set these in your Render service's "Environment" tab.
-    WHATSAPP_API_TOKEN = os.getenv("WHATSAPP_API_TOKEN")
-    PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
-
     def send_sale_notification(self, sale: Sale):
         """
-        Sends a sale confirmation message via the WhatsApp Business API.
+        Sends a sale confirmation message via pywhatkit.
         """
-        # 1. Check if the service is configured and if the customer has a mobile number.
-        if not self.WHATSAPP_API_TOKEN or not self.PHONE_NUMBER_ID:
-            print("WhatsApp service is not configured. Skipping notification.")
-            return
-
         if not (sale.customer and sale.customer.mobile):
             print(f"No mobile number on sale #{sale.id}. Skipping notification.")
             return
 
-        # 2. Prepare the API request details.
-        api_url = f"https://graph.facebook.com/v20.0/{self.PHONE_NUMBER_ID}/messages"
-
-        headers = {
-            "Authorization": f"Bearer {self.WHATSAPP_API_TOKEN}",
-            "Content-Type": "application/json",
-        }
-
-        # Construct a clear, user-friendly message.
         message_body = (
             f"Hi {sale.customer.name},\n\n"
             f"Your sale (ID: #{sale.id}) for ₹{sale.total_price:,.2f} has been confirmed.\n\n"
             "Thank you for your purchase!"
         )
 
-        # Add shop's social media and website links
         if sale.shop:
             message_body += "\n\nFollow us for updates and offers:"
             if sale.shop.instagram_link:
@@ -51,28 +32,36 @@ class WhatsAppNotificationService:
             if sale.shop.website_link:
                 message_body += f"\nWebsite: {sale.shop.website_link}"
 
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": sale.customer.mobile,  # Ensure this number includes the country code, e.g., 919876543210
-            "type": "text",
-            "text": {"body": message_body},
-        }
-
-        # 3. Send the message using httpx.
         try:
-            with httpx.Client() as client:
-                response = client.post(api_url, headers=headers, json=payload)
-                # Raise an exception for HTTP error codes (4xx or 5xx)
-                response.raise_for_status()
-
+            phone_number = format_phone_number(sale.customer.mobile)
+            pywhatkit.sendwhatmsg_instantly(phone_number, message_body, wait_time=15, tab_close=True, close_time=3)
             print(f"Successfully sent WhatsApp sale notification to {sale.customer.mobile}")
-
-        except httpx.HTTPStatusError as e:
-            # Handle API-specific errors
-            print(f"Failed to send WhatsApp message. Status: {e.response.status_code}. Response: {e.response.text}")
+        except ValueError as e:
+            print(f"Invalid phone number for sale #{sale.id}: {e}")
         except Exception as e:
-            # Handle other errors like network issues
             print(f"An unexpected error occurred while sending WhatsApp message: {e}")
+
+    def send_day_summary_notification(self, day_summary: DaySummary, to_phone_number: str):
+        """
+        Sends an end-of-day summary notification via WhatsApp.
+        """
+        message_body = (
+            f"End of Day Summary for {day_summary.start_time.strftime('%Y-%m-%d')}:\n\n"
+            f"Opening Balance: ₹{day_summary.opening_balance:,.2f}\n"
+            f"Closing Balance: ₹{day_summary.closing_balance:,.2f}\n"
+            f"Total Sales: ₹{(day_summary.cash_in_hand + day_summary.cash_in_account):,.2f}\n"
+            f"  - Cash in Hand: ₹{day_summary.cash_in_hand:,.2f}\n"
+            f"  - Cash in Account: ₹{day_summary.cash_in_account:,.2f}\n"
+            f"Total Expenses: ₹{day_summary.total_expense:,.2f}\n\n"
+            "Day ended successfully."
+        )
+
+        try:
+            phone_number = format_phone_number(to_phone_number)
+            pywhatkit.sendwhatmsg_instantly(phone_number, message_body, wait_time=15, tab_close=True, close_time=3)
+            print(f"Successfully sent day summary WhatsApp notification to {phone_number}")
+        except Exception as e:
+            print(f"An unexpected error occurred while sending day summary WhatsApp message: {e}")
 
 
 class EmailNotificationService:
@@ -184,3 +173,59 @@ class EmailNotificationService:
         response = message.send(to=purchase.vendor.email, smtp=smtp_options)
         if not response.success:
             print(f"Failed to send email to {purchase.vendor.email}: {response.error}")
+
+    def send_day_summary_notification(self, day_summary: DaySummary):
+        """
+        Sends an end-of-day summary email to the admin.
+        """
+        expenses_html = "".join([
+            f"<tr><td>{expense.description}</td><td>{expense.amount}</td></tr>"
+            for expense in day_summary.expenses
+        ])
+
+        html_content = f"""
+        <h1>End of Day Summary</h1>
+        <p>Here is the summary for the day ending on {day_summary.end_time.strftime('%Y-%m-%d %H:%M:%S')}:</p>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <tbody>
+                <tr><td>Opening Balance</td><td>{day_summary.opening_balance:,.2f}</td></tr>
+                <tr><td>Closing Balance</td><td>{day_summary.closing_balance:,.2f}</td></tr>
+                <tr><td>Total Sales</td><td>{(day_summary.cash_in_hand + day_summary.cash_in_account):,.2f}</td></tr>
+                <tr><td>&nbsp;&nbsp;- Cash in Hand</td><td>{day_summary.cash_in_hand:,.2f}</td></tr>
+                <tr><td>&nbsp;&nbsp;- Cash in Account</td><td>{day_summary.cash_in_account:,.2f}</td></tr>
+                <tr><td>Total Expenses</td><td>{day_summary.total_expense:,.2f}</td></tr>
+            </tbody>
+        </table>
+        <h2>Expenses Details</h2>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {expenses_html}
+            </tbody>
+        </table>
+        <p>Day ended successfully.</p>
+        """
+
+        message = emails.Message(
+            subject=f"End of Day Summary - {day_summary.start_time.strftime('%Y-%m-%d')}",
+            html=html_content,
+            mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
+        )
+
+        smtp_options = {
+            "host": settings.MAIL_SERVER,
+            "port": settings.MAIL_PORT,
+            "tls": settings.MAIL_TLS,
+            "ssl": settings.MAIL_SSL,
+            "user": settings.MAIL_USERNAME,
+            "password": settings.MAIL_PASSWORD,
+        }
+
+        response = message.send(to=settings.MAIL_FROM, smtp=smtp_options)
+        if not response.success:
+            print(f"Failed to send day summary email to {settings.MAIL_FROM}: {response.error}")
