@@ -1,4 +1,4 @@
-import pywhatkit
+# import pywhatkit
 from sqlalchemy.orm import Session
 from app.models.purchase import Purchase
 from app.models.sale import Sale
@@ -8,60 +8,60 @@ import emails
 from app.schemas.day_management import DaySummary
 
 
-class WhatsAppNotificationService:
-    def send_sale_notification(self, sale: Sale):
-        """
-        Sends a sale confirmation message via pywhatkit.
-        """
-        if not (sale.customer and sale.customer.mobile):
-            print(f"No mobile number on sale #{sale.id}. Skipping notification.")
-            return
-
-        message_body = (
-            f"Hi {sale.customer.name},\n\n"
-            f"Your sale (ID: #{sale.id}) for ₹{sale.total_price:,.2f} has been confirmed.\n\n"
-            "Thank you for your purchase!"
-        )
-
-        if sale.shop:
-            message_body += "\n\nFollow us for updates and offers:"
-            if sale.shop.instagram_link:
-                message_body += f"\nInstagram: {sale.shop.instagram_link}"
-            if sale.shop.whatsapp_group_link:
-                message_body += f"\nWhatsApp Group: {sale.shop.whatsapp_group_link}"
-            if sale.shop.website_link:
-                message_body += f"\nWebsite: {sale.shop.website_link}"
-
-        try:
-            phone_number = format_phone_number(sale.customer.mobile)
-            pywhatkit.sendwhatmsg_instantly(phone_number, message_body, wait_time=15, tab_close=True, close_time=3)
-            print(f"Successfully sent WhatsApp sale notification to {sale.customer.mobile}")
-        except ValueError as e:
-            print(f"Invalid phone number for sale #{sale.id}: {e}")
-        except Exception as e:
-            print(f"An unexpected error occurred while sending WhatsApp message: {e}")
-
-    def send_day_summary_notification(self, day_summary: DaySummary, to_phone_number: str):
-        """
-        Sends an end-of-day summary notification via WhatsApp.
-        """
-        message_body = (
-            f"End of Day Summary for {day_summary.start_time.strftime('%Y-%m-%d')}:\n\n"
-            f"Opening Balance: ₹{day_summary.opening_balance:,.2f}\n"
-            f"Closing Balance: ₹{day_summary.closing_balance:,.2f}\n"
-            f"Total Sales: ₹{(day_summary.cash_in_hand + day_summary.cash_in_account):,.2f}\n"
-            f"  - Cash in Hand: ₹{day_summary.cash_in_hand:,.2f}\n"
-            f"  - Cash in Account: ₹{day_summary.cash_in_account:,.2f}\n"
-            f"Total Expenses: ₹{day_summary.total_expense:,.2f}\n\n"
-            "Day ended successfully."
-        )
-
-        try:
-            phone_number = format_phone_number(to_phone_number)
-            pywhatkit.sendwhatmsg_instantly(phone_number, message_body, wait_time=15, tab_close=True, close_time=3)
-            print(f"Successfully sent day summary WhatsApp notification to {phone_number}")
-        except Exception as e:
-            print(f"An unexpected error occurred while sending day summary WhatsApp message: {e}")
+# class WhatsAppNotificationService:
+#     def send_sale_notification(self, sale: Sale):
+#         """
+#         Sends a sale confirmation message via pywhatkit.
+#         """
+#         if not (sale.customer and sale.customer.mobile):
+#             print(f"No mobile number on sale #{sale.id}. Skipping notification.")
+#             return
+#
+#         message_body = (
+#             f"Hi {sale.customer.name},\n\n"
+#             f"Your sale (ID: #{sale.id}) for ₹{sale.total_price:,.2f} has been confirmed.\n\n"
+#             "Thank you for your purchase!"
+#         )
+#
+#         if sale.shop:
+#             message_body += "\n\nFollow us for updates and offers:"
+#             if sale.shop.instagram_link:
+#                 message_body += f"\nInstagram: {sale.shop.instagram_link}"
+#             if sale.shop.whatsapp_group_link:
+#                 message_body += f"\nWhatsApp Group: {sale.shop.whatsapp_group_link}"
+#             if sale.shop.website_link:
+#                 message_body += f"\nWebsite: {sale.shop.website_link}"
+#
+#         try:
+#             phone_number = format_phone_number(sale.customer.mobile)
+#             pywhatkit.sendwhatmsg_instantly(phone_number, message_body, wait_time=15, tab_close=True, close_time=3)
+#             print(f"Successfully sent WhatsApp sale notification to {sale.customer.mobile}")
+#         except ValueError as e:
+#             print(f"Invalid phone number for sale #{sale.id}: {e}")
+#         except Exception as e:
+#             print(f"An unexpected error occurred while sending WhatsApp message: {e}")
+#
+#     def send_day_summary_notification(self, day_summary: DaySummary, to_phone_number: str):
+#         """
+#         Sends an end-of-day summary notification via WhatsApp.
+#         """
+#         message_body = (
+#             f"End of Day Summary for {day_summary.start_time.strftime('%Y-%m-%d')}:\n\n"
+#             f"Opening Balance: ₹{day_summary.opening_balance:,.2f}\n"
+#             f"Closing Balance: ₹{day_summary.closing_balance:,.2f}\n"
+#             f"Total Sales: ₹{(day_summary.cash_in_hand + day_summary.cash_in_account):,.2f}\n"
+#             f"  - Cash in Hand: ₹{day_summary.cash_in_hand:,.2f}\n"
+#             f"  - Cash in Account: ₹{day_summary.cash_in_account:,.2f}\n"
+#             f"Total Expenses: ₹{day_summary.total_expense:,.2f}\n\n"
+#             "Day ended successfully."
+#         )
+#
+#         try:
+#             phone_number = format_phone_number(to_phone_number)
+#             pywhatkit.sendwhatmsg_instantly(phone_number, message_body, wait_time=15, tab_close=True, close_time=3)
+#             print(f"Successfully sent day summary WhatsApp notification to {phone_number}")
+#         except Exception as e:
+#             print(f"An unexpected error occurred while sending day summary WhatsApp message: {e}")
 
 
 class EmailNotificationService:

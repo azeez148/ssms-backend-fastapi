@@ -106,7 +106,7 @@ app/
 
 ## Notifications
 
-This application can send email and WhatsApp notifications when a sale is completed. To enable these features, you need to configure the following environment variables:
+This application can send email notifications when a sale is completed. To enable this feature, you need to configure the following environment variables:
 
 ### Email (SMTP)
 
@@ -117,7 +117,3 @@ This application can send email and WhatsApp notifications when a sale is comple
 - `MAIL_SERVER`: The hostname or IP address of your SMTP server.
 - `MAIL_TLS`: Set to `True` to use TLS.
 - `MAIL_SSL`: Set to `True` to use SSL.
-
-### WhatsApp (pywhatkit)
-
-This application uses `pywhatkit` to send WhatsApp messages. `pywhatkit` opens a browser window and uses WhatsApp Web to send the message. This means that you need to have a WhatsApp session active in your default browser for the notifications to be sent.
