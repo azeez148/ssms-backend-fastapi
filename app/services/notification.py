@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.purchase import Purchase
 from app.models.sale import Sale
 from app.core.config import settings
+from app.core.utils import format_phone_number
 import emails
 
 
@@ -31,12 +32,11 @@ class WhatsAppNotificationService:
                 message_body += f"\nWebsite: {sale.shop.website_link}"
 
         try:
-            phone_number = sale.customer.mobile
-            if not phone_number.startswith('+'):
-                phone_number = f"+{phone_number}"
-
+            phone_number = format_phone_number(sale.customer.mobile)
             pywhatkit.sendwhatmsg_instantly(phone_number, message_body, wait_time=15, tab_close=True, close_time=3)
             print(f"Successfully sent WhatsApp sale notification to {sale.customer.mobile}")
+        except ValueError as e:
+            print(f"Invalid phone number for sale #{sale.id}: {e}")
         except Exception as e:
             print(f"An unexpected error occurred while sending WhatsApp message: {e}")
 
