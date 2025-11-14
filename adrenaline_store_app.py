@@ -247,17 +247,14 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         btn_submit = QtWidgets.QPushButton("Submit")
         btn_cancel = QtWidgets.QPushButton("Cancel")
         btn_print = QtWidgets.QPushButton("Print Receipt")
-        btn_whatsapp = QtWidgets.QPushButton("Send via WhatsApp")
         btn_submit.clicked.connect(self.on_submit_sale)
         btn_print_courier = QtWidgets.QPushButton("Print Courier Label")
         btn_print_courier.clicked.connect(self.on_print_courier_label)
         btn_cancel.clicked.connect(self.on_clear_cart)
         btn_print.clicked.connect(self.on_print_receipt)
-        btn_whatsapp.clicked.connect(self.on_send_whatsapp)
         btns.addWidget(btn_submit)
         btns.addWidget(btn_cancel)
         btns.addWidget(btn_print)
-        btns.addWidget(btn_whatsapp)
         btns.addWidget(btn_print_courier)
 
         cart_layout.addLayout(btns)
@@ -747,10 +744,6 @@ class AdrenalineApp(QtWidgets.QMainWindow):
     def on_print_courier_label(self):
         # Placeholder: implement printing logic (generate PDF or system print)
         QtWidgets.QMessageBox.information(self, "Print", "Print courier label: Not implemented. Generate PDF/print here.")
-
-    def on_send_whatsapp(self):
-        # Placeholder: integrate WhatsApp Business API or open web.whatsapp with prefilled message
-        QtWidgets.QMessageBox.information(self, "WhatsApp", "Send via WhatsApp: Not implemented. Hook here to send message.")
 
     def on_apply_offer(self):
         offer = self.offer_combo.currentData()

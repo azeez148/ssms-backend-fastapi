@@ -3,22 +3,15 @@ from unittest.mock import MagicMock, patch
 import os
 import sys
 
-# Mock pyautogui to prevent display error during import
-mock_pyautogui = MagicMock()
-mock_pyautogui.size.return_value = (1920, 1080)
-sys.modules['pyautogui'] = mock_pyautogui
-
-
 from app.services.sale import SaleService
 from app.schemas.sale import SaleCreate, SaleItemCreate
 from app.models.sale import Sale
 
 class TestNotifications(unittest.TestCase):
-    @patch('app.services.notification.pywhatkit')
     @patch('app.services.sale.get_or_create_customer')
     @patch('app.services.sale.EmailNotificationService')
     @patch('app.services.sale.ProductService')
-    def test_create_sale_sends_notifications(self, MockProductService, MockEmailNotificationService, mock_get_or_create_customer, mock_pywhatkit):
+    def test_create_sale_sends_notifications(self, MockProductService, MockEmailNotificationService, mock_get_or_create_customer):
         # Arrange
         db_session = MagicMock()
         mock_email_service = MockEmailNotificationService.return_value
@@ -76,14 +69,6 @@ class TestNotifications(unittest.TestCase):
         mock_email_service.send_sale_notification.assert_called_once()
         sent_sale = mock_email_service.send_sale_notification.call_args[0][0]
         self.assertEqual(sent_sale.customer.name, "Test Customer")
-
-        # The pywhatkit function should be called with the correct details
-        mock_pywhatkit.sendwhatmsg_instantly.assert_called_once()
-        args, kwargs = mock_pywhatkit.sendwhatmsg_instantly.call_args
-        self.assertEqual(args[0], "+911234567890")
-        self.assertIn("Hi Test Customer", args[1])
-        self.assertIn("Your sale (ID: #", args[1])
-        self.assertIn("for ₹100.00 has been confirmed", args[1])
 
 if __name__ == '__main__':
     unittest.main()

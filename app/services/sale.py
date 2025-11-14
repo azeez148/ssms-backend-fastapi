@@ -5,12 +5,11 @@ from app.schemas.customer import CustomerCreate
 from app.schemas.sale import SaleCreate
 from app.schemas.enums import SaleStatus
 from app.services.customer import get_or_create_customer
-from app.services.notification import WhatsAppNotificationService, EmailNotificationService
+from app.services.notification import EmailNotificationService
 from app.services.product import ProductService
 
 class SaleService:
     def __init__(self):
-        self.whatsapp_notification = WhatsAppNotificationService()
         self.email_notification = EmailNotificationService()
         self.product_service = ProductService()
 
@@ -75,7 +74,6 @@ class SaleService:
         
         try:
             # Send notifications
-            self.whatsapp_notification.send_sale_notification(db_sale)
             self.email_notification.send_sale_notification(db_sale)
         except Exception as e:
             print(str(e))
