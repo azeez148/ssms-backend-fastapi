@@ -7,8 +7,14 @@ from app.models.day_management import Day, Expense
 from app.models.sale import Sale
 from app.models.payment import PaymentType
 from app.schemas.day_management import DayCreate, ExpenseCreate, DaySummary
+from app.services.notification import EmailNotificationService, WhatsAppNotificationService
+from app.core.config import settings
 
 class DayManagementService:
+    def __init__(self):
+        self.email_notification_service = EmailNotificationService()
+        self.whatsapp_notification_service = WhatsAppNotificationService()
+
     def get_active_day(self, db: Session) -> Optional[Day]:
         """
         Retrieves the currently active day (a day that has been started but not ended).
@@ -121,6 +127,12 @@ class DayManagementService:
         db_day.updated_by = "system"
         db.commit()
         db.refresh(db_day)
+
+        # Send notifications
+        day_summary = self.get_day_summary(db, day_id)
+        self.email_notification_service.send_day_summary_notification(day_summary)
+        self.whatsapp_notification_service.send_day_summary_notification(day_summary, settings.ADMIN_PHONE_NUMBER)
+
         return db_day
 
     def get_day_summary(self, db: Session, day_id: int) -> DaySummary:
