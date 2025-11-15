@@ -88,11 +88,11 @@ def update_product_images():
 
 def run_sql_migrations():
     print("Running SQL Update...")
-    # execute_sql_file('products_new.sql')
-    # print("SQL Migration completed!")
+    execute_sql_file('products_new.sql')
+    print("SQL Migration completed!")
     
-    print("\nChecking and updating product images...")
-    update_product_images()
+    # print("\nChecking and updating product images...")
+    # update_product_images()
 
 if __name__ == "__main__":
     run_sql_migrations()
