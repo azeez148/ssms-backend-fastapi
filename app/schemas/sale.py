@@ -38,7 +38,7 @@ class SaleBase(BaseModel):
     payment_reference_number: Optional[str] = None
     delivery_type_id: int
     shop_id: int
-    customer_id: int
+    customer_id: Optional[int] = None
     status: Optional[SaleStatus] = None
 
     class Config:
