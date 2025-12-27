@@ -1,11 +1,21 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, orders
+from app.core.logging import logger
 from dotenv import load_dotenv
 
 app = FastAPI(title="SSMS API")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled exception for request {request.method} {request.url}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error"},
+    )
 
 # Mount the 'images' directory to serve static files
 app.mount("/images", StaticFiles(directory="images"), name="images")

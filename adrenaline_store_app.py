@@ -13,9 +13,34 @@ import sys
 import threading
 from functools import partial
 from datetime import datetime, timedelta
+import logging
+from logging.handlers import RotatingFileHandler
+import os
 
 import requests
 from PyQt5 import QtCore, QtGui, QtWidgets
+
+# ========== LOGGING ==========
+# Create logs directory if it doesn't exist
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+# Create a logger
+logger = logging.getLogger("ssms.client")
+logger.setLevel(logging.DEBUG)
+
+# Create a rotating file handler
+log_file = os.path.join(log_dir, "client.log")
+# Max 5 files of 1MB each
+handler = RotatingFileHandler(log_file, maxBytes=1024 * 1024, backupCount=5)
+
+# Create a formatter and set it for the handler
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(handler)
 
 # ========== CONFIG ==========
 API_BASE_URL = "http://127.0.0.1:8000"  # <<--- set to your API base
@@ -58,27 +83,29 @@ class WorkerSignals(QtCore.QObject):
 
 def api_get(path, params=None):
     url = API_BASE_URL.rstrip("/") + path
-    print(f"[API] Making GET request to: {url}")
+    logger.info(f"Making GET request to: {url}")
     try:
         resp = requests.get(url, params=params, timeout=TIMEOUT)
-        print(f"[API] Response status code: {resp.status_code}")
+        logger.info(f"Response status code: {resp.status_code}")
         resp.raise_for_status()
         json_response = resp.json()
-        print(f"[API] Response JSON received.")
+        logger.info(f"Response JSON received.")
         return json_response
     except Exception as e:
-        print(f"[API] Error during GET request: {e}")
-        # In a real app you'd log
+        logger.exception(f"Error during GET request to {url}: {e}")
         return {"error": str(e)}
 
 
 def api_post(path, payload):
     url = API_BASE_URL.rstrip("/") + path
+    logger.info(f"Making POST request to: {url}")
     try:
         resp = requests.post(url, json=payload, timeout=TIMEOUT)
+        logger.info(f"Response status code: {resp.status_code}")
         resp.raise_for_status()
         return resp.json()
     except Exception as e:
+        logger.exception(f"Error during POST request to {url}: {e}")
         return {"error": str(e)}
 
 
