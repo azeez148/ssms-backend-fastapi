@@ -16,6 +16,7 @@ from app.schemas.product import (
     ProductFilterRequest
 )
 from app.schemas.category import CategoryBase
+from app.core.logging import logger
 from app.services.product import ProductService
 from app.services.category import CategoryService
 
@@ -41,6 +42,7 @@ async def update_product(
 ):
     updated_product = product_service.update_product(db, product_update)
     if not updated_product:
+        logger.error(f"Product with id {product_update.id} not found")
         raise HTTPException(status_code=404, detail="Product not found")
     return updated_product
 
@@ -51,6 +53,7 @@ async def update_size_map(
 ):
     updated_product = product_service.update_size_map(db, update_request)
     if not updated_product:
+        logger.error(f"Product with id {update_request.product_id} not found")
         raise HTTPException(status_code=404, detail="Product not found")
     return updated_product
 
@@ -60,6 +63,7 @@ async def import_products_from_excel(
     db: Session = Depends(get_db)
 ):
     if not file.filename.endswith('.xlsx'):
+        logger.error(f"Invalid file format for {file.filename}")
         raise HTTPException(status_code=400, detail="Only Excel (.xlsx) files are allowed")
     
     # Create a temporary file to store the upload
@@ -84,6 +88,7 @@ async def import_products_from_excel(
             category_id = int(row['category_id'])
             category_model = category_service.get_category_by_id(db, category_id)
             if not category_model:
+                logger.error(f"Category with id {category_id} not found")
                 raise HTTPException(status_code=400, detail=f"Category with id {category_id} not found")
 
             category_schema = CategoryBase.from_orm(category_model)
@@ -108,6 +113,7 @@ async def import_products_from_excel(
         return products
         
     except Exception as e:
+        logger.exception(f"Error importing products from excel: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         # Clean up the temporary file
@@ -153,6 +159,7 @@ async def upload_product_images(
     updated_product = product_service.update_product_image_url(db, product_id, image_url)
 
     if not updated_product:
+        logger.error(f"Product with id {product_id} not found")
         raise HTTPException(status_code=404, detail="Product not found")
 
     return updated_product
