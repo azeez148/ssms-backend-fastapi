@@ -1,3 +1,13 @@
+For Names formatting:
+Correct all spelling mistakes in the text below.
+Convert every word so that its first letter is capitalized.
+Do not change the meaning, order, or structure of the content.
+Keep sizes, years, jersey names, and player names exactly as given.
+Do not use any special characters, symbols, emojis, bullets, or decorative formatting.
+Use only plain text with clean line breaks.
+Present the output as a simple, readable list.
+
+for Generating PostgreSQL INSERT Script:
 I will provide lists of jersey names grouped by sleeve type.
 
 TASK:
