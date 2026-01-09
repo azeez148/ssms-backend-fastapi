@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from fastapi import HTTPException
 
+from app.core.logging import logger
 from app.models.product import Product
 from app.models.product_size import ProductSize
 from app.schemas.product import ProductCreate, ProductUpdate, UpdateSizeMapRequest
@@ -14,6 +15,7 @@ class ProductService:
             description=product.description,
             unit_price=product.unit_price,
             selling_price=product.selling_price,
+            discounted_price=product.discounted_price,
             category_id=product.category_id,
             is_active=product.is_active,
             can_listed=product.can_listed,
@@ -116,10 +118,12 @@ class ProductService:
         ).first()
         
         if not product_size:
+            logger.error(f"Product size not found for product_id {product_id} and size {size}")
             raise HTTPException(status_code=404, detail="Product size not found")
         
         product_size.quantity += quantity_change
         if product_size.quantity < 0:
+            logger.error(f"Insufficient stock for product_id {product_id} and size {size}")
             raise HTTPException(status_code=400, detail="Insufficient stock")
         
         db.commit()

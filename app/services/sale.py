@@ -36,8 +36,8 @@ class SaleService:
         })
         sale_data['customer_id'] = customer_id
 
-        # Set status: if provided in sale, use OPEN, else use COMPLETED
-        status = SaleStatus.PENDING if getattr(sale, "status", None) else SaleStatus.COMPLETED
+        # Set status: use provided status if available, else default to COMPLETED
+        status = getattr(sale, "status", SaleStatus.COMPLETED) or SaleStatus.COMPLETED
 
         db_sale = Sale(**sale_data, created_by="system", updated_by="system", status=status)
         db.add(db_sale)
