@@ -15,6 +15,7 @@ class ProductService:
             description=product.description,
             unit_price=product.unit_price,
             selling_price=product.selling_price,
+            discounted_price=product.discounted_price,
             category_id=product.category_id,
             is_active=product.is_active,
             can_listed=product.can_listed,

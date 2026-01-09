@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Dict, Optional, List
 from typing_extensions import Annotated
 from app.schemas.base import BaseSchema
-from app.schemas.category import CategoryBase
+from app.schemas.category import CategoryInDB
 
 class ProductSizeBase(BaseModel):
     size: str
@@ -23,7 +23,7 @@ class ProductBase(BaseModel):
     is_active: bool = False  # Changed default to match Java
     can_listed: bool = False  # Changed default to match Java
     size_map: Optional[List[ProductSizeBase]] = None
-    category: CategoryBase
+    category: CategoryInDB
     image_url: Optional[str] = None
     offer_id: Optional[int] = None
     discounted_price: Optional[int] = None
