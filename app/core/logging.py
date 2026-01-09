@@ -3,7 +3,8 @@ from logging.handlers import RotatingFileHandler
 import os
 
 # Create logs directory if it doesn't exist
-log_dir = "logs"
+LOG_DIR = "/var/log/ssms"
+log_dir = LOG_DIR
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
