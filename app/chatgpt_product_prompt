@@ -1,0 +1,80 @@
+I will provide lists of jersey names grouped by sleeve type.
+
+TASK:
+Create a SINGLE PostgreSQL INSERT script for table public.products using ONE big INSERT statement.
+
+TABLE COLUMNS:
+(id, name, description, unit_price, selling_price, is_active, can_listed, image_url, category_id, offer_id, discounted_price, offer_price, offer_name, created_date, updated_date, created_by, updated_by)
+
+RULES:
+1. ID starts from <START_ID> and increments by 1.
+2. description = name.
+3. is_active = TRUE.
+4. can_listed = TRUE.
+5. image_url = NULL.
+6. offer_id = NULL.
+7. offer_price = NULL.
+8. offer_name = NULL.
+9. created_by = 'admin'.
+10. updated_by = 'admin'.
+11. created_date = NOW().
+12. updated_date = NOW().
+
+CATEGORIES:
+- FiveSleeve → category_id = 3
+- Normal Sleeve → category_id = 1
+- Full Sleeve → category_id = 2
+
+PRICING RULES:
+
+FiveSleeve:
+- If name contains ANY of: "Collar", "Embroidery", "Button"
+  unit_price = 215
+  selling_price = 375
+  discounted_price = 350
+- Else
+  unit_price = 195
+  selling_price = 350
+  discounted_price = 300
+
+Normal Sleeve:
+- If name contains ANY of: "Collar", "Embroidery", "Button"
+  unit_price = 195
+  selling_price = 350
+  discounted_price = 300
+- Else
+  unit_price = 165
+  selling_price = 300
+  discounted_price = 250
+
+Full Sleeve:
+- If name contains ANY of: "Collar", "Embroidery", "Button"
+  unit_price = 215
+  selling_price = 375
+  discounted_price = 350
+- Else
+  unit_price = 195
+  selling_price = 350
+  discounted_price = 300
+
+IMPORTANT:
+- IGNORE these words completely for pricing:
+  "V-Neck", "Opel"
+- Training jerseys follow the same keyword-based pricing.
+- Only the keywords listed above trigger premium pricing.
+- Remove the last words like 'M L XL' or 'StoXXL' like size words
+- Output must be ONE BIG INSERT statement.
+
+FINAL STEP:
+At the end of the script, add PostgreSQL sequence reset:
+
+SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
+
+INPUT FORMAT:
+Provide jersey lists in this format:
+
+FiveSleeve:
+<list>
+
+Normal Sleeve:
+<list>
