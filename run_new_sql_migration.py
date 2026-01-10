@@ -88,7 +88,8 @@ def update_product_images():
 
 def run_sql_migrations():
     print("Running SQL Update...")
-    execute_sql_file('products_new.sql')
+    # execute_sql_file('products_new.sql')
+    execute_sql_file('products_sizes.sql')
     print("SQL Migration completed!")
     
     # print("\nChecking and updating product images...")
