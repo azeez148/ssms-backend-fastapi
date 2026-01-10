@@ -88,9 +88,13 @@ def update_product_images():
 
 def run_sql_migrations():
     print("Running SQL Update...")
-    # execute_sql_file('products_new.sql')
-    execute_sql_file('products_sizes.sql')
-    print("SQL Migration completed!")
+    try:
+        # execute_sql_file('products_new.sql')
+        execute_sql_file('products_sizes.sql')
+        print("SQL Migration completed!")
+    except Exception as e:
+        print(f"Error during SQL migration: {str(e)}")
+        return
     
     # print("\nChecking and updating product images...")
     # update_product_images()
