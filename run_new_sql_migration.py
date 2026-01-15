@@ -90,7 +90,7 @@ def run_sql_migrations():
     print("Running SQL Update...")
     try:
         # execute_sql_file('products_new.sql')
-        execute_sql_file('products_sizes.sql')
+        # execute_sql_file('products_sizes.sql')
         execute_sql_file('update_discounted_prices.sql')
         print("SQL Migration completed!")
     except Exception as e:
