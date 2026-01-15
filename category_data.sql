@@ -1,8 +1,8 @@
 -- Category data import
 INSERT INTO public.categories (id, name, description) VALUES
-(1, 'Jersey', 'Jersey'),
+(1, 'Normal Sleeve Jersey', 'Jersey'),
 (2, 'F/S Jersey', 'Full Sleeve'),
-(3, '5s Jersey', 'Fivesleeve'),
+(3, 'Five Sleeve Jersey', '5/S'),
 (4, 'Kids Jersey', 'Kids Jersey'),
 (5, 'First Copy Jersey', 'FC Jersey'),
 (6, 'Tshirt', 'Tshirt'),
