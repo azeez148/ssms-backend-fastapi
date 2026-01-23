@@ -709,6 +709,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
 
         # Rebuild payload to match the new SaleCreate schema
         total_quantity = sum(item['qty'] for item in self.cart)
+        sub_total = float(self.lbl_subtotal.text().replace("₹", ""))
         total_price = float(self.lbl_total_price.text().replace("₹", ""))
 
         sale_items = []
@@ -740,6 +741,7 @@ class AdrenalineApp(QtWidgets.QMainWindow):
         payload = {
             "date": self.sale_date.date().toString(QtCore.Qt.ISODate),
             "total_quantity": total_quantity,
+            "sub_total": sub_total,
             "total_price": total_price,
             "payment_type_id": payment_type_id,
             "delivery_type_id": delivery_type_id,

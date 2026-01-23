@@ -33,6 +33,7 @@ class SaleItemResponse(SaleItemInDB, BaseSchema):
 class SaleBase(BaseModel):
     date: str
     total_quantity: int
+    sub_total: Optional[float] = 0.0
     total_price: float
     payment_type_id: int
     payment_reference_number: Optional[str] = None

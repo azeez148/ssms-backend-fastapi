@@ -9,6 +9,7 @@ class Sale(BaseModel):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     date = Column(String)  # Keep as string to match Java model
     total_quantity = Column(Integer)
+    sub_total = Column(Float, nullable=True)
     total_price = Column(Float)
     payment_reference_number = Column(String, nullable=True)
     

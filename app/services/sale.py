@@ -36,6 +36,10 @@ class SaleService:
         })
         sale_data['customer_id'] = customer_id
 
+        # If sub_total is not provided or 0, default it to total_price
+        if not sale_data.get('sub_total'):
+            sale_data['sub_total'] = sale_data.get('total_price', 0.0)
+
         # Set status: use provided status if available, else default to COMPLETED
         status = getattr(sale, "status", SaleStatus.COMPLETED) or SaleStatus.COMPLETED
 
@@ -152,7 +156,13 @@ class SaleService:
             return None
 
         # Update main sale fields
-        for field, value in sale_data.model_dump(exclude={'sale_items'}).items():
+        update_data = sale_data.model_dump(exclude={'sale_items'})
+
+        # If sub_total is not provided or 0, default it to total_price
+        if not update_data.get('sub_total'):
+            update_data['sub_total'] = update_data.get('total_price', 0.0)
+
+        for field, value in update_data.items():
             setattr(sale, field, value)
 
         # Clear existing sale items

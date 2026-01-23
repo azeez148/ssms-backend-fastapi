@@ -83,11 +83,9 @@ async def logout():
     return {"message": "Successfully logged out"}
 
 @router.get("/status")
-async def auth_status():
-    return {
-        "status": "ok",
-        "message": "Authentication service is running"
-    }
+async def auth_status(current_user: User = Depends(get_current_user)):
+    user = UserProfile.from_user_and_customer(current_user, current_user.customer)
+    return user
 
 @router.get("/profile", response_model=UserProfile)
 async def get_user_profile(current_user: User = Depends(get_current_user)):
