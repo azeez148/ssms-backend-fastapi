@@ -1,7 +1,7 @@
 """add sub_total to sale
 
 Revision ID: 1cc4167a4b31
-Revises: e602884d0658
+Revises: None
 Create Date: 2025-08-15 12:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '1cc4167a4b31'
-down_revision = 'e602884d0658'
+down_revision = None
 branch_labels = None
 depends_on = None
 
