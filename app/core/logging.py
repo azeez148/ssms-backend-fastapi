@@ -3,10 +3,16 @@ from logging.handlers import RotatingFileHandler
 import os
 
 # Create logs directory if it doesn't exist
-LOG_DIR = "/var/log/ssms"
+LOG_DIR = os.getenv("LOG_DIR", "/var/log/ssms")
 log_dir = LOG_DIR
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
+try:
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+except PermissionError:
+    # Fallback to local logs directory if /var/log/ssms is not writable
+    log_dir = os.path.join(os.getcwd(), "logs")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
 # Create a logger
 logger = logging.getLogger("ssms.api")
