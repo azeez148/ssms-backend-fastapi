@@ -6,6 +6,9 @@ from fastapi import HTTPException
 from app.core.logging import logger
 from app.models.product import Product
 from app.models.product_size import ProductSize
+from app.models.shop import Shop
+from app.models.user import User
+from app.schemas.enums import UserRole
 from app.schemas.product import ProductCreate, ProductUpdate, UpdateSizeMapRequest
 
 class ProductService:
@@ -36,9 +39,12 @@ class ProductService:
         db.refresh(db_product)
         return db_product
 
-    def get_all_products(self, db: Session) -> List[Product]:
-        products = db.query(Product).all()
-        return products
+    def get_all_products(self, db: Session, user: Optional[User] = None) -> List[Product]:
+        query = db.query(Product)
+        if user and user.role != UserRole.ADMINISTRATOR:
+            shop_ids = [shop.id for shop in user.shops]
+            query = query.filter(Product.shops.any(Shop.id.in_(shop_ids)))
+        return query.all()
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         product = db.query(Product).filter(Product.id == product_id).first()
@@ -81,10 +87,15 @@ class ProductService:
         self,
         db: Session,
         category_id: Optional[int] = None,
-        product_type_filter: Optional[str] = None
+        product_type_filter: Optional[str] = None,
+        user: Optional[User] = None
     ) -> List[Product]:
         query = db.query(Product)
         
+        if user and user.role != UserRole.ADMINISTRATOR:
+            shop_ids = [shop.id for shop in user.shops]
+            query = query.filter(Product.shops.any(Shop.id.in_(shop_ids)))
+
         if category_id:
             query = query.filter(Product.category_id == category_id)
             
@@ -110,11 +121,13 @@ class ProductService:
         db: Session,
         product_id: int,
         size: str,
-        quantity_change: int
+        quantity_change: int,
+        shop_id: int
     ) -> Optional[ProductSize]:
         product_size = db.query(ProductSize).filter(
             ProductSize.product_id == product_id,
-            ProductSize.size == size
+            ProductSize.size == size,
+            ProductSize.shop_id == shop_id
         ).first()
         
         if not product_size:

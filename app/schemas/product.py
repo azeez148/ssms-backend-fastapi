@@ -7,6 +7,7 @@ from app.schemas.category import CategoryInDB
 class ProductSizeBase(BaseModel):
     size: str
     quantity: int
+    shop_id: Optional[int] = None
 
     class Config:
         from_attributes = True

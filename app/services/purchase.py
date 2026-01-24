@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from typing import List
 from app.models.purchase import Purchase, PurchaseItem
+from app.models.user import User
+from app.schemas.enums import UserRole
 from app.models.product import Product
 from app.models.product_size import ProductSize
 from app.models.shop import Shop
@@ -35,36 +37,30 @@ class PurchaseService:
             delivery_type_id=purchase.delivery_type_id,
             vendor_id=vendor_id,
             purchase_items=purchase_items,
+            shop_id=purchase.shop_id,
             created_by="system",
             updated_by="system"
         )
 
-        # Add shops to the purchase
-        if purchase.shop_ids:
-            shops = db.query(Shop).filter(Shop.id.in_(purchase.shop_ids)).all()
-            db_purchase.shops.extend(shops)
-
-        # Update product quantities
+        # Update product quantities for specific shop
         for item in purchase.purchase_items:
-            product = db.query(Product).filter(Product.id == item.product_id).first()
-            if product:
-                # Find the size in the product's size_map
-                product_size = None
-                for size in product.size_map:
-                    if size.size == item.size:
-                        product_size = size
-                        break
+            product_size = db.query(ProductSize).filter(
+                ProductSize.product_id == item.product_id,
+                ProductSize.size == item.size,
+                ProductSize.shop_id == purchase.shop_id
+            ).first()
 
-                if product_size:
-                    product_size.quantity += item.quantity
-                else:
-                    # If the size doesn't exist, create a new one
-                    new_product_size = ProductSize(
-                        product_id=product.id,
-                        size=item.size,
-                        quantity=item.quantity
-                    )
-                    db.add(new_product_size)
+            if product_size:
+                product_size.quantity += item.quantity
+            else:
+                # If the size doesn't exist for this shop, create a new one
+                new_product_size = ProductSize(
+                    product_id=item.product_id,
+                    shop_id=purchase.shop_id,
+                    size=item.size,
+                    quantity=item.quantity
+                )
+                db.add(new_product_size)
 
         db.add(db_purchase)
         db.commit()
@@ -76,14 +72,26 @@ class PurchaseService:
 
         return db_purchase
 
-    def get_all_purchases(self, db: Session) -> List[Purchase]:
-        return db.query(Purchase).all()
+    def get_all_purchases(self, db: Session, user: Optional[User] = None) -> List[Purchase]:
+        query = db.query(Purchase)
+        if user and user.role != UserRole.ADMINISTRATOR:
+            shop_ids = [shop.id for shop in user.shops]
+            query = query.filter(Purchase.shop_id.in_(shop_ids))
+        return query.all()
 
-    def get_purchase_by_id(self, db: Session, purchase_id: int) -> Purchase:
-        return db.query(Purchase).filter(Purchase.id == purchase_id).first()
+    def get_purchase_by_id(self, db: Session, purchase_id: int, user: Optional[User] = None) -> Purchase:
+        query = db.query(Purchase).filter(Purchase.id == purchase_id)
+        if user and user.role != UserRole.ADMINISTRATOR:
+            shop_ids = [shop.id for shop in user.shops]
+            query = query.filter(Purchase.shop_id.in_(shop_ids))
+        return query.first()
 
-    def get_recent_purchases(self, db: Session, limit: int = 10) -> List[Purchase]:
-        return db.query(Purchase).order_by(Purchase.date.desc()).limit(limit).all()
+    def get_recent_purchases(self, db: Session, user: Optional[User] = None, limit: int = 10) -> List[Purchase]:
+        query = db.query(Purchase)
+        if user and user.role != UserRole.ADMINISTRATOR:
+            shop_ids = [shop.id for shop in user.shops]
+            query = query.filter(Purchase.shop_id.in_(shop_ids))
+        return query.order_by(Purchase.date.desc()).limit(limit).all()
 
     def get_total_purchases(self, db: Session) -> dict:
         """Get total purchases summary"""

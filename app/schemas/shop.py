@@ -15,6 +15,7 @@ class ShopBase(BaseModel):
     whatsapp_group_link: Optional[str] = None
     instagram_link: Optional[str] = None
     website_link: Optional[str] = None
+    parent_id: Optional[int] = None
 
 class ShopCreate(ShopBase):
     pass

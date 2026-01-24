@@ -37,7 +37,7 @@ class PurchaseBase(BaseModel):
 
 class PurchaseCreate(PurchaseBase):
     purchase_items: List[PurchaseItemCreate]
-    shop_ids: List[int]
+    shop_id: int
     supplier_name: Optional[str] = None
     supplier_address: Optional[str] = None
     supplier_mobile: Optional[str] = None
@@ -46,5 +46,5 @@ class PurchaseCreate(PurchaseBase):
 class PurchaseResponse(PurchaseBase, BaseSchema):
     id: int
     purchase_items: List[PurchaseItemResponse]
-    shops: List[ShopResponse]
+    shop_id: Optional[int] = None
     vendor: VendorResponse

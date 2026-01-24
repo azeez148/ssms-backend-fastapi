@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
+from app.models.user import User
+from app.schemas.enums import UserRole
 from app.schemas.customer import CustomerCreate
 from app.schemas.sale import SaleCreate
 from app.schemas.enums import SaleStatus
@@ -69,8 +71,8 @@ class SaleService:
                 db,
                 product_id=item.product_id,
                 size=item.size,
-                
-                quantity_change=-item.quantity  # Decrease stock by sold quantity
+                quantity_change=-item.quantity,  # Decrease stock by sold quantity
+                shop_id=db_sale.shop_id
             )
 
         db.commit()
@@ -88,11 +90,19 @@ class SaleService:
     def get_sale(self, db: Session, sale_id: int) -> Optional[Sale]:
         return db.query(Sale).filter(Sale.id == sale_id).first()
 
-    def get_all_sales(self, db: Session) -> List[Sale]:
-        return db.query(Sale).options(joinedload(Sale.customer)).all()
+    def get_all_sales(self, db: Session, user: Optional[User] = None) -> List[Sale]:
+        query = db.query(Sale).options(joinedload(Sale.customer))
+        if user and user.role != UserRole.ADMINISTRATOR:
+            shop_ids = [shop.id for shop in user.shops]
+            query = query.filter(Sale.shop_id.in_(shop_ids))
+        return query.all()
 
-    def get_recent_sales(self, db: Session, limit: int = 10) -> List[Sale]:
-        return db.query(Sale).options(joinedload(Sale.customer)).order_by(Sale.date.desc()).limit(limit).all()
+    def get_recent_sales(self, db: Session, user: Optional[User] = None, limit: int = 10) -> List[Sale]:
+        query = db.query(Sale).options(joinedload(Sale.customer))
+        if user and user.role != UserRole.ADMINISTRATOR:
+            shop_ids = [shop.id for shop in user.shops]
+            query = query.filter(Sale.shop_id.in_(shop_ids))
+        return query.order_by(Sale.date.desc()).limit(limit).all()
 
     def get_most_sold_items(self, db: Session) -> Dict[int, Dict]:
         """Get a summary of most sold items with product details"""
@@ -143,7 +153,8 @@ class SaleService:
                     db,
                     product_id=item.product_id,
                     size=item.size,
-                    quantity_change=item.quantity  # Increase stock by cancelled quantity
+                    quantity_change=item.quantity,  # Increase stock by cancelled quantity
+                    shop_id=sale.shop_id
                 )
             
             db.commit()

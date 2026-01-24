@@ -5,23 +5,42 @@ from typing import List
 from app.core.database import get_db
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
 from app.services import customer as customer_service
+from app.api.auth import get_current_active_user
+from app.models.user import User
 
 router = APIRouter()
 
 @router.post("/addCustomer", response_model=CustomerResponse, summary="Create a new customer")
-def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
+def create_customer(
+    customer: CustomerCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Create a new customer.
     """
+    from app.schemas.enums import UserRole
+    if current_user.role != UserRole.ADMINISTRATOR:
+        if customer.shop_id and customer.shop_id not in [s.id for s in current_user.shops]:
+            raise HTTPException(status_code=403, detail="You do not have access to this shop")
+        # Default to user's first shop if not provided
+        if not customer.shop_id and current_user.shops:
+            customer.shop_id = current_user.shops[0].id
+
     return customer_service.create_customer(db=db, customer=customer)
 
 
 @router.get("/all", response_model=List[CustomerResponse], summary="Get all customers")
-def read_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_customers(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Retrieve all customers.
     """
-    customers = customer_service.get_customers(db, skip=skip, limit=limit)
+    customers = customer_service.get_customers(db, user=current_user, skip=skip, limit=limit)
     return customers
 
 

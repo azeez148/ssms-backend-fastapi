@@ -7,6 +7,7 @@ class Day(BaseModel):
     __tablename__ = "days"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)
     start_time = Column(DateTime(timezone=True), server_default=func.now())
     end_time = Column(DateTime(timezone=True), nullable=True)
     opening_balance = Column(Float, nullable=False)
