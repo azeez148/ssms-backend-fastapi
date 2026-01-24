@@ -2,13 +2,6 @@ from sqlalchemy import Column, Integer, Float, String, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 
-shop_purchases = Table(
-    "shop_purchases",
-    BaseModel.metadata,
-    Column("shop_id", Integer, ForeignKey("shops.id"), primary_key=True),
-    Column("purchase_id", Integer, ForeignKey("purchases.id"), primary_key=True),
-)
-
 class Purchase(BaseModel):
     __tablename__ = "purchases"
 
@@ -31,7 +24,8 @@ class Purchase(BaseModel):
     delivery_type_id = Column(Integer, ForeignKey("delivery_types.id"))
     delivery_type = relationship("DeliveryType")
 
-    shops = relationship("Shop", secondary=shop_purchases, back_populates="purchases")
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)
+    shop = relationship("Shop", back_populates="purchases")
 
 class PurchaseItem(BaseModel):
     __tablename__ = "purchase_items"

@@ -8,6 +8,7 @@ class StockItem(BaseModel):
 
 class StockRequest(BaseModel):
     items: List[StockItem]
+    shop_id: Optional[int] = None
 
 class StockResponse(BaseModel):
     success: bool

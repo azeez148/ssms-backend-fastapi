@@ -1,12 +1,17 @@
 from sqlalchemy.orm import Session
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
+from app.schemas.enums import UserRole
 
 def get_customer(db: Session, customer_id: int):
     return db.query(Customer).filter(Customer.id == customer_id).first()
 
-def get_customers(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Customer).offset(skip).limit(limit).all()
+def get_customers(db: Session, user=None, skip: int = 0, limit: int = 100):
+    query = db.query(Customer)
+    if user and user.role != UserRole.ADMINISTRATOR:
+        shop_ids = [shop.id for shop in user.shops]
+        query = query.filter(Customer.shop_id.in_(shop_ids))
+    return query.offset(skip).limit(limit).all()
 
 def get_customer_by_email(db: Session, email: str):
     return db.query(Customer).filter(Customer.email == email).first()

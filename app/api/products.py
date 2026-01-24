@@ -19,6 +19,8 @@ from app.schemas.category import CategoryBase
 from app.core.logging import logger
 from app.services.product import ProductService
 from app.services.category import CategoryService
+from app.api.auth import get_current_active_user, check_admin_role
+from app.models.user import User
 
 router = APIRouter()
 product_service = ProductService()
@@ -27,18 +29,23 @@ category_service = CategoryService()
 @router.post("/addProduct", response_model=ProductResponse)
 async def add_product(
     product: ProductCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_admin_role)
 ):
     return product_service.create_product(db, product)
 
 @router.get("/all", response_model=List[ProductResponse])
-async def get_all_products(db: Session = Depends(get_db)):
-    return product_service.get_all_products(db)
+async def get_all_products(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    return product_service.get_all_products(db, current_user)
 
 @router.post("/updateProduct", response_model=ProductResponse)
 async def update_product(
     product_update: ProductUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_admin_role)
 ):
     updated_product = product_service.update_product(db, product_update)
     if not updated_product:
@@ -49,7 +56,8 @@ async def update_product(
 @router.post("/updateSizeMap", response_model=ProductResponse)
 async def update_size_map(
     update_request: UpdateSizeMapRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_admin_role)
 ):
     updated_product = product_service.update_size_map(db, update_request)
     if not updated_product:
@@ -60,7 +68,8 @@ async def update_size_map(
 @router.post("/import-excel", response_model=List[ProductResponse])
 async def import_products_from_excel(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_admin_role)
 ):
     if not file.filename.endswith('.xlsx'):
         logger.error(f"Invalid file format for {file.filename}")
@@ -122,19 +131,22 @@ async def import_products_from_excel(
 @router.post("/filterProducts", response_model=List[ProductResponse])
 async def get_filtered_products(
     filter_request: ProductFilterRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     return product_service.get_filtered_products(
         db,
         filter_request.category_id,
-        filter_request.product_type_filter
+        filter_request.product_type_filter,
+        current_user
     )
 
 @router.post("/upload-images", response_model=ProductResponse)
 async def upload_product_images(
     product_id: int,
     image: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_admin_role)
 ):
     # Define the directory to store the image
     upload_dir = Path(f"images/products/{product_id}")

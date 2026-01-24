@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+from app.schemas.enums import UserRole
 
 class LoginRequest(BaseModel):
     mobile: str
@@ -41,6 +42,8 @@ class UserProfile(BaseModel):
     city: str = None
     state: str = None
     zip_code: str = None
+    role: UserRole
+    shop_ids: List[int] = []
     created_at: datetime
     updated_at: datetime
 
@@ -50,12 +53,14 @@ class UserProfile(BaseModel):
             id=user.id,
             mobile=user.mobile,
             email=user.email,
-            first_name=customer.first_name,
-            last_name=customer.last_name,
-            address=customer.address,
-            city=customer.city,
-            state=customer.state,
-            zip_code=customer.zip_code,
+            first_name=customer.first_name if customer else None,
+            last_name=customer.last_name if customer else None,
+            address=customer.address if customer else None,
+            city=customer.city if customer else None,
+            state=customer.state if customer else None,
+            zip_code=customer.zip_code if customer else None,
+            role=user.role,
+            shop_ids=[shop.id for shop in user.shops],
             created_at=user.created_at,
             updated_at=user.updated_at
         )
@@ -70,6 +75,14 @@ class UserProfileUpdate(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
+
+class UserCreateAdmin(BaseModel):
+    mobile: str
+    password: str
+    first_name: str
+    last_name: str
+    role: UserRole
+    shop_ids: List[int] = []
 
 class AuthResponse(BaseModel):
     token: str

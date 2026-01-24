@@ -44,14 +44,16 @@ class AuthService:
     def create_user(db: Session, user_data: dict) -> User:
         # First create the customer
         from app.models.customer import Customer
+        from app.models.shop import Shop
+        from app.schemas.enums import UserRole
         
         db_customer = Customer(
-            first_name=user_data["first_name"],
-            last_name=user_data["last_name"],
-            address=user_data["address"],
-            city=user_data["city"],
-            state=user_data["state"],
-            zip_code=user_data["zip_code"],
+            first_name=user_data.get("first_name"),
+            last_name=user_data.get("last_name"),
+            address=user_data.get("address"),
+            city=user_data.get("city"),
+            state=user_data.get("state"),
+            zip_code=user_data.get("zip_code"),
             mobile=user_data["mobile"],
             email=user_data.get("email")
         )
@@ -64,8 +66,14 @@ class AuthService:
             mobile=user_data["mobile"],
             email=user_data.get("email"),
             hashed_password=AuthService.get_password_hash(user_data["password"]),
-            customer_id=db_customer.id
+            customer_id=db_customer.id,
+            role=user_data.get("role", UserRole.STAFF)
         )
+
+        if "shop_ids" in user_data:
+            shops = db.query(Shop).filter(Shop.id.in_(user_data["shop_ids"])).all()
+            db_user.shops = shops
+
         db.add(db_user)
         db.commit()
         db.refresh(db_user)

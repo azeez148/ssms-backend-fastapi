@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, event
+from sqlalchemy import Column, Integer, String, event, ForeignKey
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.hybrid import hybrid_property
 from app.models.base import BaseModel
@@ -15,6 +15,7 @@ class Customer(BaseModel):
     zip_code = Column(String)
     mobile = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True, nullable=True)
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)
 
     sales = relationship("Sale", back_populates="customer")
     user = relationship("User", back_populates="customer", uselist=False)

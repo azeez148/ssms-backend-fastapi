@@ -6,3 +6,7 @@ class SaleStatus(str, Enum):
     CANCELLED = "CANCELLED"
     SHIPPED = "SHIPPED"
     RETURNED = "RETURNED"
+
+class UserRole(str, Enum):
+    ADMINISTRATOR = "ADMINISTRATOR"
+    STAFF = "STAFF"

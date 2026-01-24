@@ -69,7 +69,7 @@ class StockService:
     def hold_stock(self, db: Session, stock_request: StockRequest) -> StockResponse:
         try:
             for item in stock_request.items:
-                self.product_service.update_product_stock(db, item.product_id, item.size, -item.quantity)
+                self.product_service.update_product_stock(db, item.product_id, item.size, -item.quantity, stock_request.shop_id)
             return StockResponse(success=True, message="Stock held successfully.")
         except HTTPException as e:
             return StockResponse(success=False, message=e.detail)
@@ -79,7 +79,7 @@ class StockService:
     def release_stock(self, db: Session, stock_request: StockRequest) -> StockResponse:
         try:
             for item in stock_request.items:
-                self.product_service.update_product_stock(db, item.product_id, item.size, item.quantity)
+                self.product_service.update_product_stock(db, item.product_id, item.size, item.quantity, stock_request.shop_id)
             return StockResponse(success=True, message="Stock released successfully.")
         except HTTPException as e:
             return StockResponse(success=False, message=e.detail)
@@ -91,7 +91,8 @@ class StockService:
             for item in stock_request.items:
                 product_size = db.query(ProductSize).filter(
                     ProductSize.product_id == item.product_id,
-                    ProductSize.size == item.size
+                    ProductSize.size == item.size,
+                    ProductSize.shop_id == stock_request.shop_id
                 ).first()
 
                 if not product_size or product_size.quantity < item.quantity:

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-from app.schemas.user import LoginRequest, RegisterRequest, UserProfile, UserProfileUpdate, AuthResponse
+from app.schemas.user import LoginRequest, RegisterRequest, UserProfile, UserProfileUpdate, AuthResponse, UserCreateAdmin
 from app.services.auth import AuthService
 from app.models.user import User
 from datetime import timedelta
@@ -29,6 +29,24 @@ async def get_current_user(
     if not user:
         raise credentials_exception
     return user
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    # Add active check if necessary
+    return current_user
+
+async def check_admin_role(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    from app.schemas.enums import UserRole
+    if current_user.role != UserRole.ADMINISTRATOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges"
+        )
+    return current_user
+
 
 @router.post("/register", response_model=AuthResponse)
 async def register(user_data: RegisterRequest, db: Session = Depends(get_db)):
@@ -103,3 +121,18 @@ async def update_profile(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+@router.post("/users", response_model=UserProfile)
+async def create_user_admin(
+    user_data: UserCreateAdmin,
+    current_user: User = Depends(check_admin_role),
+    db: Session = Depends(get_db)
+):
+    if db.query(User).filter(User.mobile == user_data.mobile).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mobile number already registered"
+        )
+
+    user = AuthService.create_user(db, user_data.model_dump())
+    return UserProfile.from_user_and_customer(user, user.customer)

@@ -10,6 +10,7 @@ class CustomerBase(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     zip_code: Optional[str] = None
+    shop_id: Optional[int] = None
 
     class Config:
         from_attributes = True
