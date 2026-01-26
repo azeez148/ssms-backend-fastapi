@@ -56,7 +56,8 @@ from app.api import (
     system,
     events,
     day_management,
-    tags
+    tags,
+    offers
 )
 
 # Include all routers
@@ -64,6 +65,7 @@ app.include_router(system.router, prefix="/system", tags=["system"])
 app.include_router(day_management.router, prefix="/day-management", tags=["day-management"])
 app.include_router(products.router, prefix="/products", tags=["products"])
 app.include_router(events.router, prefix="/events", tags=["events"])
+app.include_router(offers.router, prefix="/offers", tags=["offers"])
 app.include_router(stock.router, prefix="/stock", tags=["stock"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(sales.router, prefix="/sales", tags=["sales"])
