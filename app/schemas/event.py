@@ -67,3 +67,7 @@ class EventOfferUpdate(BaseModel):
 class UpdateProductOfferRequest(BaseModel):
     product_ids: List[int]
     offer_id: Optional[int]
+
+class EventOfferUpdateRequest(BaseModel):
+    offer_update: EventOfferUpdate
+
