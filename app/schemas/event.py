@@ -63,3 +63,7 @@ class EventOfferUpdate(BaseModel):
     product_ids: Optional[List[int]] = None
     category_ids: Optional[List[int]] = None
     code: Optional[str] = None
+
+class UpdateProductOfferRequest(BaseModel):
+    product_ids: List[int]
+    offer_id: Optional[int]
