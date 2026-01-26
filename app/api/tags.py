@@ -37,3 +37,7 @@ async def delete_tag(tag_id: int, db: Session = Depends(get_db)):
 @router.post("/map")
 async def map_tags_to_products(map_data: TagMapRequest, db: Session = Depends(get_db)):
     return tag_service.map_tags_to_products(db, map_data)
+
+@router.post("/unmap")
+async def unmap_tags_from_products(map_data: TagMapRequest, db: Session = Depends(get_db)):
+    return tag_service.unmap_tags_from_products(db, map_data)

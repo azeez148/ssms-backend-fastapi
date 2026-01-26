@@ -60,5 +60,24 @@ class TestTags(unittest.TestCase):
         self.assertIn(tag1, product2.tags)
         self.db_session.commit.assert_called()
 
+    def test_unmap_tags_from_products(self):
+        # Arrange
+        tag1 = Tag(id=1, name="Tag 1")
+        product1 = Product(id=1, name="Product 1", tags=[tag1])
+
+        self.db_session.query.return_value.filter.return_value.all.side_effect = [
+            [product1], # First call for products
+            [tag1]      # Second call for tags
+        ]
+
+        map_data = TagMapRequest(productIds=[1], tagIds=[1])
+
+        # Act
+        result = self.tag_service.unmap_tags_from_products(self.db_session, map_data)
+
+        # Assert
+        self.assertNotIn(tag1, product1.tags)
+        self.db_session.commit.assert_called()
+
 if __name__ == '__main__':
     unittest.main()

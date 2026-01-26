@@ -54,3 +54,15 @@ class TagService:
 
         db.commit()
         return {"message": f"Successfully mapped {len(tags)} tags to {len(products)} products"}
+
+    def unmap_tags_from_products(self, db: Session, map_data: TagMapRequest):
+        products = db.query(Product).filter(Product.id.in_(map_data.productIds)).all()
+        tags = db.query(Tag).filter(Tag.id.in_(map_data.tagIds)).all()
+
+        for product in products:
+            for tag in tags:
+                if tag in product.tags:
+                    product.tags.remove(tag)
+
+        db.commit()
+        return {"message": f"Successfully unmapped {len(tags)} tags from {len(products)} products"}

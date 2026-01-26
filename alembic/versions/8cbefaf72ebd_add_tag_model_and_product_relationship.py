@@ -37,8 +37,8 @@ def upgrade() -> None:
         'product_tags',
         sa.Column('product_id', sa.Integer(), nullable=False),
         sa.Column('tag_id', sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
-        sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ),
+        sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('product_id', 'tag_id')
     )
 
