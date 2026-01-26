@@ -3,6 +3,7 @@ from typing import Dict, Optional, List
 from typing_extensions import Annotated
 from app.schemas.base import BaseSchema
 from app.schemas.category import CategoryInDB
+from app.schemas.tag import TagResponse
 
 class ProductSizeBase(BaseModel):
     size: str
@@ -29,6 +30,7 @@ class ProductBase(BaseModel):
     discounted_price: Optional[int] = None
     offer_price: Optional[int] = None
     offer_name: Optional[str] = None  # Added for offer name
+    tags: Optional[List[TagResponse]] = None
 
 
     class Config:
