@@ -17,7 +17,7 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/all", response_model=List[CustomerResponse], summary="Get all customers")
-def read_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_customers(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db)):
     """
     Retrieve all customers.
     """

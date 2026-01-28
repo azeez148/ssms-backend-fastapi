@@ -33,6 +33,7 @@ class Product(BaseModel):
         lazy="joined"  # This will load the sizes eagerly with the product
     )
     shops = relationship("Shop", secondary="shop_products", back_populates="products")
+    tags = relationship("Tag", secondary="product_tags", back_populates="products")
 
 
 shop_products = Table(
