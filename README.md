@@ -79,6 +79,28 @@ Once the server is running, you can access:
 - Interactive API documentation (Swagger UI): http://localhost:8000/docs
 - Alternative API documentation (ReDoc): http://localhost:8000/redoc
 
+## Security
+
+### Secret Key
+
+The application uses a `SECRET_KEY` for signing JWT tokens. It is critical to use a strong, unique secret for your production environment.
+
+**Generating a Secure Secret Key:**
+
+You can generate a cryptographically secure key using Python:
+
+```bash
+python -c 'import secrets; print(secrets.token_hex(32))'
+```
+
+**Configuring the Secret Key:**
+
+The `SECRET_KEY` must be set as an environment variable. The application will not start without it.
+
+```bash
+export SECRET_KEY="your_generated_secret_key_here"
+```
+
 ## Project Structure
 
 ```
