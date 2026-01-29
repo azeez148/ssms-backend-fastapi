@@ -4,6 +4,7 @@ from app.schemas.home import HomeResponse
 from app.services.product import ProductService
 from app.services.event import EventOfferService
 from app.models.event import EventOffer
+from app.models.product import Product
 from typing import List
 import glob as glob_module
 
@@ -14,6 +15,10 @@ class HomeService:
 
     def get_home_data(self, db: Session) -> HomeResponse:
         products = self.product_service.get_all_products(db)
+        self._populate_product_images(products)
+        return HomeResponse(products=products)
+
+    def _populate_product_images(self, products: List[Product]):
         image_base_path = "images/products"  # base folder path
 
         for product in products:
@@ -33,7 +38,14 @@ class HomeService:
                     # Fallback to a default image
                     product.image_url = "images/products/default.jpg"
 
-        return HomeResponse(products=products)
-
     def get_active_offers(self, db: Session) -> List[EventOffer]:
         return self.event_offer_service.get_active_event_offers(db)
+
+    def get_weekly_offers(self, db: Session) -> List[Product]:
+        offer = self.event_offer_service.get_event_offer_by_code(db, "WEEKLY50OFF")
+        if not offer:
+            return []
+
+        products = offer.products
+        self._populate_product_images(products)
+        return products

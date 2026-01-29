@@ -34,6 +34,9 @@ class EventOfferService:
     def get_event_offer_by_id(self, db: Session, offer_id: int) -> Optional[EventOffer]:
         return db.query(EventOffer).filter(EventOffer.id == offer_id).first()
 
+    def get_event_offer_by_code(self, db: Session, code: str) -> Optional[EventOffer]:
+        return db.query(EventOffer).filter(EventOffer.code == code).first()
+
     def get_all_event_offers(self, db: Session) -> List[EventOffer]:
         return db.query(EventOffer).all()
 
