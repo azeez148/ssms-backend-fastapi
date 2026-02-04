@@ -27,3 +27,8 @@ class CustomerUpdate(CustomerBase):
 
 class CustomerResponse(CustomerBase, BaseSchema):
     id: int
+
+class ResetPasswordRequest(BaseModel):
+    customer_id: int
+    new_password: str
+    security_password: str

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
+from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate, ResetPasswordRequest
 from app.services import customer as customer_service
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -56,3 +57,19 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
     if db_customer is None:
         raise HTTPException(status_code=404, detail="Customer not found")
     return db_customer
+
+
+@router.post("/reset-password", summary="Reset a customer's password")
+def reset_customer_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Reset a customer's password.
+    """
+    if request.security_password != settings.SYSTEM_PASS_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid pass_key",
+        )
+    success = customer_service.reset_password(db, customer_id=request.customer_id, new_password=request.new_password)
+    if not success:
+        raise HTTPException(status_code=404, detail="Customer not found or password reset failed")
+    return {"detail": "Password reset successfully"}
