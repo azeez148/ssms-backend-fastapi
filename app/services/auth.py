@@ -16,6 +16,10 @@ class AuthService:
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    
+    @staticmethod
+    def verify_password_plain(plain_password: str, stored_password: str) -> bool:
+        return plain_password == stored_password
 
     @staticmethod
     def get_password_hash(password: str) -> str:
@@ -81,6 +85,6 @@ class AuthService:
     @staticmethod
     def authenticate_admin(db: Session, mobile: str, password: str) -> Optional[User]:
         user = db.query(User).filter(User.mobile == mobile).first()
-        if not user or not AuthService.verify_password(password, user.hashed_password):
+        if not user or not AuthService.verify_password_plain(password, user.hashed_password):
             return None
         return user

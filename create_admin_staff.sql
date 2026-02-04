@@ -8,7 +8,7 @@ END $$;
 
 -- Insert Admin Customer
 INSERT INTO customers (id, first_name, last_name, address, city, state, zip_code, mobile, email, created_date, updated_date, created_by, updated_by)
-VALUES (1000, 'Admin', 'User', 'Store HQ', 'Kothamangalam', 'Kerala', '686691', '1111111111', 'admin@ssms.com', NOW(), NOW(), 'system', 'system')
+VALUES (1000, 'Admin', 'User', 'Store HQ', 'Kothamangalam', 'Kerala', '686691', '7736128108', 'adrenalinesportsstore44@gmail.com', NOW(), NOW(), 'system', 'system')
 ON CONFLICT (mobile) DO UPDATE SET
     first_name = EXCLUDED.first_name,
     last_name = EXCLUDED.last_name,
@@ -16,7 +16,7 @@ ON CONFLICT (mobile) DO UPDATE SET
 
 -- Insert Admin User
 INSERT INTO users (id, mobile, email, hashed_password, role, customer_id, created_date, updated_date, created_by, updated_by, created_at, updated_at)
-VALUES ('admin-uuid-0001', '1111111111', 'admin@ssms.com', '$2b$12$3ufC/FzEuizOqPlPyisw0eHcJa4hxutCE1e4mtGKShnhmvdEyrVjK', 'admin', 1000, NOW(), NOW(), 'system', 'system', NOW(), NOW())
+VALUES ('admin-uuid-0001', '7736128108', 'adrenalinesportsstore44@gmail.com', '7736128108', 'admin', 1000, NOW(), NOW(), 'system', 'system', NOW(), NOW())
 ON CONFLICT (mobile) DO UPDATE SET
     hashed_password = EXCLUDED.hashed_password,
     role = EXCLUDED.role,
@@ -24,7 +24,7 @@ ON CONFLICT (mobile) DO UPDATE SET
 
 -- Insert Staff Customer
 INSERT INTO customers (id, first_name, last_name, address, city, state, zip_code, mobile, email, created_date, updated_date, created_by, updated_by)
-VALUES (1001, 'Staff', 'User', 'Store branch', 'Kothamangalam', 'Kerala', '686691', '2222222222', 'staff@ssms.com', NOW(), NOW(), 'system', 'system')
+VALUES (1001, 'Staff', 'User', 'NKY', 'Kothamangalam', 'Kerala', '686691', '8943285336', 'staff.nky@ssms.com', NOW(), NOW(), 'system', 'system')
 ON CONFLICT (mobile) DO UPDATE SET
     first_name = EXCLUDED.first_name,
     last_name = EXCLUDED.last_name,
@@ -32,7 +32,7 @@ ON CONFLICT (mobile) DO UPDATE SET
 
 -- Insert Staff User
 INSERT INTO users (id, mobile, email, hashed_password, role, customer_id, created_date, updated_date, created_by, updated_by, created_at, updated_at)
-VALUES ('staff-uuid-0001', '2222222222', 'staff@ssms.com', '$2b$12$btWTW3lXwLXpos.Qcbb3tOO/sb5tojNCRN8y4mCYqwsC2G1LsduI6', 'staff', 1001, NOW(), NOW(), 'system', 'system', NOW(), NOW())
+VALUES ('staff-uuid-0001', '8943285336', 'staff.nky@ssms.com', '8943285336', 'staff', 1001, NOW(), NOW(), 'system', 'system', NOW(), NOW())
 ON CONFLICT (mobile) DO UPDATE SET
     hashed_password = EXCLUDED.hashed_password,
     role = EXCLUDED.role,

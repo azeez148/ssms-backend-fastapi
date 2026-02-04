@@ -91,7 +91,7 @@ def run_sql_migrations():
     try:
         # execute_sql_file('products_new.sql')
         # execute_sql_file('products_sizes.sql')
-        execute_sql_file('update_discounted_prices.sql')
+        # execute_sql_file('update_discounted_prices.sql')
         execute_sql_file('create_admin_staff.sql')
         print("SQL Migration completed!")
     except Exception as e:
