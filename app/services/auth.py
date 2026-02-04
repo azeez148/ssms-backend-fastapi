@@ -77,3 +77,10 @@ class AuthService:
         if not user or not AuthService.verify_password(password, user.hashed_password):
             return None
         return user
+
+    @staticmethod
+    def authenticate_admin(db: Session, mobile: str, password: str) -> Optional[User]:
+        user = db.query(User).filter(User.mobile == mobile).first()
+        if not user or not AuthService.verify_password(password, user.hashed_password):
+            return None
+        return user
