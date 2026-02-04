@@ -10,6 +10,7 @@ class User(BaseModel):
     mobile = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String)
+    role = Column(String, default="customer")
     customer_id = Column(Integer, ForeignKey("customers.id"), unique=True, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
