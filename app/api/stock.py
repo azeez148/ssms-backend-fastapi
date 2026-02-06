@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.stock import StockService
-from app.schemas.stock import StockRequest, StockResponse
+from app.schemas.stock import StockRequest, StockResponse, ClearStockRequest
 
 router = APIRouter()
 
@@ -25,3 +25,8 @@ def release_stock(stock_request: StockRequest, db: Session = Depends(get_db)):
 def check_stock(stock_request: StockRequest, db: Session = Depends(get_db)):
     stock_service = StockService()
     return stock_service.check_stock(db, stock_request)
+
+@router.post("/clearStock", response_model=StockResponse)
+def clear_stock(clear_request: ClearStockRequest, db: Session = Depends(get_db)):
+    stock_service = StockService()
+    return stock_service.clear_stock(db, clear_request)

@@ -12,3 +12,6 @@ class StockRequest(BaseModel):
 class StockResponse(BaseModel):
     success: bool
     message: Optional[str] = None
+
+class ClearStockRequest(BaseModel):
+    category_ids: List[int]
