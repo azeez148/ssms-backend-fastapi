@@ -81,3 +81,14 @@ class UpdateSizeMapRequest(BaseModel):
 class ProductFilterRequest(BaseModel):
     category_id: Optional[int] = None
     product_type_filter: Optional[str] = None
+
+class CategoryDiscountRequest(BaseModel):
+    category_ids: List[int]
+    discounted_price: int
+
+class CategoryDiscountResponse(BaseModel):
+    category_id: int
+    discounted_price: int
+
+    class Config:
+        from_attributes = True

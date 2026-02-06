@@ -13,7 +13,9 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdate,
     UpdateSizeMapRequest,
-    ProductFilterRequest
+    ProductFilterRequest,
+    CategoryDiscountRequest,
+    CategoryDiscountResponse
 )
 from app.schemas.category import CategoryBase
 from app.core.logging import logger
@@ -163,3 +165,10 @@ async def upload_product_images(
         raise HTTPException(status_code=404, detail="Product not found")
 
     return updated_product
+
+@router.post("/addDefaultCategoryDiscounts", response_model=List[CategoryDiscountResponse])
+async def add_default_category_discounts(
+    request: CategoryDiscountRequest,
+    db: Session = Depends(get_db)
+):
+    return product_service.add_default_category_discounts(db, request)
