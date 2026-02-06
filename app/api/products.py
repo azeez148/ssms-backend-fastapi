@@ -19,8 +19,10 @@ from app.schemas.product import (
 )
 from app.schemas.category import CategoryBase
 from app.core.logging import logger
+from app.schemas.stock import ClearStockRequest, StockResponse
 from app.services.product import ProductService
 from app.services.category import CategoryService
+from app.services.stock import StockService
 
 router = APIRouter()
 product_service = ProductService()
@@ -187,3 +189,9 @@ async def get_default_category_discounts(
     db: Session = Depends(get_db)
 ) -> List[CategoryDiscountResponse]:
     return product_service.get_default_category_discounts(db)
+
+
+@router.post("/clearStock", response_model=StockResponse)
+def clear_stock(clear_request: ClearStockRequest, db: Session = Depends(get_db)):
+    stock_service = StockService()
+    return stock_service.clear_stock(db, clear_request)
