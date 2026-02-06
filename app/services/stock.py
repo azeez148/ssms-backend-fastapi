@@ -112,16 +112,31 @@ class StockService:
 
     def clear_stock(self, db: Session, clear_request: ClearStockRequest) -> StockResponse:
         try:
-            category_ids = clear_request.category_ids
-            # Update all ProductSize records for products in the given categories
-            db.query(ProductSize).filter(
-                ProductSize.product_id.in_(
-                    db.query(Product.id).filter(Product.category_id.in_(category_ids))
+            category_ids = clear_request.category_ids or []
+            product_ids = clear_request.product_ids or []
+
+            if not category_ids and not product_ids:
+                return StockResponse(success=True, message="No categories or products provided.")
+
+            from sqlalchemy import or_
+
+            query = db.query(ProductSize)
+            filters = []
+
+            if category_ids:
+                filters.append(
+                    ProductSize.product_id.in_(
+                        db.query(Product.id).filter(Product.category_id.in_(category_ids))
+                    )
                 )
-            ).update({ProductSize.quantity: 0}, synchronize_session=False)
+
+            if product_ids:
+                filters.append(ProductSize.product_id.in_(product_ids))
+
+            query.filter(or_(*filters)).update({ProductSize.quantity: 0}, synchronize_session=False)
 
             db.commit()
-            return StockResponse(success=True, message="Stock cleared successfully for selected categories.")
+            return StockResponse(success=True, message="Stock cleared successfully for selected categories/products.")
         except Exception as e:
             db.rollback()
             return StockResponse(success=False, message=str(e))

@@ -14,4 +14,5 @@ class StockResponse(BaseModel):
     message: Optional[str] = None
 
 class ClearStockRequest(BaseModel):
-    category_ids: List[int]
+    category_ids: Optional[List[int]] = Field(default_factory=list)
+    product_ids: Optional[List[int]] = Field(default_factory=list)
