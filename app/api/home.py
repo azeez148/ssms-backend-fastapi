@@ -7,6 +7,7 @@ from typing import List
 
 from app.core.database import get_db
 from app.schemas.home import HomeResponse, OfferResponse
+from app.schemas.product import ProductResponse
 from app.schemas.sale import SaleCreate, SaleResponse
 from app.schemas.stock import StockRequest, StockResponse
 from app.services.home import HomeService
@@ -24,6 +25,10 @@ async def get_home_data(db: Session = Depends(get_db)):
 @router.get("/offers", response_model=List[OfferResponse])
 async def get_active_offers(db: Session = Depends(get_db)):
     return home_service.get_active_offers(db)
+
+@router.get("/weeklyOffers", response_model=List[ProductResponse])
+async def get_weekly_offers(db: Session = Depends(get_db)):
+    return home_service.get_weekly_offers(db)
 
 @router.get("/{product_id}/image")
 async def get_product_image(product_id: int):
