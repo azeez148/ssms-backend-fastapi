@@ -172,3 +172,18 @@ async def add_default_category_discounts(
     db: Session = Depends(get_db)
 ):
     return product_service.add_default_category_discounts(db, request)
+
+
+@router.get("/categoryDiscounts/{category_id}", response_model=List[CategoryDiscountResponse])
+async def get_category_discount_for_category(
+    category_id: int,
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.get_category_discounts(db, category_id)
+
+
+@router.get("/getDefaultCategoryDiscounts", response_model=List[CategoryDiscountResponse])
+async def get_default_category_discounts(
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.get_default_category_discounts(db)

@@ -87,6 +87,7 @@ class CategoryDiscountRequest(BaseModel):
     discounted_price: int
 
 class CategoryDiscountResponse(BaseModel):
+    id: int
     category_id: int
     discounted_price: int
 

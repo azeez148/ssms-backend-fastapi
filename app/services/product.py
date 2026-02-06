@@ -164,3 +164,14 @@ class ProductService:
         for d in discounts:
             db.refresh(d)
         return discounts
+
+
+    def get_category_discounts(self, db: Session, category_id: int) -> List[CategoryDiscount]:
+        discounts = db.query(CategoryDiscount).filter(
+            CategoryDiscount.category_id == category_id
+        ).all()
+        return discounts
+    
+    def get_default_category_discounts(self, db: Session) -> List[CategoryDiscount]:
+        discounts = db.query(CategoryDiscount).all()
+        return discounts
