@@ -26,7 +26,3 @@ def check_stock(stock_request: StockRequest, db: Session = Depends(get_db)):
     stock_service = StockService()
     return stock_service.check_stock(db, stock_request)
 
-@router.post("/clearStock", response_model=StockResponse)
-def clear_stock(clear_request: ClearStockRequest, db: Session = Depends(get_db)):
-    stock_service = StockService()
-    return stock_service.clear_stock(db, clear_request)
