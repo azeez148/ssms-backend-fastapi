@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from httpcore import request
 from sqlalchemy.orm import Session
 from typing import List
 import shutil
@@ -8,7 +9,9 @@ from pathlib import Path
 import tempfile
 
 from app.core.database import get_db
+from app.models.category_discount import CategoryDiscount
 from app.schemas.product import (
+    CategoryDiscountUpdateRequest,
     ProductCreate,
     ProductResponse,
     ProductUpdate,
@@ -189,6 +192,28 @@ async def get_default_category_discounts(
     db: Session = Depends(get_db)
 ) -> List[CategoryDiscountResponse]:
     return product_service.get_default_category_discounts(db)
+
+@router.post("/updateCategoryDiscount", response_model=List[CategoryDiscountResponse])
+async def update_category_discount_for_category(
+    request: CategoryDiscountUpdateRequest,
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.update_category_discount(db, request)
+
+# add api to delete category discount for category
+@router.delete("/deleteDefaultCategoryDiscount/{id}", response_model=CategoryDiscountResponse)
+async def delete_default_category_discount(
+    id: int,
+    db: Session = Depends(get_db)
+):
+    db_discount = db.query(CategoryDiscount).filter(CategoryDiscount.id == id).first()
+    if not db_discount:
+        logger.error(f"Category discount with id {id} not found")
+        raise HTTPException(status_code=404, detail="Category discount not found")
+
+    db.delete(db_discount)
+    db.commit()
+    return db_discount
 
 
 @router.post("/clearStock", response_model=StockResponse)

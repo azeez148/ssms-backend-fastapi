@@ -83,7 +83,7 @@ class ProductFilterRequest(BaseModel):
     product_type_filter: Optional[str] = None
 
 class CategoryDiscountRequest(BaseModel):
-    category_ids: List[int]
+    category_id: int
     discounted_price: int
 
 class CategoryDiscountResponse(BaseModel):
@@ -93,3 +93,8 @@ class CategoryDiscountResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CategoryDiscountUpdateRequest(BaseModel):
+    category_id: int
+    discounted_price: int
+    id: int

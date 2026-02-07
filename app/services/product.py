@@ -8,6 +8,7 @@ from app.models.product import Product
 from app.models.product_size import ProductSize
 from app.models.category_discount import CategoryDiscount
 from app.schemas.product import (
+    CategoryDiscountUpdateRequest,
     ProductCreate,
     ProductUpdate,
     UpdateSizeMapRequest,
@@ -141,29 +142,25 @@ class ProductService:
         db: Session,
         request: CategoryDiscountRequest
     ) -> List[CategoryDiscount]:
-        discounts = []
-        for category_id in request.category_ids:
-            db_discount = db.query(CategoryDiscount).filter(
-                CategoryDiscount.category_id == category_id
-            ).first()
+        db_discount = db.query(CategoryDiscount).filter(
+            CategoryDiscount.category_id == request.category_id
+        ).first()
 
-            if db_discount:
-                db_discount.discounted_price = request.discounted_price
-                db_discount.updated_by = "system"
-            else:
-                db_discount = CategoryDiscount(
-                    category_id=category_id,
-                    discounted_price=request.discounted_price,
-                    created_by="system",
-                    updated_by="system"
-                )
-                db.add(db_discount)
-            discounts.append(db_discount)
+        if db_discount:
+            db_discount.discounted_price = request.discounted_price
+            db_discount.updated_by = "system"
+        else:
+            db_discount = CategoryDiscount(
+                category_id=request.category_id,
+                discounted_price=request.discounted_price,
+                created_by="system",
+                updated_by="system"
+            )
+            db.add(db_discount)
 
         db.commit()
-        for d in discounts:
-            db.refresh(d)
-        return discounts
+        db.refresh(db_discount)
+        return self.get_category_discounts(db, request.category_id)
 
 
     def get_category_discounts(self, db: Session, category_id: int) -> List[CategoryDiscount]:
@@ -175,3 +172,21 @@ class ProductService:
     def get_default_category_discounts(self, db: Session) -> List[CategoryDiscount]:
         discounts = db.query(CategoryDiscount).all()
         return discounts
+    
+    def update_category_discount(self, db: Session, request: CategoryDiscountUpdateRequest) -> List[CategoryDiscount]:
+        db_discount = db.query(CategoryDiscount).filter(
+            CategoryDiscount.id == request.id,
+            CategoryDiscount.category_id == request.category_id
+        ).first()
+
+        if not db_discount:
+            logger.error(f"Category discount not found for id {request.id} and category_id {request.category_id}")
+            raise HTTPException(status_code=404, detail="Category discount not found")
+
+        db_discount.discounted_price = request.discounted_price
+        db_discount.updated_by = "system"
+        db.commit()
+        db.refresh(db_discount)
+
+        return self.get_category_discounts(db, request.category_id)
+    
