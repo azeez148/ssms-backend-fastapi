@@ -103,3 +103,20 @@ async def update_profile(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+#login for admin and shop staff
+@router.post("/admin/login", response_model=AuthResponse)
+async def admin_login(login_data: LoginRequest, db: Session = Depends(get_db)):
+    user = AuthService.authenticate_admin(db, login_data.mobile, login_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect mobile number or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = AuthService.create_access_token(
+        data={"sub": user.id},
+        expires_delta=timedelta(days=7)
+    )
+    return AuthResponse(token=access_token, user=user)

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from httpcore import request
 from sqlalchemy.orm import Session
 from typing import List
 import shutil
@@ -8,17 +9,23 @@ from pathlib import Path
 import tempfile
 
 from app.core.database import get_db
+from app.models.category_discount import CategoryDiscount
 from app.schemas.product import (
+    CategoryDiscountUpdateRequest,
     ProductCreate,
     ProductResponse,
     ProductUpdate,
     UpdateSizeMapRequest,
-    ProductFilterRequest
+    ProductFilterRequest,
+    CategoryDiscountRequest,
+    CategoryDiscountResponse
 )
 from app.schemas.category import CategoryBase
 from app.core.logging import logger
+from app.schemas.stock import ClearStockRequest, StockResponse
 from app.services.product import ProductService
 from app.services.category import CategoryService
+from app.services.stock import StockService
 
 router = APIRouter()
 product_service = ProductService()
@@ -163,3 +170,53 @@ async def upload_product_images(
         raise HTTPException(status_code=404, detail="Product not found")
 
     return updated_product
+
+@router.post("/addDefaultCategoryDiscounts", response_model=List[CategoryDiscountResponse])
+async def add_default_category_discounts(
+    request: CategoryDiscountRequest,
+    db: Session = Depends(get_db)
+):
+    return product_service.add_default_category_discounts(db, request)
+
+
+@router.get("/categoryDiscounts/{category_id}", response_model=List[CategoryDiscountResponse])
+async def get_category_discount_for_category(
+    category_id: int,
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.get_category_discounts(db, category_id)
+
+
+@router.get("/getDefaultCategoryDiscounts", response_model=List[CategoryDiscountResponse])
+async def get_default_category_discounts(
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.get_default_category_discounts(db)
+
+@router.post("/updateCategoryDiscount", response_model=List[CategoryDiscountResponse])
+async def update_category_discount_for_category(
+    request: CategoryDiscountUpdateRequest,
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.update_category_discount(db, request)
+
+# add api to delete category discount for category
+@router.delete("/deleteDefaultCategoryDiscount/{id}", response_model=CategoryDiscountResponse)
+async def delete_default_category_discount(
+    id: int,
+    db: Session = Depends(get_db)
+):
+    db_discount = db.query(CategoryDiscount).filter(CategoryDiscount.id == id).first()
+    if not db_discount:
+        logger.error(f"Category discount with id {id} not found")
+        raise HTTPException(status_code=404, detail="Category discount not found")
+
+    db.delete(db_discount)
+    db.commit()
+    return db_discount
+
+
+@router.post("/clearStock", response_model=StockResponse)
+def clear_stock(clear_request: ClearStockRequest, db: Session = Depends(get_db)):
+    stock_service = StockService()
+    return stock_service.clear_stock(db, clear_request)

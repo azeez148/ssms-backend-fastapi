@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
+from app.services.auth import AuthService
+from app.models.user import User
 
 def get_customer(db: Session, customer_id: int):
     return db.query(Customer).filter(Customer.id == customer_id).first()
@@ -65,3 +67,18 @@ def delete_customer(db: Session, customer_id: int):
         db.delete(db_customer)
         db.commit()
     return db_customer
+
+def reset_password(db: Session, customer_id: int, new_password: str) -> bool:
+    db_customer = get_customer(db, customer_id)
+    if not db_customer:
+        return False
+
+    db_user = db.query(User).filter(User.customer_id == customer_id).first()
+    if not db_user:
+        return False
+
+    new_password = new_password or db_customer.mobile
+    hashed_password = AuthService.get_password_hash(new_password)
+    db_user.hashed_password = hashed_password
+    db.commit()
+    return True

@@ -35,6 +35,7 @@ class UserProfile(BaseModel):
     id: str
     mobile: str
     email: Optional[EmailStr] = None
+    role: str = "customer"
     first_name: str = None
     last_name: str = None
     address: str = None
@@ -50,6 +51,7 @@ class UserProfile(BaseModel):
             id=user.id,
             mobile=user.mobile,
             email=user.email,
+            role=user.role,
             first_name=customer.first_name,
             last_name=customer.last_name,
             address=customer.address,

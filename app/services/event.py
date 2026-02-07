@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from app.models.category_discount import CategoryDiscount
 from app.models.event import EventOffer, RateType
 from app.models.product import Product
 from app.schemas.event import EventOfferCreate
@@ -33,6 +34,9 @@ class EventOfferService:
 
     def get_event_offer_by_id(self, db: Session, offer_id: int) -> Optional[EventOffer]:
         return db.query(EventOffer).filter(EventOffer.id == offer_id).first()
+
+    def get_event_offer_by_code(self, db: Session, code: str) -> Optional[EventOffer]:
+        return db.query(EventOffer).filter(EventOffer.code == code).first()
 
     def get_all_event_offers(self, db: Session) -> List[EventOffer]:
         return db.query(EventOffer).all()
@@ -111,12 +115,38 @@ class EventOfferService:
             product = product_service.get_product_by_id(db, product_id)
             if product:
                 product.offer_id = None
-                product.discounted_price = None
+                product.discounted_price = self.find_original_discounted_price(db, product)
                 product.offer_price = None
                 product.offer_name = None
                 db.add(product)
 
         db.commit()
+    
+    def find_original_discounted_price(self, db: Session, product: Product) -> Optional[int]:
+        """Calculate the original discounted price based on category discount and product attributes."""
+        default_discount = self.get_default_category_discount(db, product.category_id)
+        
+        if not default_discount or default_discount.discounted_price is None:
+            return product.selling_price - 50
+        
+        discounted_price = default_discount.discounted_price
+        
+        # Apply additional adjustments based on product name
+        if product.name:
+            has_embroidery = "embroidery" in product.name.lower()
+            has_collar = "collar" in product.name.lower()
+            
+            if has_embroidery and has_collar:
+                discounted_price += 75
+            elif has_embroidery or has_collar:
+                discounted_price += 50
+        
+        return discounted_price
+
+    
+    def get_default_category_discount(self, db: Session, category_id: int) -> Optional[CategoryDiscount]:
+        # Placeholder implementation, replace with actual database query to fetch default category discount
+        return db.query(CategoryDiscount).filter(CategoryDiscount.category_id == category_id).first()
 
     def apply_offer_to_products(self, db: Session, offer: EventOffer):
         product_service = ProductService()

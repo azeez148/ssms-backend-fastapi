@@ -13,6 +13,7 @@ from .event import EventOffer
 from .day_management import Day, Expense
 from .user import User  # Add the User model import
 from .tag import Tag, product_tags
+from .category_discount import CategoryDiscount
 
 __all__ = [
     "Category",
@@ -34,5 +35,6 @@ __all__ = [
     "Day",
     "Expense",
     "Tag",
-    "product_tags"
+    "product_tags",
+    "CategoryDiscount"
 ]
