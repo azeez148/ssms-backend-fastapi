@@ -5,6 +5,7 @@ from app.schemas.customer import CustomerCreate
 from app.schemas.sale import SaleCreate
 from app.schemas.enums import SaleStatus
 from app.services.customer import get_or_create_customer
+from app.services.day_management import DayManagementService
 from app.services.notification import EmailNotificationService
 from app.services.product import ProductService
 
@@ -12,6 +13,7 @@ class SaleService:
     def __init__(self):
         self.email_notification = EmailNotificationService()
         self.product_service = ProductService()
+        self.day_management_service = DayManagementService()
 
     def create_sale(self, db: Session, sale: SaleCreate) -> Sale:
         # Get or create customer
@@ -73,6 +75,14 @@ class SaleService:
                 quantity_change=-item.quantity  # Decrease stock by sold quantity
             )
 
+        # Update day management record
+        if status != SaleStatus.CANCELLED:
+            self.day_management_service.update_day_from_sale(
+                db,
+                amount_change=db_sale.total_price,
+                payment_type_id=db_sale.payment_type_id
+            )
+
         db.commit()
         db.refresh(db_sale)
         
@@ -125,16 +135,55 @@ class SaleService:
 
     def update_sale_status(self, db: Session, sale_id: int, status: str) -> Optional[Sale]:
         sale = self.get_sale(db, sale_id)
-        if sale:
-            sale.status = SaleStatus(status)
-            db.commit()
-            db.refresh(sale)
+        if not sale:
+            return None
+
+        old_status = sale.status
+        new_status = SaleStatus(status)
+
+        if old_status == new_status:
+            return sale
+
+        sale.status = new_status
+
+        # If transitioning TO cancelled, subtract from day and restore stock
+        if new_status == SaleStatus.CANCELLED and old_status != SaleStatus.CANCELLED:
+            self.day_management_service.update_day_from_sale(
+                db,
+                amount_change=-sale.total_price,
+                payment_type_id=sale.payment_type_id
+            )
+            for item in sale.sale_items:
+                self.product_service.update_product_stock(
+                    db,
+                    product_id=item.product_id,
+                    size=item.size,
+                    quantity_change=item.quantity
+                )
+        # If transitioning FROM cancelled, add to day and reduce stock
+        elif old_status == SaleStatus.CANCELLED and new_status != SaleStatus.CANCELLED:
+            self.day_management_service.update_day_from_sale(
+                db,
+                amount_change=sale.total_price,
+                payment_type_id=sale.payment_type_id
+            )
+            for item in sale.sale_items:
+                self.product_service.update_product_stock(
+                    db,
+                    product_id=item.product_id,
+                    size=item.size,
+                    quantity_change=-item.quantity
+                )
+
+        db.commit()
+        db.refresh(sale)
         return sale
 
     # implement cancel_sale
     def cancel_sale(self, db: Session, sale_id: int) -> Optional[Sale]:
         sale = self.get_sale(db, sale_id)
         if sale and sale.status != SaleStatus.CANCELLED:
+            old_status = sale.status
             sale.status = SaleStatus.CANCELLED
             
             # Restore product stock
@@ -146,6 +195,13 @@ class SaleService:
                     quantity_change=item.quantity  # Increase stock by cancelled quantity
                 )
             
+            # Update day management record (subtract sale amount)
+            self.day_management_service.update_day_from_sale(
+                db,
+                amount_change=-sale.total_price,
+                payment_type_id=sale.payment_type_id
+            )
+
             db.commit()
             db.refresh(sale)
         return sale
@@ -155,8 +211,16 @@ class SaleService:
         if not sale:
             return None
 
+        # Store old values for day management and stock update
+        old_total = sale.total_price
+        old_payment_type_id = sale.payment_type_id
+        old_status = sale.status
+
         # Update main sale fields
-        update_data = sale_data.model_dump(exclude={'sale_items'})
+        update_data = sale_data.model_dump(exclude={'sale_items', 'status'})
+
+        # Handle status update if provided
+        new_status = getattr(sale_data, 'status', None) or sale.status
 
         # If sub_total is not provided or 0, default it to total_price
         if not update_data.get('sub_total'):
@@ -164,6 +228,19 @@ class SaleService:
 
         for field, value in update_data.items():
             setattr(sale, field, value)
+
+        sale.status = new_status
+
+        # Handle stock reversal for old items if they weren't cancelled
+        if old_status != SaleStatus.CANCELLED:
+            old_items = db.query(SaleItem).filter(SaleItem.sale_id == sale.id).all()
+            for item in old_items:
+                self.product_service.update_product_stock(
+                    db,
+                    product_id=item.product_id,
+                    size=item.size,
+                    quantity_change=item.quantity
+                )
 
         # Clear existing sale items
         db.query(SaleItem).filter(SaleItem.sale_id == sale.id).delete()
@@ -184,6 +261,32 @@ class SaleService:
                 updated_by="system"
             )
             db.add(sale_item)
+
+            # Update product stock if not cancelled
+            if sale.status != SaleStatus.CANCELLED:
+                self.product_service.update_product_stock(
+                    db,
+                    product_id=item.product_id,
+                    size=item.size,
+                    quantity_change=-item.quantity
+                )
+
+        # Update day management record
+        # 1. Reverse old sale if it wasn't cancelled
+        if old_status != SaleStatus.CANCELLED:
+            self.day_management_service.update_day_from_sale(
+                db,
+                amount_change=-old_total,
+                payment_type_id=old_payment_type_id
+            )
+
+        # 2. Add new sale if it's not cancelled
+        if sale.status != SaleStatus.CANCELLED:
+            self.day_management_service.update_day_from_sale(
+                db,
+                amount_change=sale.total_price,
+                payment_type_id=sale.payment_type_id
+            )
 
         db.commit()
         db.refresh(sale)
