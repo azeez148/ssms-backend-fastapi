@@ -10,10 +10,10 @@ class Day(BaseModel):
     start_time = Column(DateTime(timezone=True), server_default=func.now())
     end_time = Column(DateTime(timezone=True), nullable=True)
     opening_balance = Column(Float, nullable=False)
-    closing_balance = Column(Float, nullable=True)
-    total_expense = Column(Float, nullable=True)
-    cash_in_hand = Column(Float, nullable=True)
-    cash_in_account = Column(Float, nullable=True)
+    closing_balance = Column(Float, nullable=True, default=0.0)
+    total_expense = Column(Float, nullable=True, default=0.0)
+    cash_in_hand = Column(Float, nullable=True, default=0.0)
+    cash_in_account = Column(Float, nullable=True, default=0.0)
 
     expenses = relationship("Expense", back_populates="day")
 
