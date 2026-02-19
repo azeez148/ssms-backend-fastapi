@@ -89,7 +89,13 @@ def reset_password(db: Session, customer_id: int, new_password: str) -> bool:
         return False
 
     new_password = new_password or db_customer.mobile
-    hashed_password = AuthService.get_password_hash(new_password)
+
+    # Only hash password for non-staff/admin users
+    if db_user.role not in ['staff', 'admin']:
+        hashed_password = AuthService.get_password_hash(new_password)
+    else:
+        hashed_password = new_password
+
     db_user.hashed_password = hashed_password
     db.commit()
     return True
