@@ -23,3 +23,4 @@ class Shop(BaseModel):
     sales = relationship("Sale", back_populates="shop")
     purchases = relationship("Purchase", secondary=shop_purchases, back_populates="shops")
     products = relationship("Product", secondary="shop_products", back_populates="shops")
+    users = relationship("User", back_populates="shop")

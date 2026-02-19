@@ -12,8 +12,11 @@ class User(BaseModel):
     hashed_password = Column(String)
     role = Column(String, default="customer")
     customer_id = Column(Integer, ForeignKey("customers.id"), unique=True, nullable=True)
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationship with Customer
     customer = relationship("Customer", back_populates="user")
+    # Relationship with Shop - staff users are linked to a specific shop
+    shop = relationship("Shop", back_populates="users")
