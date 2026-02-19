@@ -23,7 +23,8 @@ class DayBase(BaseModel):
     opening_balance: float
 
 class DayCreate(DayBase):
-    pass
+    variance: Optional[float] = None
+    variance_reason: Optional[str] = None
 
 class DayUpdate(BaseModel):
     closing_balance: float
@@ -31,6 +32,11 @@ class DayUpdate(BaseModel):
     cash_in_hand: float
     cash_in_account: float
     end_time: datetime
+
+class EndDayRequest(BaseModel):
+    closing_balance_actual: float
+    variance: float = 0
+    variance_reason: Optional[str] = None
 
 class Day(DayBase, BaseSchema):
     id: int
@@ -40,6 +46,8 @@ class Day(DayBase, BaseSchema):
     total_expense: Optional[float] = None
     cash_in_hand: Optional[float] = None
     cash_in_account: Optional[float] = None
+    variance: Optional[float] = None
+    variance_reason: Optional[str] = None
     expenses: List[Expense] = []
 
     class Config:
@@ -56,6 +64,8 @@ class DaySummary(BaseSchema):
     opening_balance: float
     start_time: datetime
     end_time: Optional[datetime] = None
+    variance: Optional[float] = None
+    variance_reason: Optional[str] = None
     expenses: List[Expense] = []
 
 

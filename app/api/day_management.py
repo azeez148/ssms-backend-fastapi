@@ -9,7 +9,8 @@ from app.schemas.day_management import (
     ExpenseCreate,
     Expense,
     DaySummary,
-    StatusResponse
+    StatusResponse,
+    EndDayRequest
 )
 from app.services.day_management import DayManagementService
 
@@ -35,9 +36,9 @@ def get_expenses(day_id: int, db: Session = Depends(get_db)):
     return day_management_service.get_expenses_for_day(db, day_id)
 
 @router.post("/endDay/{day_id}", response_model=DaySummary)
-def end_day(day_id: int, db: Session = Depends(get_db)):
+def end_day(day_id: int, day_data: EndDayRequest, db: Session = Depends(get_db)):
     try:
-        day_management_service.end_day(db, day_id)
+        day_management_service.end_day(db, day_id, day_data.closing_balance_actual, day_data.variance, day_data.variance_reason)
         return day_management_service.get_day_summary(db, day_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -14,6 +14,8 @@ class Day(BaseModel):
     total_expense = Column(Float, nullable=True, default=0.0)
     cash_in_hand = Column(Float, nullable=True, default=0.0)
     cash_in_account = Column(Float, nullable=True, default=0.0)
+    variance = Column(Float, nullable=True, default=0.0)
+    variance_reason = Column(String, nullable=True)
 
     expenses = relationship("Expense", back_populates="day")
 

@@ -115,7 +115,7 @@ class DayManagementService:
         """
         return db.query(Expense).filter(Expense.day_id == day_id).all()
 
-    def end_day(self, db: Session, day_id: int) -> Day:
+    def end_day(self, db: Session, day_id: int, closing_balance_actual: float = None, variance: float = 0, variance_reason: str = None) -> Day:
         """
         Ends the specified day, calculates totals, and updates the day's record.
         """
@@ -144,6 +144,11 @@ class DayManagementService:
         db_day.cash_in_hand = db_day.opening_balance + total_cash_sales - total_expense
         db_day.cash_in_account = total_account_sales
         db_day.closing_balance = db_day.cash_in_hand + db_day.cash_in_account
+        
+        # Set variance (default to 0 if not provided)
+        db_day.variance = variance if variance is not None else 0
+        # Set variance_reason (default to None if not provided)
+        db_day.variance_reason = variance_reason
 
         db_day.updated_by = "system"
         db.commit()
@@ -175,6 +180,8 @@ class DayManagementService:
             opening_balance=db_day.opening_balance,
             start_time=db_day.start_time,
             end_time=db_day.end_time,
+            variance=db_day.variance,
+            variance_reason=db_day.variance_reason,
             expenses=self.get_expenses_for_day(db, day_id),
             message="Day ended successfully."
         )
