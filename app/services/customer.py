@@ -57,8 +57,19 @@ def update_customer(db: Session, customer_id: int, customer: CustomerUpdate):
         for key, value in update_data.items():
             setattr(db_customer, key, value)
         db_customer.updated_by = "system"
+        
+        # Update related User record with common attributes (mobile and email)
+        db_user = db.query(User).filter(User.customer_id == customer_id).first()
+        if db_user:
+            if 'mobile' in update_data:
+                db_user.mobile = update_data['mobile']
+            if 'email' in update_data:
+                db_user.email = update_data['email'] if update_data['email'] and update_data['email'].strip() else None
+        
         db.commit()
         db.refresh(db_customer)
+        if db_user:
+            db.refresh(db_user)
     return db_customer
 
 def delete_customer(db: Session, customer_id: int):
