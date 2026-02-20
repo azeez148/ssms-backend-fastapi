@@ -4,6 +4,7 @@ from typing_extensions import Annotated
 from app.schemas.base import BaseSchema
 from app.schemas.category import CategoryInDB
 from app.schemas.tag import TagResponse
+from app.schemas.shop import ShopResponse
 
 class ProductSizeBase(BaseModel):
     size: str
@@ -31,6 +32,7 @@ class ProductBase(BaseModel):
     offer_price: Optional[int] = None
     offer_name: Optional[str] = None  # Added for offer name
     tags: Optional[List[TagResponse]] = None
+    shops: Optional[List[ShopResponse]] = None
 
 
     class Config:
@@ -50,6 +52,7 @@ class ProductCreate(BaseModel):
     discounted_price: Optional[int] = None
     offer_price: Optional[int] = None
     offer_name: Optional[str] = None  # Added for offer name
+    shop_ids: Optional[List[int]] = None
 
 class ProductUpdate(BaseModel):
     id: int    
@@ -64,6 +67,7 @@ class ProductUpdate(BaseModel):
     discounted_price: Optional[int] = None
     offer_price: Optional[int] = None
     offer_name: Optional[str] = None  # Added for offer name
+    shop_ids: Optional[List[int]] = None
 
     class Config:
         from_attributes = True
