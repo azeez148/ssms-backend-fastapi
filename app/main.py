@@ -57,7 +57,8 @@ from app.api import (
     events,
     day_management,
     tags,
-    users
+    users,
+    pricelist
 )
 
 # Include all routers
@@ -80,6 +81,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(pricelist.router, prefix="/pricelists", tags=["pricelists"])
 
 @app.get("/")
 def read_root():
