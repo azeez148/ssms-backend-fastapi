@@ -1,5 +1,5 @@
 import os
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from fastapi import HTTPException
 
@@ -7,6 +7,7 @@ from app.core.logging import logger
 from app.models.product import Product
 from app.models.product_size import ProductSize
 from app.models.category_discount import CategoryDiscount
+from app.models.shop import Shop
 from app.schemas.product import (
     CategoryDiscountUpdateRequest,
     ProductCreate,
@@ -38,17 +39,27 @@ class ProductService:
                     quantity=size_data.quantity
                 )
                 db_product.size_map.append(size)
+        # Handle shop associations
+        if product.shop_ids:
+            shops = db.query(Shop).filter(Shop.id.in_(product.shop_ids)).all()
+            db_product.shops = shops
+        else:
+            # Default to Shop ID 1 if no shops provided
+            shop_1 = db.query(Shop).filter(Shop.id == 1).first()
+            if shop_1:
+                db_product.shops.append(shop_1)
+
         db.add(db_product)
         db.commit()
         db.refresh(db_product)
         return db_product
 
     def get_all_products(self, db: Session) -> List[Product]:
-        products = db.query(Product).all()
+        products = db.query(Product).options(joinedload(Product.shops)).all()
         return products
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
-        product = db.query(Product).filter(Product.id == product_id).first()
+        product = db.query(Product).options(joinedload(Product.shops)).filter(Product.id == product_id).first()
         return product
 
     def update_product(self, db: Session, product_update: ProductUpdate) -> Optional[Product]:
@@ -56,7 +67,18 @@ class ProductService:
         if not db_product:
             return None
             
-        for field, value in product_update.dict().items():
+        update_data = product_update.model_dump(exclude_unset=True)
+
+        # Handle shop_ids separately
+        if "shop_ids" in update_data:
+            shop_ids = update_data.pop("shop_ids")
+            if shop_ids is not None:
+                shops = db.query(Shop).filter(Shop.id.in_(shop_ids)).all()
+                db_product.shops = shops
+            else:
+                db_product.shops = []
+
+        for field, value in update_data.items():
             setattr(db_product, field, value)
             
         db_product.updated_by = "system"
@@ -90,7 +112,7 @@ class ProductService:
         category_id: Optional[int] = None,
         product_type_filter: Optional[str] = None
     ) -> List[Product]:
-        query = db.query(Product)
+        query = db.query(Product).options(joinedload(Product.shops))
         
         if category_id:
             query = query.filter(Product.category_id == category_id)

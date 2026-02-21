@@ -19,3 +19,12 @@ async def add_shop(
 @router.get("/all", response_model=List[ShopResponse])
 async def get_all_shops(db: Session = Depends(get_db)):
     return shop_service.get_all_shops(db)
+
+# PUT and DELETE endpoints can be added similarly when needed.
+@router.put("/{shop_id}", response_model=ShopResponse)
+async def update_shop(
+    shop_id: int,
+    shop: ShopCreate,
+    db: Session = Depends(get_db)
+):
+    return shop_service.update_shop(db, shop_id, shop)

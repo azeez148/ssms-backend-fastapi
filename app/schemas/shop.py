@@ -3,6 +3,7 @@ from typing import Optional, List
 from app.schemas.base import BaseSchema
 
 class ShopBase(BaseModel):
+    shop_code: Optional[str] = None
     name: str
     addressLine1: str
     addressLine2: str

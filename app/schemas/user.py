@@ -76,3 +76,45 @@ class UserProfileUpdate(BaseModel):
 class AuthResponse(BaseModel):
     token: str
     user: UserProfile
+
+class UserCreate(BaseModel):
+    id: str
+    mobile: str
+    password: str
+    email: Optional[str] = None
+    role: str = "staff"
+    shop_id: Optional[int] = None
+
+    @validator('mobile')
+    def validate_mobile(cls, v):
+        v = v.strip()
+        if not 10 <= len(v) <= 15:
+            raise ValueError('Mobile number must be between 10 and 15 characters')
+        return v
+
+class UserUpdate(BaseModel):
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+    shop_id: Optional[int] = None
+
+    @validator('mobile')
+    def validate_mobile(cls, v):
+        if v:
+            v = v.strip()
+            if not 10 <= len(v) <= 15:
+                raise ValueError('Mobile number must be between 10 and 15 characters')
+        return v
+
+class UserResponse(BaseModel):
+    id: str
+    mobile: str
+    email: Optional[str] = None
+    role: str
+    shop_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

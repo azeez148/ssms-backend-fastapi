@@ -7,6 +7,7 @@ class Shop(BaseModel):
     __tablename__ = "shops"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    shop_code = Column(String, index=True, unique=True, nullable=True)
     name = Column(String, index=True)
     addressLine1 = Column(String)
     addressLine2 = Column(String)
@@ -23,3 +24,4 @@ class Shop(BaseModel):
     sales = relationship("Sale", back_populates="shop")
     purchases = relationship("Purchase", secondary=shop_purchases, back_populates="shops")
     products = relationship("Product", secondary="shop_products", back_populates="shops")
+    users = relationship("User", back_populates="shop")

@@ -79,6 +79,10 @@ Once the server is running, you can access:
 - Interactive API documentation (Swagger UI): http://localhost:8000/docs
 - Alternative API documentation (ReDoc): http://localhost:8000/redoc
 
+### Additional Documentation
+- [Pricelist API](docs/PRICELIST_API_DOCUMENTATION.md)
+- [Users API](docs/USERS_API_DOCUMENTATION.md)
+
 ## Project Structure
 
 ```
