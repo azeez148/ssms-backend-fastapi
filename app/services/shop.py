@@ -5,7 +5,7 @@ from app.schemas.shop import ShopCreate
 
 class ShopService:
     def create_shop(self, db: Session, shop: ShopCreate) -> Shop:
-        db_shop = Shop(**shop.dict(), created_by="system", updated_by="system")
+        db_shop = Shop(**shop.model_dump(), created_by="system", updated_by="system")
         db.add(db_shop)
         db.commit()
         db.refresh(db_shop)
