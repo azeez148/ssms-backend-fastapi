@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from app.schemas.base import BaseSchema
 
@@ -16,8 +16,7 @@ class CategoryCreate(CategoryBase):
 class CategoryInDB(CategoryBase):
     id: int
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CategoryResponse(CategoryInDB, BaseSchema):
     pass
