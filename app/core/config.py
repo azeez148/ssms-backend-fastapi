@@ -5,7 +5,7 @@ from typing import Optional
 class Settings(BaseSettings):
     # Email settings
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "adrenalinesportsstore44@gmail.com")
-    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "oajy ubuh epgr dkrs")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "molo hxfz njja vxeu")
     MAIL_FROM: str = os.getenv("MAIL_FROM", "adrenalinesportsstore44@gmail.com")
     MAIL_PORT: int = 587
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     MAIL_SSL: bool = False
     SYSTEM_PASS_KEY: str = os.getenv("SYSTEM_PASS_KEY", "7736")
     ADMIN_PHONE_NUMBER: str = os.getenv("ADMIN_PHONE_NUMBER", "+917736128108")
+    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "azeez148@gmail.com")
 
     # Github settings
     GITHUB_REPO_URL: Optional[str] = os.getenv("GITHUB_REPO_URL", "https://github.com/adrenalines-sports/ssms-db-backup.git")

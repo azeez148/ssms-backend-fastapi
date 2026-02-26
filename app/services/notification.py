@@ -119,6 +119,12 @@ class EmailNotificationService:
             response = message.send(to=sale.customer.email, smtp=smtp_options)
             if not response.success:
                 print(f"Failed to send email to {sale.customer.email}: {response.error}")
+        
+        # Also send a notification to the shop owner if email is available
+        if settings.ADMIN_EMAIL:
+            response = message.send(to=settings.ADMIN_EMAIL, smtp=smtp_options)
+            if not response.success:
+                print(f"Failed to send email to shop owner {settings.ADMIN_EMAIL}: {response.error}")
 
     def send_purchase_notification(self, purchase: Purchase):
         if not purchase.vendor or not purchase.vendor.email:
