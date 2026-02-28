@@ -212,7 +212,7 @@ class EventOfferService:
                 product.offer_id = None
                 product.offer_name = None
                 product.offer_price = None
-                product.discounted_price = None
+                product.discounted_price = self.find_original_discounted_price(db, product)
             db.add(product)
 
         # Update product_ids strings in EventOffers to maintain consistency
