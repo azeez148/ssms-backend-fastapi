@@ -55,4 +55,15 @@ async def update_sale_status_background(
 
 @router.post("/{sale_id}/updateSale", response_model=SaleResponse)
 async def update_sale(sale_id: int, sale: SaleCreate, db: Session = Depends(get_db)):
-    return sale_service.update_sale(db, sale, sale_id)
+    updated_sale = sale_service.update_sale(db, sale, sale_id)
+    if not updated_sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    return updated_sale
+
+# get sale by id
+@router.get("/{sale_id}", response_model=SaleResponse)
+async def get_sale_by_id(sale_id: int, db: Session = Depends(get_db)):
+    sale = sale_service.get_sale_by_id(db, sale_id)
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    return sale
