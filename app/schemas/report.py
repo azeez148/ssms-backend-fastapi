@@ -2,6 +2,14 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 from app.schemas.sale import SaleResponse
 
+class SaleItemDetail(BaseModel):
+    product_name: str
+    size: str
+    quantity: int
+    unit_price: float
+    sale_price: float
+    profit_loss: float
+
 class SalesReportResponse(BaseModel):
     sales: List[SaleResponse]
     total_sales: int
@@ -9,6 +17,7 @@ class SalesReportResponse(BaseModel):
     total_quantity: int
     total_revenue: float
     total_profit: float
+    sale_item_details: List[SaleItemDetail] = []
 
 class SalesReportSummary(BaseModel):
     period_label: str

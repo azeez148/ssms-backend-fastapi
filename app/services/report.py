@@ -11,18 +11,33 @@ from typing import Optional
 class ReportService:
     def _calculate_summary(self, db: Session, sales) -> dict:
         """Calculate summary metrics for a list of sales."""
-        total_sales = len(sales)
-        total_revenue = sum(sale.total_price for sale in sales)
-        total_quantity = sum(sale.total_quantity for sale in sales)
+        # Filter sales to avoid CANCELLED, PENDING, RETURNED for summary calculation
+        active_sales = [
+            sale for sale in sales
+            if sale.status not in [SaleStatus.CANCELLED, SaleStatus.PENDING, SaleStatus.RETURNED]
+        ]
+
+        total_sales = len(active_sales)
+        total_revenue = sum(sale.total_price for sale in active_sales)
+        total_quantity = sum(sale.total_quantity for sale in active_sales)
 
         total_profit = 0.0
-        for sale in sales:
-            if sale.status in [SaleStatus.COMPLETED, SaleStatus.SHIPPED]:
-                for item in sale.sale_items:
-                    product = db.query(Product).filter(Product.id == item.product_id).first()
-                    if product:
-                        item_profit = (item.sale_price - product.unit_price) * item.quantity
-                        total_profit += item_profit
+        sale_item_details = []
+        for sale in active_sales:
+            for item in sale.sale_items:
+                product = db.query(Product).filter(Product.id == item.product_id).first()
+                unit_price = product.unit_price if product else 0.0
+                item_profit = (item.sale_price - unit_price) * item.quantity
+                total_profit += item_profit
+
+                sale_item_details.append({
+                    "product_name": item.product_name,
+                    "size": item.size,
+                    "quantity": item.quantity,
+                    "unit_price": unit_price,
+                    "sale_price": item.sale_price,
+                    "profit_loss": item_profit
+                })
 
         status_breakdown = {}
         for sale in sales:
@@ -35,6 +50,7 @@ class ReportService:
             "total_quantity": total_quantity,
             "total_profit": total_profit,
             "status_breakdown": status_breakdown,
+            "sale_item_details": sale_item_details
         }
 
     def _query_sales(self, db: Session, start_date: Optional[str] = None, end_date: Optional[str] = None):
@@ -63,7 +79,8 @@ class ReportService:
             status_breakdown=summary["status_breakdown"],
             total_quantity=summary["total_quantity"],
             total_revenue=summary["total_revenue"],
-            total_profit=summary["total_profit"]
+            total_profit=summary["total_profit"],
+            sale_item_details=summary["sale_item_details"]
         )
 
     def compare_sales_reports(
