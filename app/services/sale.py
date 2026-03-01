@@ -291,3 +291,7 @@ class SaleService:
         db.commit()
         db.refresh(sale)
         return sale
+    
+
+    def get_sale_by_id(self, db: Session, sale_id: int) -> Optional[Sale]:
+        return db.query(Sale).options(joinedload(Sale.customer), joinedload(Sale.sale_items)).filter(Sale.id == sale_id).first()
