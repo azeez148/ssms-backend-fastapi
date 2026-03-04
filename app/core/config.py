@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     KAFKA_TOPIC_REPORTS: str = os.getenv("KAFKA_TOPIC_REPORTS", "reports")
     KAFKA_CONSUMER_GROUP: str = os.getenv("KAFKA_CONSUMER_GROUP", "ssms-consumer-group")
 
+    # FCM Settings
+    FCM_CREDENTIALS_FILE: Optional[str] = os.getenv("FCM_CREDENTIALS_FILE", None)
+    FCM_ADMIN_TOPIC: str = os.getenv("FCM_ADMIN_TOPIC", "admin-notifications")
+
 
     class Config:
         env_file = ".env"

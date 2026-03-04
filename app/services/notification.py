@@ -6,6 +6,8 @@ from app.core.config import settings
 from app.core.utils import format_phone_number
 from app.core.logging import logger
 import emails
+import firebase_admin
+from firebase_admin import credentials, messaging
 from app.schemas.day_management import DaySummary
 
 
@@ -252,13 +254,59 @@ class EmailNotificationService:
 
 
 class PushNotificationService:
+    def __init__(self):
+        self._initialize_firebase()
+
+    def _initialize_firebase(self):
+        try:
+            if not firebase_admin._apps:
+                if settings.FCM_CREDENTIALS_FILE:
+                    cred = credentials.Certificate(settings.FCM_CREDENTIALS_FILE)
+                    firebase_admin.initialize_app(cred)
+                else:
+                    # Fallback to default credentials if file not specified
+                    # This might fail if no environment variables are set, but it allows for extension
+                    try:
+                        firebase_admin.initialize_app()
+                    except Exception:
+                        logger.warning("Firebase Admin SDK not initialized: Missing credentials.")
+        except Exception as e:
+            logger.error(f"Error initializing Firebase Admin SDK: {e}")
+
     def send_push_notification(self, title: str, body: str, data: dict = None):
         """
-        Placeholder for sending push notifications to the admin app.
+        Sends push notifications to the admin app using FCM.
         """
         logger.info(f"Sending push notification: {title} - {body}")
-        # Logic for FCM, OneSignal, or other push notification service goes here
-        pass
+
+        if not firebase_admin._apps:
+            logger.warning("Cannot send push notification: Firebase app not initialized.")
+            return
+
+        try:
+            # Prepare data payload (convert all values to strings as FCM requires)
+            data_payload = {}
+            if data:
+                for key, value in data.items():
+                    if isinstance(value, (dict, list)):
+                        import json
+                        data_payload[key] = json.dumps(value)
+                    else:
+                        data_payload[key] = str(value)
+
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                data=data_payload,
+                topic=settings.FCM_ADMIN_TOPIC,
+            )
+
+            response = messaging.send(message)
+            logger.info(f"Successfully sent FCM message: {response}")
+        except Exception as e:
+            logger.error(f"Error sending FCM message: {e}")
 
     def notify_sale_event(self, event_type: str, payload: dict):
         sale_id = payload.get('id')
