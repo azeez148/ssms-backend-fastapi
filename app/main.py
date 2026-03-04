@@ -5,9 +5,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, orders
 from app.core.logging import logger
+from app.core.kafka_producer import kafka_producer
 from dotenv import load_dotenv
 
 app = FastAPI(title="SSMS API")
+
+@app.on_event("startup")
+async def startup_event():
+    await kafka_producer.start()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await kafka_producer.stop()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

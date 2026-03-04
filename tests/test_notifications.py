@@ -9,12 +9,11 @@ from app.models.sale import Sale
 
 class TestNotifications(unittest.TestCase):
     @patch('app.services.sale.get_or_create_customer')
-    @patch('app.services.sale.EmailNotificationService')
+    @patch('app.services.sale.kafka_producer')
     @patch('app.services.sale.ProductService')
-    def test_create_sale_sends_notifications(self, MockProductService, MockEmailNotificationService, mock_get_or_create_customer):
+    def test_create_sale_sends_notifications(self, MockProductService, mock_kafka_producer, mock_get_or_create_customer):
         # Arrange
         db_session = MagicMock()
-        mock_email_service = MockEmailNotificationService.return_value
         mock_product_service = MockProductService.return_value
 
         # Mock customer
@@ -23,12 +22,24 @@ class TestNotifications(unittest.TestCase):
         mock_customer.name = "Test Customer"
         mock_customer.mobile = "1234567890"
         mock_customer.email = "test@example.com"
+        mock_customer.first_name = "Test"
+        mock_customer.last_name = "Customer"
+        mock_customer.address = "123 Test St"
+        mock_customer.city = "Test City"
+        mock_customer.state = "Test State"
+        mock_customer.zip_code = "12345"
+        mock_customer.created_by = "system"
+        mock_customer.updated_by = "system"
         mock_get_or_create_customer.return_value = mock_customer
 
         def mock_refresh(obj):
             if isinstance(obj, Sale):
+                obj.id = 1
                 obj.customer = mock_customer
                 obj.shop = None
+                obj.payment_type = None
+                obj.delivery_type = None
+                obj.status = "COMPLETED"
         db_session.refresh.side_effect = mock_refresh
 
         sale_create = SaleCreate(
@@ -58,17 +69,20 @@ class TestNotifications(unittest.TestCase):
         )
 
         sale_service = SaleService()
-        sale_service.email_notification = mock_email_service
         sale_service.product_service = mock_product_service
 
         # Act
-        created_sale = sale_service.create_sale(db_session, sale_create)
+        with patch('asyncio.create_task') as mock_create_task:
+            created_sale = sale_service.create_sale(db_session, sale_create)
 
         # Assert
-        # The sale object passed to the notification service should have a customer
-        mock_email_service.send_sale_notification.assert_called_once()
-        sent_sale = mock_email_service.send_sale_notification.call_args[0][0]
-        self.assertEqual(sent_sale.customer.name, "Test Customer")
+        mock_kafka_producer.send_message_sync.assert_called_once()
+        sent_topic = mock_kafka_producer.send_message_sync.call_args[0][0]
+        sent_event = mock_kafka_producer.send_message_sync.call_args[0][1]
+
+        self.assertEqual(sent_topic, "notifications")
+        self.assertEqual(sent_event['event_type'], 'sale_created')
+        self.assertEqual(sent_event['payload']['customer']['name'], "Test Customer")
 
 if __name__ == '__main__':
     unittest.main()

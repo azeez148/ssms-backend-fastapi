@@ -8,6 +8,10 @@ from app.schemas.purchase import PurchaseCreate
 from app.schemas.vendor import VendorCreate
 from app.services.notification import EmailNotificationService
 from app.services.vendor import create_vendor
+from app.core.kafka_producer import kafka_producer
+from app.schemas.kafka_events import KafkaEvent, KafkaEventType
+from app.core.config import settings
+import asyncio
 
 class PurchaseService:
     def create_purchase(self, db: Session, purchase: PurchaseCreate) -> Purchase:
@@ -70,9 +74,21 @@ class PurchaseService:
         db.commit()
         db.refresh(db_purchase)
 
-        # Send email notification
-        notification_service = EmailNotificationService()
-        notification_service.send_purchase_notification(db_purchase)
+        try:
+            # Send email notification asynchronously via Kafka
+            from app.schemas.purchase import PurchaseResponse
+            purchase_response = PurchaseResponse.model_validate(db_purchase)
+            event = KafkaEvent(
+                event_type=KafkaEventType.PURCHASE_CREATED,
+                payload=purchase_response.model_dump()
+            )
+            kafka_producer.send_message_sync(
+                settings.KAFKA_TOPIC_NOTIFICATIONS,
+                event.model_dump()
+            )
+        except Exception as e:
+            logger.error(f"Failed to queue purchase notification: {e}")
+            pass
 
         return db_purchase
 

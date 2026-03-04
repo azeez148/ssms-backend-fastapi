@@ -8,6 +8,10 @@ from app.services.customer import get_or_create_customer
 from app.services.day_management import DayManagementService
 from app.services.notification import EmailNotificationService
 from app.services.product import ProductService
+from app.core.kafka_producer import kafka_producer
+from app.schemas.kafka_events import KafkaEvent, KafkaEventType
+from app.core.config import settings
+import asyncio
 
 class SaleService:
     def __init__(self):
@@ -87,10 +91,20 @@ class SaleService:
         db.refresh(db_sale)
         
         try:
-            # Send notifications
-            self.email_notification.send_sale_notification(db_sale)
+            # Send notifications asynchronously via Kafka
+            from app.schemas.sale import SaleResponse
+            sale_response = SaleResponse.model_validate(db_sale)
+            event = KafkaEvent(
+                event_type=KafkaEventType.SALE_CREATED,
+                payload=sale_response.model_dump()
+            )
+            kafka_producer.send_message_sync(
+                settings.KAFKA_TOPIC_NOTIFICATIONS,
+                event.model_dump()
+            )
         except Exception as e:
-            print(str(e))
+            logger.error(f"Failed to queue sale notification: {e}")
+            # Fallback to sync if needed or just log
             pass
         
         return db_sale

@@ -10,6 +10,9 @@ from app.schemas.enums import SaleStatus
 from app.schemas.day_management import DayCreate, ExpenseCreate, DaySummary
 from app.services.notification import EmailNotificationService
 from app.core.config import settings
+from app.core.kafka_producer import kafka_producer
+from app.schemas.kafka_events import KafkaEvent, KafkaEventType
+import asyncio
 
 class DayManagementService:
     def __init__(self):
@@ -157,9 +160,16 @@ class DayManagementService:
         # Send notifications
         try:
             day_summary = self.get_day_summary(db, day_id)
-            self.email_notification_service.send_day_summary_notification(day_summary)
+            event = KafkaEvent(
+                event_type=KafkaEventType.DAY_SUMMARY_GENERATED,
+                payload=day_summary.model_dump(mode='json')
+            )
+            kafka_producer.send_message_sync(
+                settings.KAFKA_TOPIC_NOTIFICATIONS,
+                event.model_dump()
+            )
         except Exception as e:
-            print(f"Failed to send day summary notification: {str(e)}")
+            logger.error(f"Failed to queue day summary notification: {str(e)}")
 
         return db_day
 

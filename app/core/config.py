@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
+    # Kafka Settings
+    KAFKA_BOOTSTRAP_SERVERS: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    KAFKA_TOPIC_NOTIFICATIONS: str = os.getenv("KAFKA_TOPIC_NOTIFICATIONS", "notifications")
+    KAFKA_TOPIC_REPORTS: str = os.getenv("KAFKA_TOPIC_REPORTS", "reports")
+    KAFKA_CONSUMER_GROUP: str = os.getenv("KAFKA_CONSUMER_GROUP", "ssms-consumer-group")
+
 
     class Config:
         env_file = ".env"
