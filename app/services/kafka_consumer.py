@@ -4,12 +4,13 @@ from aiokafka import AIOKafkaConsumer
 from app.core.config import settings
 from app.core.logging import logger
 from app.schemas.kafka_events import KafkaEvent, KafkaEventType
-from app.services.notification import EmailNotificationService
+from app.services.notification import EmailNotificationService, PushNotificationService
 
 class KafkaConsumerService:
     def __init__(self):
         self.consumer = None
-        self.notification_service = EmailNotificationService()
+        self.email_service = EmailNotificationService()
+        self.push_service = PushNotificationService()
 
     async def start(self):
         self.consumer = AIOKafkaConsumer(
@@ -42,11 +43,16 @@ class KafkaConsumerService:
             loop = asyncio.get_running_loop()
 
             if event.event_type == KafkaEventType.SALE_CREATED:
-                await loop.run_in_executor(None, self.notification_service.send_sale_notification, event.payload)
+                await loop.run_in_executor(None, self.email_service.send_sale_notification, event.payload)
+                await loop.run_in_executor(None, self.push_service.notify_sale_event, event.event_type, event.payload)
+            elif event.event_type in [KafkaEventType.SALE_UPDATED, KafkaEventType.SALE_CANCELLED, KafkaEventType.SALE_DELETED]:
+                await loop.run_in_executor(None, self.push_service.notify_sale_event, event.event_type, event.payload)
             elif event.event_type == KafkaEventType.PURCHASE_CREATED:
-                await loop.run_in_executor(None, self.notification_service.send_purchase_notification, event.payload)
+                await loop.run_in_executor(None, self.email_service.send_purchase_notification, event.payload)
             elif event.event_type == KafkaEventType.DAY_SUMMARY_GENERATED:
-                await loop.run_in_executor(None, self.notification_service.send_day_summary_notification, event.payload)
+                await loop.run_in_executor(None, self.email_service.send_day_summary_notification, event.payload)
+            elif event.event_type in [KafkaEventType.DAY_STARTED, KafkaEventType.DAY_ENDED, KafkaEventType.EXPENSE_ADDED]:
+                await loop.run_in_executor(None, self.push_service.notify_day_event, event.event_type, event.payload)
             # ... handle other event types
 
         except Exception as e:

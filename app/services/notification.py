@@ -249,3 +249,28 @@ class EmailNotificationService:
         response = message.send(to=settings.MAIL_FROM, smtp=smtp_options)
         if not response.success:
             logger.error(f"Failed to send day summary email to {settings.MAIL_FROM}: {response.error}")
+
+
+class PushNotificationService:
+    def send_push_notification(self, title: str, body: str, data: dict = None):
+        """
+        Placeholder for sending push notifications to the admin app.
+        """
+        logger.info(f"Sending push notification: {title} - {body}")
+        # Logic for FCM, OneSignal, or other push notification service goes here
+        pass
+
+    def notify_sale_event(self, event_type: str, payload: dict):
+        sale_id = payload.get('id')
+        total_price = payload.get('total_price')
+        title = f"Sale {event_type.replace('_', ' ').title()}"
+        body = f"Sale #{sale_id} for ₹{total_price:,.2f}"
+        self.send_push_notification(title, body, payload)
+
+    def notify_day_event(self, event_type: str, payload: dict):
+        title = f"Day {event_type.replace('_', ' ').title()}"
+        if event_type == "expense_added":
+            body = f"Expense added: {payload.get('description')} - ₹{payload.get('amount'):,.2f}"
+        else:
+            body = f"Day management event occurred: {event_type}"
+        self.send_push_notification(title, body, payload)

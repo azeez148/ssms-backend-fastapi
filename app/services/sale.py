@@ -191,6 +191,19 @@ class SaleService:
 
         db.commit()
         db.refresh(sale)
+
+        try:
+            from app.schemas.sale import SaleResponse
+            sale_response = SaleResponse.model_validate(sale)
+            event_type = KafkaEventType.SALE_CANCELLED if new_status == SaleStatus.CANCELLED else KafkaEventType.SALE_UPDATED
+            event = KafkaEvent(
+                event_type=event_type,
+                payload=sale_response.model_dump()
+            )
+            kafka_producer.send_message_sync(settings.KAFKA_TOPIC_NOTIFICATIONS, event.model_dump())
+        except Exception as e:
+            logger.error(f"Failed to queue sale status update notification: {e}")
+
         return sale
 
     # implement cancel_sale
@@ -218,6 +231,18 @@ class SaleService:
 
             db.commit()
             db.refresh(sale)
+
+            try:
+                from app.schemas.sale import SaleResponse
+                sale_response = SaleResponse.model_validate(sale)
+                event = KafkaEvent(
+                    event_type=KafkaEventType.SALE_CANCELLED,
+                    payload=sale_response.model_dump()
+                )
+                kafka_producer.send_message_sync(settings.KAFKA_TOPIC_NOTIFICATIONS, event.model_dump())
+            except Exception as e:
+                logger.error(f"Failed to queue cancel sale notification: {e}")
+
         return sale
 
     def update_sale(self, db: Session, sale_data: SaleCreate, sale_id: int) -> Optional[Sale]:
@@ -304,6 +329,18 @@ class SaleService:
 
         db.commit()
         db.refresh(sale)
+
+        try:
+            from app.schemas.sale import SaleResponse
+            sale_response = SaleResponse.model_validate(sale)
+            event = KafkaEvent(
+                event_type=KafkaEventType.SALE_UPDATED,
+                payload=sale_response.model_dump()
+            )
+            kafka_producer.send_message_sync(settings.KAFKA_TOPIC_NOTIFICATIONS, event.model_dump())
+        except Exception as e:
+            logger.error(f"Failed to queue update sale notification: {e}")
+
         return sale
     
 
