@@ -10,6 +10,9 @@ from app.schemas.enums import SaleStatus
 from app.schemas.day_management import DayCreate, ExpenseCreate, DaySummary
 from app.services.notification import EmailNotificationService
 from app.core.config import settings
+from app.core.kafka_producer import kafka_producer
+from app.schemas.kafka_events import KafkaEvent, KafkaEventType
+import asyncio
 
 class DayManagementService:
     def __init__(self):
@@ -61,6 +64,16 @@ class DayManagementService:
             db.add(db_day)
             db.commit()
             db.refresh(db_day)
+
+            try:
+                event = KafkaEvent(
+                    event_type=KafkaEventType.DAY_STARTED,
+                    payload={"id": db_day.id, "opening_balance": db_day.opening_balance, "start_time": db_day.start_time.isoformat()}
+                )
+                kafka_producer.send_message_sync(settings.KAFKA_TOPIC_NOTIFICATIONS, event.model_dump())
+            except Exception as e:
+                logger.error(f"Failed to queue day started notification: {e}")
+
             return db_day
 
     def add_expense(self, db: Session, expense: ExpenseCreate) -> Expense:
@@ -88,6 +101,16 @@ class DayManagementService:
 
         db.commit()
         db.refresh(db_expense)
+
+        try:
+            event = KafkaEvent(
+                event_type=KafkaEventType.EXPENSE_ADDED,
+                payload={"id": db_expense.id, "description": db_expense.description, "amount": db_expense.amount, "day_id": db_expense.day_id}
+            )
+            kafka_producer.send_message_sync(settings.KAFKA_TOPIC_NOTIFICATIONS, event.model_dump())
+        except Exception as e:
+            logger.error(f"Failed to queue expense added notification: {e}")
+
         return db_expense
 
     def update_day_from_sale(self, db: Session, amount_change: float, payment_type_id: int):
@@ -157,9 +180,24 @@ class DayManagementService:
         # Send notifications
         try:
             day_summary = self.get_day_summary(db, day_id)
-            self.email_notification_service.send_day_summary_notification(day_summary)
+            # Send DAY_ENDED event
+            event_ended = KafkaEvent(
+                event_type=KafkaEventType.DAY_ENDED,
+                payload={"id": db_day.id, "closing_balance": db_day.closing_balance, "end_time": db_day.end_time.isoformat()}
+            )
+            kafka_producer.send_message_sync(settings.KAFKA_TOPIC_NOTIFICATIONS, event_ended.model_dump())
+
+            # Send DAY_SUMMARY_GENERATED event
+            event_summary = KafkaEvent(
+                event_type=KafkaEventType.DAY_SUMMARY_GENERATED,
+                payload=day_summary.model_dump(mode='json')
+            )
+            kafka_producer.send_message_sync(
+                settings.KAFKA_TOPIC_NOTIFICATIONS,
+                event_summary.model_dump()
+            )
         except Exception as e:
-            print(f"Failed to send day summary notification: {str(e)}")
+            logger.error(f"Failed to queue day end notifications: {str(e)}")
 
         return db_day
 
