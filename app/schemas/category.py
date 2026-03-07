@@ -5,6 +5,7 @@ from app.schemas.base import BaseSchema
 class CategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
+    size_map: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -20,3 +21,6 @@ class CategoryInDB(CategoryBase):
 
 class CategoryResponse(CategoryInDB, BaseSchema):
     pass
+
+class SizeMapUpdate(BaseModel):
+    size_map: str

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.schemas.category import CategoryCreate, CategoryResponse
+from app.schemas.category import CategoryCreate, CategoryResponse, CategoryBase, SizeMapUpdate
 from app.services.category import CategoryService
 
 router = APIRouter()
@@ -34,6 +34,38 @@ async def update_category(
     db: Session = Depends(get_db)
 ):
     updated_category = category_service.update_category(db, category_id, category)
+    if not updated_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return updated_category
+
+@router.post("/{category_id}/size-map", response_model=CategoryResponse)
+async def add_size_map(
+    category_id: int,
+    size_map_data: SizeMapUpdate,
+    db: Session = Depends(get_db)
+):
+    updated_category = category_service.update_size_map(db, category_id, size_map_data.size_map)
+    if not updated_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return updated_category
+
+@router.put("/{category_id}/size-map", response_model=CategoryResponse)
+async def update_size_map(
+    category_id: int,
+    size_map_data: SizeMapUpdate,
+    db: Session = Depends(get_db)
+):
+    updated_category = category_service.update_size_map(db, category_id, size_map_data.size_map)
+    if not updated_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return updated_category
+
+@router.delete("/{category_id}/size-map", response_model=CategoryResponse)
+async def delete_size_map(
+    category_id: int,
+    db: Session = Depends(get_db)
+):
+    updated_category = category_service.delete_size_map(db, category_id)
     if not updated_category:
         raise HTTPException(status_code=404, detail="Category not found")
     return updated_category

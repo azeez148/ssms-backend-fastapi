@@ -8,10 +8,31 @@ class CategoryService:
         db_category = Category(
             name=category.name,
             description=category.description,
+            size_map=category.size_map,
             created_by="system",
             updated_by="system"
         )
         db.add(db_category)
+        db.commit()
+        db.refresh(db_category)
+        return db_category
+
+    def update_size_map(self, db: Session, category_id: int, size_map: str) -> Category:
+        db_category = self.get_category_by_id(db, category_id)
+        if not db_category:
+            return None
+        db_category.size_map = size_map
+        db_category.updated_by = "system"
+        db.commit()
+        db.refresh(db_category)
+        return db_category
+
+    def delete_size_map(self, db: Session, category_id: int) -> Category:
+        db_category = self.get_category_by_id(db, category_id)
+        if not db_category:
+            return None
+        db_category.size_map = None
+        db_category.updated_by = "system"
         db.commit()
         db.refresh(db_category)
         return db_category
@@ -31,6 +52,7 @@ class CategoryService:
             return None
         db_category.name = category.name
         db_category.description = category.description
+        db_category.size_map = category.size_map
         db_category.updated_by = "system"
         db.commit()
         db.refresh(db_category)
