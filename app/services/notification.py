@@ -101,29 +101,74 @@ class EmailNotificationService:
         """
 
         admin_html_content = f"""
-        <h1>Sale Confirmation</h1>
-        <p>Dear {sale.customer.name},</p>
-        <p>Thank you for your purchase. Here are the details of your order:</p>
-        <p><strong>Order ID:</strong> {sale.id}</p>
-        <p><strong>Date:</strong> {sale.date}</p>
-        <table border="1" cellpadding="5" cellspacing="0">
-            <thead>
+        <div style="font-family: Arial, sans-serif; max-width:700px; margin:auto; border:1px solid #ddd; padding:20px">
+
+            <div style="background:#111; color:white; padding:15px; text-align:center">
+                <h2>🚨 New Sale Notification</h2>
+                <p>Adrenaline Sports Store</p>
+            </div>
+
+            <br>
+
+            <h3>Order Details</h3>
+
+            <table style="width:100%; border-collapse:collapse;">
                 <tr>
-                    <th>Product</th>
-                    <th>Size</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
+                    <td><strong>Order ID</strong></td>
+                    <td>{sale.id}</td>
                 </tr>
-            </thead>
-            <tbody>
-                {items_html}
-            </tbody>
-        </table>
-        <p><strong>Total Quantity:</strong> {sale.total_quantity}</p>
-        <p><strong>Total Price:</strong> {sale.total_price}</p>
-        <p><strong>Payment Method:</strong> {sale.payment_type.name if sale.payment_type else 'N/A'}</p>
-        <p><strong>Delivery Method:</strong> {sale.delivery_type.name if sale.delivery_type else 'N/A'}</p>
-        <p>Thank you for shopping with us!</p>
+                <tr>
+                    <td><strong>Customer</strong></td>
+                    <td>{sale.customer.name}</td>
+                </tr>
+                <tr>
+                    <td><strong>Date</strong></td>
+                    <td>{sale.date}</td>
+                </tr>
+                <tr>
+                    <td><strong>Payment Method</strong></td>
+                    <td>{sale.payment_type.name if sale.payment_type else 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td><strong>Delivery Method</strong></td>
+                    <td>{sale.delivery_type.name if sale.delivery_type else 'N/A'}</td>
+                </tr>
+            </table>
+
+            <br>
+
+            <h3>Items Sold</h3>
+
+            <table border="1" cellpadding="8" cellspacing="0"
+                style="width:100%; border-collapse:collapse; text-align:left">
+                <thead style="background:#f5f5f5;">
+                    <tr>
+                        <th>Product</th>
+                        <th>Size</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {items_html}
+                </tbody>
+            </table>
+
+            <br>
+
+            <div style="background:#f9f9f9; padding:15px; border:1px solid #eee;">
+                <p><strong>Total Quantity:</strong> {sale.total_quantity}</p>
+                <p><strong>Total Price:</strong> ₹{sale.total_price}</p>
+            </div>
+
+            <br>
+
+            <p style="color:#777; font-size:13px;">
+                This is an automated sale alert generated from the billing system.
+            </p>
+
+        </div>
         """
 
         smtp_options = {
