@@ -44,6 +44,7 @@ class UserProfile(BaseModel):
     zip_code: str = None
     created_at: datetime
     updated_at: datetime
+    shop_id: Optional[int] = None
 
     @classmethod
     def from_user_and_customer(cls, user, customer):
