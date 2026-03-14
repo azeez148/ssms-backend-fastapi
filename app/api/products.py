@@ -14,6 +14,7 @@ from app.schemas.product import (
     CategoryDiscountUpdateRequest,
     ProductCreate,
     ProductResponse,
+    ProductTransferRequest,
     ProductUpdate,
     UpdateSizeMapRequest,
     ProductFilterRequest,
@@ -220,3 +221,15 @@ async def delete_default_category_discount(
 def clear_stock(clear_request: ClearStockRequest, db: Session = Depends(get_db)):
     stock_service = StockService()
     return stock_service.clear_stock(db, clear_request)
+
+@router.post("/transfer", response_model=List[ProductResponse])
+async def transfer_products(
+    request: ProductTransferRequest,
+    db: Session = Depends(get_db)
+):
+    return product_service.transfer_products(
+        db,
+        request.product_ids,
+        request.operation,
+        request.destination_shop_id
+    )

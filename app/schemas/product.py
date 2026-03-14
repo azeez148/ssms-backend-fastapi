@@ -102,3 +102,8 @@ class CategoryDiscountUpdateRequest(BaseModel):
     category_id: int
     discounted_price: int
     id: int
+
+class ProductTransferRequest(BaseModel):
+    product_ids: List[int]
+    operation: str  # "copy" or "move"
+    destination_shop_id: int

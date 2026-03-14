@@ -211,4 +211,42 @@ class ProductService:
         db.refresh(db_discount)
 
         return self.get_category_discounts(db, request.category_id)
+
+    def transfer_products(
+        self,
+        db: Session,
+        product_ids: List[int],
+        operation: str,
+        destination_shop_id: int
+    ) -> List[Product]:
+        destination_shop = db.query(Shop).filter(Shop.id == destination_shop_id).first()
+        if not destination_shop:
+            logger.error(f"Destination shop with id {destination_shop_id} not found")
+            raise HTTPException(status_code=404, detail="Destination shop not found")
+
+        products = db.query(Product).options(joinedload(Product.shops)).filter(Product.id.in_(product_ids)).all()
+
+        if len(products) != len(product_ids):
+            found_ids = [p.id for p in products]
+            missing_ids = list(set(product_ids) - set(found_ids))
+            logger.error(f"Products not found: {missing_ids}")
+            raise HTTPException(status_code=404, detail=f"Products not found: {missing_ids}")
+
+        for product in products:
+            if operation == "copy":
+                if destination_shop not in product.shops:
+                    product.shops.append(destination_shop)
+            elif operation == "move":
+                product.shops = [destination_shop]
+            else:
+                logger.error(f"Invalid operation: {operation}")
+                raise HTTPException(status_code=400, detail="Invalid operation. Use 'copy' or 'move'")
+
+            product.updated_by = "system"
+
+        db.commit()
+        for product in products:
+            db.refresh(product)
+
+        return products
     
