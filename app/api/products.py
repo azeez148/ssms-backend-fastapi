@@ -65,6 +65,17 @@ async def update_size_map(
         raise HTTPException(status_code=404, detail="Product not found")
     return updated_product
 
+@router.delete("/deleteProduct/{product_id}", response_model=dict)
+async def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    success = product_service.delete_product(db, product_id)
+    if not success:
+        logger.error(f"Product with id {product_id} not found")
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"message": "Product deleted successfully"}
+
 @router.post("/import-excel", response_model=List[ProductResponse])
 async def import_products_from_excel(
     file: UploadFile = File(...),
