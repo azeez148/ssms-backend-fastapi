@@ -5,7 +5,7 @@ from typing import Optional
 class Settings(BaseSettings):
     # Email settings
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "adrenalinesportsstore44@gmail.com")
-    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "molo hxfz njja vxeu")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "hlom tfrk gdin ajha")
     MAIL_FROM: str = os.getenv("MAIL_FROM", "adrenalinesportsstore44@gmail.com")
     MAIL_PORT: int = 587
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
