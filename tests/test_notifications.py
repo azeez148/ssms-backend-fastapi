@@ -10,11 +10,13 @@ from app.models.sale import Sale
 class TestNotifications(unittest.TestCase):
     @patch('app.services.sale.get_or_create_customer')
     @patch('app.services.sale.EmailNotificationService')
+    @patch('app.services.sale.PushNotificationService')
     @patch('app.services.sale.ProductService')
-    def test_create_sale_sends_notifications(self, MockProductService, MockEmailNotificationService, mock_get_or_create_customer):
+    def test_create_sale_sends_notifications(self, MockProductService, MockPushNotificationService, MockEmailNotificationService, mock_get_or_create_customer):
         # Arrange
         db_session = MagicMock()
         mock_email_service = MockEmailNotificationService.return_value
+        mock_push_service = MockPushNotificationService.return_value
         mock_product_service = MockProductService.return_value
 
         # Mock customer
@@ -59,6 +61,7 @@ class TestNotifications(unittest.TestCase):
 
         sale_service = SaleService()
         sale_service.email_notification = mock_email_service
+        sale_service.push_notification = mock_push_service
         sale_service.product_service = mock_product_service
 
         # Act
@@ -66,8 +69,9 @@ class TestNotifications(unittest.TestCase):
 
         # Assert
         # The sale object passed to the notification service should have a customer
-        mock_email_service.send_sale_notification.assert_called_once()
-        sent_sale = mock_email_service.send_sale_notification.call_args[0][0]
+        mock_email_service.send_sale_created_notification.assert_called_once()
+        mock_push_service.send_sale_created_push.assert_called_once()
+        sent_sale = mock_email_service.send_sale_created_notification.call_args[0][0]
         self.assertEqual(sent_sale.customer.name, "Test Customer")
 
 if __name__ == '__main__':

@@ -3,10 +3,14 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-from app.schemas.user import LoginRequest, RegisterRequest, UserProfile, UserProfileUpdate, AuthResponse
+from app.schemas.user import (
+    LoginRequest, RegisterRequest, UserProfile, UserProfileUpdate,
+    AuthResponse, UserDeviceCreate, UserDeviceResponse
+)
 from app.services.auth import AuthService
 from app.models.user import User
-from datetime import timedelta
+from app.models.user_device import UserDevice
+from datetime import timedelta, datetime
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -103,6 +107,51 @@ async def update_profile(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.post("/fcm-token", response_model=UserDeviceResponse)
+async def register_fcm_token(
+    device_data: UserDeviceCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check if token already exists
+    existing_device = db.query(UserDevice).filter(UserDevice.fcm_token == device_data.fcm_token).first()
+    if existing_device:
+        existing_device.user_id = current_user.id
+        existing_device.device_type = device_data.device_type
+        existing_device.last_active = datetime.utcnow()
+        db.commit()
+        db.refresh(existing_device)
+        return existing_device
+
+    new_device = UserDevice(
+        user_id=current_user.id,
+        fcm_token=device_data.fcm_token,
+        device_type=device_data.device_type
+    )
+    db.add(new_device)
+    db.commit()
+    db.refresh(new_device)
+    return new_device
+
+
+@router.delete("/fcm-token/{fcm_token}")
+async def unregister_fcm_token(
+    fcm_token: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    device = db.query(UserDevice).filter(
+        UserDevice.fcm_token == fcm_token,
+        UserDevice.user_id == current_user.id
+    ).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device token not found")
+
+    db.delete(device)
+    db.commit()
+    return {"message": "Device token unregistered successfully"}
 
 
 #login for admin and shop staff

@@ -9,12 +9,14 @@ from app.models.payment import PaymentType
 from app.schemas.enums import SaleStatus
 from app.schemas.day_management import DayCreate, ExpenseCreate, DaySummary
 from app.services.notification import EmailNotificationService
+from app.services.push_notification import PushNotificationService
 from app.core.config import settings
 from app.core.logging import logger
 
 class DayManagementService:
     def __init__(self):
         self.email_notification_service = EmailNotificationService()
+        self.push_notification_service = PushNotificationService()
 
     def get_active_day(self, db: Session) -> Optional[Day]:
         """
@@ -65,6 +67,7 @@ class DayManagementService:
 
             try:
                 self.email_notification_service.send_day_start_notification(db_day)
+                self.push_notification_service.send_day_start_push(db, db_day)
             except Exception as e:
                 logger.error(f"Failed to send day start notification: {str(e)}")
 
@@ -98,6 +101,7 @@ class DayManagementService:
 
         try:
             self.email_notification_service.send_expense_added_notification(db_expense)
+            self.push_notification_service.send_expense_added_push(db, db_expense)
         except Exception as e:
             logger.error(f"Failed to send expense notification: {str(e)}")
 
@@ -171,6 +175,7 @@ class DayManagementService:
         try:
             day_summary = self.get_day_summary(db, day_id)
             self.email_notification_service.send_day_summary_notification(day_summary)
+            self.push_notification_service.send_day_summary_push(db, day_summary)
         except Exception as e:
             logger.error(f"Failed to send day summary notification: {str(e)}")
 
