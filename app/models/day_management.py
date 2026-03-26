@@ -16,8 +16,10 @@ class Day(BaseModel):
     cash_in_account = Column(Float, nullable=True, default=0.0)
     variance = Column(Float, nullable=True, default=0.0)
     variance_reason = Column(String, nullable=True)
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)
 
     expenses = relationship("Expense", back_populates="day")
+    shop = relationship("Shop", backref="days")
 
 class Expense(BaseModel):
     __tablename__ = "expenses"
