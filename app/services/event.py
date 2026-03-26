@@ -5,9 +5,13 @@ from app.models.product import Product
 from app.schemas.event import EventOfferCreate
 from typing import Optional, List
 from app.services.product import ProductService
+from app.services.notification import EmailNotificationService
+from app.core.logging import logger
 from datetime import datetime
 
 class EventOfferService:
+    def __init__(self):
+        self.email_notification = EmailNotificationService()
     def create_event_offer(self, db: Session, event_offer: EventOfferCreate) -> EventOffer:
         db_event_offer = EventOffer(
             name=event_offer.name,
@@ -29,6 +33,11 @@ class EventOfferService:
         db.refresh(db_event_offer)
 
         self.apply_offer_to_products(db, db_event_offer)
+
+        try:
+            self.email_notification.send_offer_created_notification(db_event_offer)
+        except Exception as e:
+            logger.error(f"Failed to send offer creation notification: {str(e)}")
 
         return db_event_offer
 
@@ -79,6 +88,13 @@ class EventOfferService:
         db.add(db_offer)
         db.commit()
         db.refresh(db_offer)
+
+        try:
+            if offer_fields_changed:
+                self.email_notification.send_offer_items_changed_notification(db_offer)
+        except Exception as e:
+            logger.error(f"Failed to send offer update notification: {str(e)}")
+
         return db_offer
 
     def set_event_offer_active_status(self, db: Session, offer_id: int, is_active: bool) -> Optional[EventOffer]:
@@ -97,6 +113,13 @@ class EventOfferService:
         db.add(db_offer)
         db.commit()
         db.refresh(db_offer)
+
+        try:
+            if not is_active:
+                self.email_notification.send_offer_disabled_notification(db_offer)
+        except Exception as e:
+            logger.error(f"Failed to send offer status change notification: {str(e)}")
+
         return db_offer
 
     def remove_offer_from_products(self, db: Session, product_ids_str: str, category_ids_str: str):

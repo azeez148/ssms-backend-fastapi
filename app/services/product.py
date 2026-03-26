@@ -15,8 +15,12 @@ from app.schemas.product import (
     UpdateSizeMapRequest,
     CategoryDiscountRequest
 )
+from app.services.notification import EmailNotificationService
 
 class ProductService:
+    def __init__(self):
+        self.email_notification = EmailNotificationService()
+
     def create_product(self, db: Session, product: ProductCreate) -> Product:
         db_product = Product(
             name=product.name,
@@ -52,6 +56,12 @@ class ProductService:
         db.add(db_product)
         db.commit()
         db.refresh(db_product)
+
+        try:
+            self.email_notification.send_product_added_notification(db_product)
+        except Exception as e:
+            logger.error(f"Failed to send product addition notification: {str(e)}")
+
         return db_product
 
     def get_all_products(self, db: Session) -> List[Product]:
@@ -157,6 +167,14 @@ class ProductService:
         
         db.commit()
         db.refresh(product_size)
+
+        try:
+            product = db.query(Product).filter(Product.id == product_id).first()
+            if product:
+                self.email_notification.send_product_stock_updated_notification(product, size, quantity_change)
+        except Exception as e:
+            logger.error(f"Failed to send product stock update notification: {str(e)}")
+
         return product_size
 
     def add_default_category_discounts(
@@ -248,5 +266,26 @@ class ProductService:
         for product in products:
             db.refresh(product)
 
+        try:
+            self.email_notification.send_product_transfer_notification(products, operation, destination_shop_id)
+        except Exception as e:
+            logger.error(f"Failed to send product transfer notification: {str(e)}")
+
         return products
+
+    def delete_product(self, db: Session, product_id: int) -> bool:
+        db_product = self.get_product_by_id(db, product_id)
+        if not db_product:
+            return False
+
+        product_name = db_product.name
+        db.delete(db_product)
+        db.commit()
+
+        try:
+            self.email_notification.send_product_deleted_notification(product_id, product_name)
+        except Exception as e:
+            logger.error(f"Failed to send product deletion notification: {str(e)}")
+
+        return True
     

@@ -1,7 +1,13 @@
 # import pywhatkit
 from sqlalchemy.orm import Session
+from typing import List
 from app.models.purchase import Purchase
 from app.models.sale import Sale
+from app.models.customer import Customer
+from app.models.event import EventOffer
+from app.models.product import Product
+from app.models.day_management import Day, Expense
+from app.models.shop import Shop
 from app.core.config import settings
 from app.core.utils import format_phone_number
 import emails
@@ -65,7 +71,28 @@ from app.schemas.day_management import DaySummary
 
 
 class EmailNotificationService:
-    def send_sale_notification(self, sale: Sale):
+    def __init__(self):
+        self.smtp_options = {
+            "host": settings.MAIL_SERVER,
+            "port": settings.MAIL_PORT,
+            "tls": settings.MAIL_TLS,
+            "ssl": settings.MAIL_SSL,
+            "user": settings.MAIL_USERNAME,
+            "password": settings.MAIL_PASSWORD,
+        }
+
+    def _send_email(self, to_email: str, subject: str, html_content: str):
+        message = emails.Message(
+            subject=subject,
+            html=html_content,
+            mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
+        )
+        response = message.send(to=to_email, smtp=self.smtp_options)
+        if not response.success:
+            print(f"Failed to send email to {to_email}: {response.error}")
+        return response
+
+    def send_sale_created_notification(self, sale: Sale):
         if not sale.customer:
             return
 
@@ -171,35 +198,152 @@ class EmailNotificationService:
         </div>
         """
 
-        smtp_options = {
-            "host": settings.MAIL_SERVER,
-            "port": settings.MAIL_PORT,
-            "tls": settings.MAIL_TLS,
-            "ssl": settings.MAIL_SSL,
-            "user": settings.MAIL_USERNAME,
-            "password": settings.MAIL_PASSWORD,
-        }
+        if sale.customer.email:
+            self._send_email(sale.customer.email, f"Sale Confirmation #{sale.id}", customer_html_content)
+
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"New Sale Confirmation #{sale.id}", admin_html_content)
+
+    def send_sale_notification(self, sale: Sale):
+        # Alias for backward compatibility or if called elsewhere
+        self.send_sale_created_notification(sale)
+
+    def send_sale_cancelled_notification(self, sale: Sale):
+        if not sale.customer:
+            return
+
+        html_content = f"""
+        <h1>Sale Cancelled</h1>
+        <p>Dear {sale.customer.name},</p>
+        <p>Your order #{sale.id} has been cancelled.</p>
+        <p><strong>Total Price:</strong> ₹{sale.total_price}</p>
+        <p>If you have any questions, please contact us.</p>
+        """
 
         if sale.customer.email:
-            customer_message = emails.Message(
-                subject=f"Sale Confirmation #{sale.id}",
-                html=customer_html_content,
-                mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
-            )
-            response = customer_message.send(to=sale.customer.email, smtp=smtp_options)
-            if not response.success:
-                print(f"Failed to send email to {sale.customer.email}: {response.error}")
-        
-        # Also send a notification to the shop owner if email is available
+            self._send_email(sale.customer.email, f"Sale Cancelled #{sale.id}", html_content)
+
         if settings.ADMIN_EMAIL:
-            admin_message = emails.Message(
-                subject=f"New Sale Confirmation #{sale.id}",
-                html=admin_html_content,
-                mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
-            )
-            response = admin_message.send(to=settings.ADMIN_EMAIL, smtp=smtp_options)
-            if not response.success:
-                print(f"Failed to send email to shop owner {settings.ADMIN_EMAIL}: {response.error}")
+            self._send_email(settings.ADMIN_EMAIL, f"Sale Cancelled #{sale.id}", html_content)
+
+    def send_sale_status_change_notification(self, sale: Sale, old_status: str, new_status: str):
+        if not sale.customer:
+            return
+
+        html_content = f"""
+        <h1>Sale Status Updated</h1>
+        <p>Dear {sale.customer.name},</p>
+        <p>The status of your order #{sale.id} has been changed from <strong>{old_status}</strong> to <strong>{new_status}</strong>.</p>
+        <p>Thank you for your patience!</p>
+        """
+
+        if sale.customer.email:
+            self._send_email(sale.customer.email, f"Order #{sale.id} Status Updated", html_content)
+        
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"Order #{sale.id} Status Updated", html_content)
+
+    def send_day_start_notification(self, day: Day):
+        html_content = f"""
+        <h1>New Day Started</h1>
+        <p>A new business day has been started.</p>
+        <p><strong>Start Time:</strong> {day.start_time.strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><strong>Opening Balance:</strong> ₹{day.opening_balance:,.2f}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, "New Day Started Notification", html_content)
+
+    def send_expense_added_notification(self, expense: Expense):
+        html_content = f"""
+        <h1>New Expense Added</h1>
+        <p>A new expense has been recorded.</p>
+        <p><strong>Description:</strong> {expense.description}</p>
+        <p><strong>Amount:</strong> ₹{expense.amount:,.2f}</p>
+        <p><strong>Date:</strong> {expense.created_at.strftime('%Y-%m-%d %H:%M:%S')}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, "New Expense Notification", html_content)
+
+    def send_customer_added_notification(self, customer: Customer):
+        html_content = f"""
+        <h1>New Customer Added</h1>
+        <p>A new customer has been registered in the system.</p>
+        <p><strong>Name:</strong> {customer.name}</p>
+        <p><strong>Mobile:</strong> {customer.mobile}</p>
+        <p><strong>Email:</strong> {customer.email or 'N/A'}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, "New Customer Registered", html_content)
+
+    def send_offer_created_notification(self, offer: EventOffer):
+        html_content = f"""
+        <h1>New Offer Created</h1>
+        <p>A new offer has been created.</p>
+        <p><strong>Name:</strong> {offer.name}</p>
+        <p><strong>Code:</strong> {offer.code}</p>
+        <p><strong>Discount:</strong> {offer.rate} ({offer.rate_type})</p>
+        <p><strong>Active:</strong> {'Yes' if offer.is_active else 'No'}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"New Offer: {offer.name}", html_content)
+
+    def send_offer_items_changed_notification(self, offer: EventOffer):
+        html_content = f"""
+        <h1>Offer Items Updated</h1>
+        <p>The items associated with offer <strong>{offer.name}</strong> ({offer.code}) have been updated.</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"Offer Items Updated: {offer.name}", html_content)
+
+    def send_offer_disabled_notification(self, offer: EventOffer):
+        html_content = f"""
+        <h1>Offer Disabled</h1>
+        <p>The offer <strong>{offer.name}</strong> ({offer.code}) has been disabled.</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"Offer Disabled: {offer.name}", html_content)
+
+    def send_product_added_notification(self, product: Product):
+        html_content = f"""
+        <h1>New Product Added</h1>
+        <p>A new product has been added to the inventory.</p>
+        <p><strong>Name:</strong> {product.name}</p>
+        <p><strong>Price:</strong> ₹{product.selling_price}</p>
+        <p><strong>Category ID:</strong> {product.category_id}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"New Product: {product.name}", html_content)
+
+    def send_product_deleted_notification(self, product_id: int, product_name: str):
+        html_content = f"""
+        <h1>Product Deleted</h1>
+        <p>A product has been removed from the system.</p>
+        <p><strong>Product ID:</strong> {product_id}</p>
+        <p><strong>Name:</strong> {product_name}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"Product Deleted: {product_name}", html_content)
+
+    def send_product_stock_updated_notification(self, product: Product, size: str, quantity_change: int):
+        html_content = f"""
+        <h1>Product Stock Updated</h1>
+        <p>Stock has been updated for <strong>{product.name}</strong>.</p>
+        <p><strong>Size:</strong> {size}</p>
+        <p><strong>Quantity Change:</strong> {quantity_change}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"Stock Update: {product.name}", html_content)
+
+    def send_product_transfer_notification(self, products: List[Product], operation: str, destination_shop_id: int):
+        product_names = ", ".join([p.name for p in products])
+        html_content = f"""
+        <h1>Products Transferred</h1>
+        <p>Products have been {operation}ed.</p>
+        <p><strong>Products:</strong> {product_names}</p>
+        <p><strong>Destination Shop ID:</strong> {destination_shop_id}</p>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"Products {operation.capitalize()}ed", html_content)
 
     def send_purchase_notification(self, purchase: Purchase):
         if not purchase.vendor or not purchase.vendor.email:
@@ -251,9 +395,7 @@ class EmailNotificationService:
             "password": settings.MAIL_PASSWORD,
         }
 
-        response = message.send(to=purchase.vendor.email, smtp=smtp_options)
-        if not response.success:
-            print(f"Failed to send email to {purchase.vendor.email}: {response.error}")
+        self._send_email(purchase.vendor.email, f"Purchase Confirmation #{purchase.id}", html_content)
 
     def send_day_summary_notification(self, day_summary: DaySummary):
         """
@@ -298,15 +440,4 @@ class EmailNotificationService:
             mail_from=(settings.MAIL_FROM, settings.MAIL_FROM),
         )
 
-        smtp_options = {
-            "host": settings.MAIL_SERVER,
-            "port": settings.MAIL_PORT,
-            "tls": settings.MAIL_TLS,
-            "ssl": settings.MAIL_SSL,
-            "user": settings.MAIL_USERNAME,
-            "password": settings.MAIL_PASSWORD,
-        }
-
-        response = message.send(to=settings.MAIL_FROM, smtp=smtp_options)
-        if not response.success:
-            print(f"Failed to send day summary email to {settings.MAIL_FROM}: {response.error}")
+        self._send_email(settings.MAIL_FROM, f"End of Day Summary - {day_summary.start_time.strftime('%Y-%m-%d')}", html_content)
