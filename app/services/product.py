@@ -16,10 +16,12 @@ from app.schemas.product import (
     CategoryDiscountRequest
 )
 from app.services.notification import EmailNotificationService
+from app.services.push_notification import PushNotificationService
 
 class ProductService:
     def __init__(self):
         self.email_notification = EmailNotificationService()
+        self.push_notification = PushNotificationService()
 
     def create_product(self, db: Session, product: ProductCreate) -> Product:
         db_product = Product(
@@ -59,6 +61,7 @@ class ProductService:
 
         try:
             self.email_notification.send_product_added_notification(db_product)
+            self.push_notification.send_product_added_push(db, db_product)
         except Exception as e:
             logger.error(f"Failed to send product addition notification: {str(e)}")
 
@@ -172,6 +175,7 @@ class ProductService:
             product = db.query(Product).filter(Product.id == product_id).first()
             if product:
                 self.email_notification.send_product_stock_updated_notification(product, size, quantity_change)
+                self.push_notification.send_product_stock_updated_push(db, product, size, quantity_change)
         except Exception as e:
             logger.error(f"Failed to send product stock update notification: {str(e)}")
 

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import BaseModel
+from .user_device import UserDevice
 from datetime import datetime
 
 class User(BaseModel):
@@ -20,3 +21,5 @@ class User(BaseModel):
     customer = relationship("Customer", back_populates="user")
     # Relationship with Shop - staff users are linked to a specific shop
     shop = relationship("Shop", back_populates="users")
+    # Relationship with devices for push notifications
+    devices = relationship("UserDevice", back_populates="user", cascade="all, delete-orphan")

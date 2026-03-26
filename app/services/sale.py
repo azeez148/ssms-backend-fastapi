@@ -7,12 +7,14 @@ from app.schemas.enums import SaleStatus
 from app.services.customer import get_or_create_customer
 from app.services.day_management import DayManagementService
 from app.services.notification import EmailNotificationService
+from app.services.push_notification import PushNotificationService
 from app.services.product import ProductService
 from app.core.logging import logger
 
 class SaleService:
     def __init__(self):
         self.email_notification = EmailNotificationService()
+        self.push_notification = PushNotificationService()
         self.product_service = ProductService()
         self.day_management_service = DayManagementService()
 
@@ -90,6 +92,7 @@ class SaleService:
         try:
             # Send notifications
             self.email_notification.send_sale_created_notification(db_sale)
+            self.push_notification.send_sale_created_push(db, db_sale)
         except Exception as e:
             logger.error(f"Error sending sale creation notification: {str(e)}")
         
@@ -180,8 +183,10 @@ class SaleService:
 
         try:
             self.email_notification.send_sale_status_change_notification(sale, old_status.value, new_status.value)
+            self.push_notification.send_sale_status_change_push(db, sale, old_status.value, new_status.value)
             if new_status == SaleStatus.CANCELLED:
                 self.email_notification.send_sale_cancelled_notification(sale)
+                self.push_notification.send_sale_cancelled_push(db, sale)
         except Exception as e:
             logger.error(f"Error sending sale status change/cancellation notification: {str(e)}")
 
@@ -215,6 +220,7 @@ class SaleService:
 
             try:
                 self.email_notification.send_sale_cancelled_notification(sale)
+                self.push_notification.send_sale_cancelled_push(db, sale)
             except Exception as e:
                 logger.error(f"Error sending sale cancellation notification: {str(e)}")
 

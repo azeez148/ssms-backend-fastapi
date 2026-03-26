@@ -66,6 +66,20 @@ class UserProfile(BaseModel):
     class Config:
         from_attributes = True
 
+class UserDeviceCreate(BaseModel):
+    fcm_token: str
+    device_type: Optional[str] = "android"
+
+class UserDeviceResponse(BaseModel):
+    id: int
+    user_id: str
+    fcm_token: str
+    device_type: Optional[str]
+    last_active: datetime
+
+    class Config:
+        from_attributes = True
+
 class UserProfileUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None

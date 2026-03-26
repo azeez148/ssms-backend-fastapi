@@ -4,9 +4,11 @@ from app.schemas.customer import CustomerCreate, CustomerUpdate
 from app.services.auth import AuthService
 from app.models.user import User
 from app.services.notification import EmailNotificationService
+from app.services.push_notification import PushNotificationService
 from app.core.logging import logger
 
 email_notification = EmailNotificationService()
+push_notification = PushNotificationService()
 
 def get_customer(db: Session, customer_id: int):
     return db.query(Customer).filter(Customer.id == customer_id).first()
@@ -49,6 +51,7 @@ def create_customer(db: Session, customer: CustomerCreate):
 
     try:
         email_notification.send_customer_added_notification(db_customer)
+        push_notification.send_customer_added_push(db, db_customer)
     except Exception as e:
         logger.error(f"Failed to send customer registration notification: {str(e)}")
 
