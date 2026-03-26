@@ -8,6 +8,7 @@ from app.services.customer import get_or_create_customer
 from app.services.day_management import DayManagementService
 from app.services.notification import EmailNotificationService
 from app.services.product import ProductService
+from app.core.logging import logger
 
 class SaleService:
     def __init__(self):
@@ -88,10 +89,9 @@ class SaleService:
         
         try:
             # Send notifications
-            self.email_notification.send_sale_notification(db_sale)
+            self.email_notification.send_sale_created_notification(db_sale)
         except Exception as e:
-            print(str(e))
-            pass
+            logger.error(f"Error sending sale creation notification: {str(e)}")
         
         return db_sale
 
@@ -177,6 +177,14 @@ class SaleService:
 
         db.commit()
         db.refresh(sale)
+
+        try:
+            self.email_notification.send_sale_status_change_notification(sale, old_status.value, new_status.value)
+            if new_status == SaleStatus.CANCELLED:
+                self.email_notification.send_sale_cancelled_notification(sale)
+        except Exception as e:
+            logger.error(f"Error sending sale status change/cancellation notification: {str(e)}")
+
         return sale
 
     # implement cancel_sale
@@ -204,6 +212,12 @@ class SaleService:
 
             db.commit()
             db.refresh(sale)
+
+            try:
+                self.email_notification.send_sale_cancelled_notification(sale)
+            except Exception as e:
+                logger.error(f"Error sending sale cancellation notification: {str(e)}")
+
         return sale
 
     def update_sale(self, db: Session, sale_data: SaleCreate, sale_id: int) -> Optional[Sale]:
