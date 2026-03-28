@@ -1,6 +1,6 @@
 import os
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, List
 
 class Settings(BaseSettings):
     # Email settings
@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-super-secret-key-here-for-jwt-tokens-keep-it-safe")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+
+    # Shop restriction settings
+    RESTRICT_SHOPS: bool = os.getenv("RESTRICT_SHOPS", "True").lower() == "true"
+    RESTRICTED_SHOP_IDS: List[int] = [2]
+    RESTRICTED_SHOP_CODES: List[str] = ["DR-CVR"]
 
 
     class Config:
