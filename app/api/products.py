@@ -39,6 +39,13 @@ async def add_product(
 ):
     return product_service.create_product(db, product)
 
+@router.post("/addBulkProducts", response_model=List[ProductResponse])
+async def add_bulk_products(
+    products: List[ProductCreate],
+    db: Session = Depends(get_db)
+):
+    return product_service.create_bulk_products(db, products)
+
 @router.get("/all", response_model=List[ProductResponse])
 async def get_all_products(db: Session = Depends(get_db)):
     return product_service.get_all_products(db)
