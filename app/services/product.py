@@ -21,7 +21,7 @@ class ProductService:
     def __init__(self):
         self.email_notification = EmailNotificationService()
 
-    def create_product(self, db: Session, product: ProductCreate) -> Product:
+    def _create_product_instance(self, db: Session, product: ProductCreate) -> Product:
         db_product = Product(
             name=product.name,
             description=product.description,
@@ -43,6 +43,7 @@ class ProductService:
                     quantity=size_data.quantity
                 )
                 db_product.size_map.append(size)
+
         # Handle shop associations
         if product.shop_ids:
             shops = db.query(Shop).filter(Shop.id.in_(product.shop_ids)).all()
@@ -52,6 +53,11 @@ class ProductService:
             shop_1 = db.query(Shop).filter(Shop.id == 1).first()
             if shop_1:
                 db_product.shops.append(shop_1)
+
+        return db_product
+
+    def create_product(self, db: Session, product: ProductCreate) -> Product:
+        db_product = self._create_product_instance(db, product)
 
         db.add(db_product)
         db.commit()
@@ -63,6 +69,31 @@ class ProductService:
             logger.error(f"Failed to send product addition notification: {str(e)}")
 
         return db_product
+
+    def create_bulk_products(self, db: Session, products: List[ProductCreate]) -> List[Product]:
+        db_products = []
+        try:
+            for product_data in products:
+                db_product = self._create_product_instance(db, product_data)
+                db.add(db_product)
+                db_products.append(db_product)
+
+            db.commit()
+
+            for db_product in db_products:
+                db.refresh(db_product)
+
+            try:
+                self.email_notification.send_bulk_product_added_notification(db_products)
+            except Exception as e:
+                logger.error(f"Failed to send bulk product addition notification: {str(e)}")
+
+            return db_products
+
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error creating bulk products: {str(e)}")
+            raise e
 
     def get_all_products(self, db: Session) -> List[Product]:
         products = db.query(Product).options(joinedload(Product.shops)).all()

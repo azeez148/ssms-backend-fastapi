@@ -9,6 +9,7 @@ from app.models.product import Product
 from app.models.day_management import Day, Expense
 from app.models.shop import Shop
 from app.core.config import settings
+from app.core.logging import logger
 from app.core.utils import format_phone_number
 import emails
 from app.schemas.day_management import DaySummary
@@ -89,7 +90,7 @@ class EmailNotificationService:
         )
         response = message.send(to=to_email, smtp=self.smtp_options)
         if not response.success:
-            print(f"Failed to send email to {to_email}: {response.error}")
+            logger.error(f"Failed to send email to {to_email}: {response.error}")
         return response
 
     def send_sale_created_notification(self, sale: Sale):
@@ -313,6 +314,32 @@ class EmailNotificationService:
         """
         if settings.ADMIN_EMAIL:
             self._send_email(settings.ADMIN_EMAIL, f"New Product: {product.name}", html_content)
+
+    def send_bulk_product_added_notification(self, products: List[Product]):
+        items_html = "".join([
+            f"<tr><td>{p.id}</td><td>{p.name}</td><td>{p.category_id}</td><td>₹{p.selling_price}</td></tr>"
+            for p in products
+        ])
+
+        html_content = f"""
+        <h1>Bulk Products Added</h1>
+        <p>{len(products)} new products have been added to the inventory.</p>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Category ID</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {items_html}
+            </tbody>
+        </table>
+        """
+        if settings.ADMIN_EMAIL:
+            self._send_email(settings.ADMIN_EMAIL, f"Bulk Products Added - {len(products)} items", html_content)
 
     def send_product_deleted_notification(self, product_id: int, product_name: str):
         html_content = f"""
