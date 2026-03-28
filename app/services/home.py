@@ -7,6 +7,7 @@ from app.models.event import EventOffer
 from app.models.product import Product
 from typing import List
 import glob as glob_module
+from app.core.config import settings
 
 class HomeService:
     def __init__(self):
@@ -15,8 +16,24 @@ class HomeService:
 
     def get_home_data(self, db: Session) -> HomeResponse:
         products = self.product_service.get_all_products(db)
+        if settings.RESTRICT_SHOPS:
+            products = self._filter_restricted_products(products)
         self._populate_product_images(products)
         return HomeResponse(products=products)
+
+    def _filter_restricted_products(self, products: List[Product]) -> List[Product]:
+        filtered_products = []
+        for product in products:
+            # If the product is associated with any shop that is NOT restricted, keep it.
+            # This implements "if product is available in both, can be returned".
+            is_available_elsewhere = any(
+                shop.id not in settings.RESTRICTED_SHOP_IDS and
+                shop.shop_code not in settings.RESTRICTED_SHOP_CODES
+                for shop in product.shops
+            )
+            if is_available_elsewhere:
+                filtered_products.append(product)
+        return filtered_products
 
     def _populate_product_images(self, products: List[Product]):
         image_base_path = "images/products"  # base folder path
@@ -47,5 +64,7 @@ class HomeService:
             return []
 
         products = offer.products
+        if settings.RESTRICT_SHOPS:
+            products = self._filter_restricted_products(products)
         self._populate_product_images(products)
         return products
