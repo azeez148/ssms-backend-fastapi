@@ -16,23 +16,27 @@ class DayManagementService:
     def __init__(self):
         self.email_notification_service = EmailNotificationService()
 
-    def get_active_day(self, db: Session) -> Optional[Day]:
+    def get_active_day(self, db: Session, shop_id: int) -> Optional[Day]:
         """
-        Retrieves the currently active day (a day that has been started but not ended).
+        Retrieves the currently active day for a specific shop (a day that has been started but not ended).
         """
-        return db.query(Day).filter(Day.end_time.is_(None)).first()
+        return db.query(Day).filter(Day.shop_id == shop_id, Day.end_time.is_(None)).first()
 
     def start_day(self, db: Session, day: DayCreate) -> Day:
         """
-        Starts a new day or reopens an existing one for the current date.
-        - If a day is already active for today, it returns the active day.
-        - If a day was started and ended today, it reopens that day.
-        - If no day has been started today, it creates a new one.
+        Starts a new day or reopens an existing one for the current date for a specific shop.
+        - If a day is already active for today in this shop, it returns the active day.
+        - If a day was started and ended today in this shop, it reopens that day.
+        - If no day has been started today in this shop, it creates a new one.
         """
         today = datetime.utcnow().date()
+        shop_id = day.shop_id or 1
 
-        # Query for a day that was started today
-        day_for_today = db.query(Day).filter(cast(Day.start_time, Date) == today).first()
+        # Query for a day that was started today for this shop
+        day_for_today = db.query(Day).filter(
+            Day.shop_id == shop_id,
+            cast(Day.start_time, Date) == today
+        ).first()
 
         if day_for_today:
             if day_for_today.end_time is None:
@@ -47,11 +51,12 @@ class DayManagementService:
                 return day_for_today
         else:
             # No day started today, create a new one
-            active_day = self.get_active_day(db)
+            active_day = self.get_active_day(db, shop_id)
             if active_day:
-                raise Exception("An active day already exists from a previous date. Please end it before starting a new one.")
+                raise Exception(f"An active day already exists for shop {shop_id} from a previous date. Please end it before starting a new one.")
 
             db_day = Day(
+                shop_id=shop_id,
                 opening_balance=day.opening_balance,
                 cash_in_hand=day.opening_balance,
                 cash_in_account=0.0,
@@ -70,14 +75,21 @@ class DayManagementService:
 
             return db_day
 
-    def add_expense(self, db: Session, expense: ExpenseCreate) -> Expense:
+    def add_expense(self, db: Session, expense: ExpenseCreate, shop_id: Optional[int] = None) -> Expense:
         """
-        Adds a new expense to the currently active day.
+        Adds a new expense to the currently active day for a specific shop.
         If no day is active, it raises an exception.
         """
-        active_day = self.get_active_day(db)
+        # If shop_id is not provided, we try to get the day from the expense itself if it has day_id
+        # But usually we want to ensure it's the active day for the shop.
+        if shop_id:
+            active_day = self.get_active_day(db, shop_id)
+        else:
+            # Fallback to day_id if shop_id not provided (might be needed for some backward compatibility or internal calls)
+            active_day = db.query(Day).filter(Day.id == expense.day_id, Day.end_time.is_(None)).first()
+
         if not active_day:
-            raise Exception("No active day found. Please start a day before adding expenses.")
+            raise Exception("No active day found for this shop. Please start a day before adding expenses.")
 
         db_expense = Expense(
             day_id=active_day.id,
@@ -103,11 +115,11 @@ class DayManagementService:
 
         return db_expense
 
-    def update_day_from_sale(self, db: Session, amount_change: float, payment_type_id: int):
+    def update_day_from_sale(self, db: Session, amount_change: float, payment_type_id: int, shop_id: int):
         """
-        Updates the active day's cash or account balance based on a sale change.
+        Updates the active day's cash or account balance based on a sale change for a specific shop.
         """
-        active_day = self.get_active_day(db)
+        active_day = self.get_active_day(db, shop_id)
         if not active_day:
             return
 
@@ -145,7 +157,8 @@ class DayManagementService:
         target_date = db_day.start_time.date().isoformat()
         sales_for_day = db.query(Sale).options(joinedload(Sale.payment_type)).filter(
             Sale.date == target_date,
-            Sale.status != SaleStatus.CANCELLED
+            Sale.status != SaleStatus.CANCELLED,
+            Sale.shop_id == db_day.shop_id
         ).all()
 
         total_cash_sales = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name == 'Cash on Delivery')
@@ -186,15 +199,32 @@ class DayManagementService:
 
         return DaySummary(
             day_id=db_day.id,
-            closing_balance=db_day.closing_balance,
-            total_expense=db_day.total_expense,
-            cash_in_hand=db_day.cash_in_hand,
-            cash_in_account=db_day.cash_in_account,
+            closing_balance=db_day.closing_balance or 0.0,
+            total_expense=db_day.total_expense or 0.0,
+            cash_in_hand=db_day.cash_in_hand or 0.0,
+            cash_in_account=db_day.cash_in_account or 0.0,
             opening_balance=db_day.opening_balance,
             start_time=db_day.start_time,
             end_time=db_day.end_time,
-            variance=db_day.variance,
+            variance=db_day.variance or 0.0,
             variance_reason=db_day.variance_reason,
             expenses=self.get_expenses_for_day(db, day_id),
-            message="Day ended successfully."
+            message="Day summary retrieved successfully."
         )
+
+    def get_all_shops_status(self, db: Session) -> List[dict]:
+        """
+        Retrieves the status of all shops (whether they have an active day).
+        """
+        from app.models.shop import Shop
+        shops = db.query(Shop).all()
+        status_list = []
+        for shop in shops:
+            active_day = self.get_active_day(db, shop.id)
+            status_list.append({
+                "shop_id": shop.id,
+                "shop_name": shop.name,
+                "day_started": active_day is not None,
+                "active_day": active_day
+            })
+        return status_list

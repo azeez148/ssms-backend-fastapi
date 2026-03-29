@@ -81,7 +81,8 @@ class SaleService:
             self.day_management_service.update_day_from_sale(
                 db,
                 amount_change=db_sale.total_price,
-                payment_type_id=db_sale.payment_type_id
+                payment_type_id=db_sale.payment_type_id,
+                shop_id=db_sale.shop_id
             )
 
         db.commit()
@@ -151,7 +152,8 @@ class SaleService:
             self.day_management_service.update_day_from_sale(
                 db,
                 amount_change=-sale.total_price,
-                payment_type_id=sale.payment_type_id
+                payment_type_id=sale.payment_type_id,
+                shop_id=sale.shop_id
             )
             for item in sale.sale_items:
                 self.product_service.update_product_stock(
@@ -165,7 +167,8 @@ class SaleService:
             self.day_management_service.update_day_from_sale(
                 db,
                 amount_change=sale.total_price,
-                payment_type_id=sale.payment_type_id
+                payment_type_id=sale.payment_type_id,
+                shop_id=sale.shop_id
             )
             for item in sale.sale_items:
                 self.product_service.update_product_stock(
@@ -207,7 +210,8 @@ class SaleService:
             self.day_management_service.update_day_from_sale(
                 db,
                 amount_change=-sale.total_price,
-                payment_type_id=sale.payment_type_id
+                payment_type_id=sale.payment_type_id,
+                shop_id=sale.shop_id
             )
 
             db.commit()
@@ -291,7 +295,8 @@ class SaleService:
             self.day_management_service.update_day_from_sale(
                 db,
                 amount_change=-old_total,
-                payment_type_id=old_payment_type_id
+                payment_type_id=old_payment_type_id,
+                shop_id=sale.shop_id
             )
 
         # 2. Add new sale if it's not cancelled
@@ -299,7 +304,8 @@ class SaleService:
             self.day_management_service.update_day_from_sale(
                 db,
                 amount_change=sale.total_price,
-                payment_type_id=sale.payment_type_id
+                payment_type_id=sale.payment_type_id,
+                shop_id=sale.shop_id
             )
 
         db.commit()
