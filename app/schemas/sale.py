@@ -40,16 +40,19 @@ class SaleBase(BaseModel):
     delivery_type_id: int
     shop_id: int
     customer_id: Optional[int] = None
+    customer_name: Optional[str] = None
+    customer_address: Optional[str] = None
+    customer_city: Optional[str] = None
+    customer_state: Optional[str] = None
+    customer_zip_code: Optional[str] = None
+    customer_mobile: Optional[str] = None
+    customer_email: Optional[str] = None
     status: Optional[SaleStatus] = None
 
     class Config:
         from_attributes = True
 
 class SaleCreate(SaleBase):
-    customer_name: Optional[str] = None
-    customer_address: Optional[str] = None
-    customer_mobile: Optional[str] = None
-    customer_email: Optional[str] = None
     sale_items: List[SaleItemCreate]
 
 class SaleInDB(SaleBase):

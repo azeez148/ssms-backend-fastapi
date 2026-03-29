@@ -21,6 +21,14 @@ class Sale(BaseModel):
 
     customer_id = Column(Integer, ForeignKey("customers.id"))
     customer = relationship("Customer", back_populates="sales")
+
+    customer_name = Column(String, nullable=True)
+    customer_address = Column(String, nullable=True)
+    customer_city = Column(String, nullable=True)
+    customer_state = Column(String, nullable=True)
+    customer_zip_code = Column(String, nullable=True)
+    customer_mobile = Column(String, nullable=True)
+    customer_email = Column(String, nullable=True)
     
     shop_id = Column(Integer, ForeignKey("shops.id"))
     shop = relationship("Shop", back_populates="sales")

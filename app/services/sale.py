@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
+from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate
 from app.schemas.sale import SaleCreate
 from app.schemas.enums import SaleStatus
@@ -19,13 +20,19 @@ class SaleService:
     def create_sale(self, db: Session, sale: SaleCreate) -> Sale:
         # Get or create customer
         customer_id = sale.customer_id
-        if customer_id == 0:
+        customer = None
+        if customer_id and customer_id != 0:
+            customer = db.query(Customer).filter(Customer.id == customer_id).first()
+        elif customer_id == 0:
             if not sale.customer_mobile:
                 raise ValueError("Customer mobile number is required to create a new customer.")
 
             customer_data = CustomerCreate(
                 name=sale.customer_name,
                 address=sale.customer_address,
+                city=sale.customer_city,
+                state=sale.customer_state,
+                zip_code=sale.customer_zip_code,
                 mobile=sale.customer_mobile,
                 email=sale.customer_email
             )
@@ -34,10 +41,26 @@ class SaleService:
 
         # Create the main sale record
         sale_data = sale.model_dump(exclude={
-            'sale_items', 'customer_name', 'customer_address',
-            'customer_mobile', 'customer_email', 'status'
+            'sale_items', 'status'
         })
         sale_data['customer_id'] = customer_id
+
+        # Populate customer details from customer object if not provided in sale
+        if customer:
+            if not sale_data.get('customer_name'):
+                sale_data['customer_name'] = customer.name
+            if not sale_data.get('customer_address'):
+                sale_data['customer_address'] = customer.address
+            if not sale_data.get('customer_city'):
+                sale_data['customer_city'] = customer.city
+            if not sale_data.get('customer_state'):
+                sale_data['customer_state'] = customer.state
+            if not sale_data.get('customer_zip_code'):
+                sale_data['customer_zip_code'] = customer.zip_code
+            if not sale_data.get('customer_mobile'):
+                sale_data['customer_mobile'] = customer.mobile
+            if not sale_data.get('customer_email'):
+                sale_data['customer_email'] = customer.email
 
         # If sub_total is not provided or 0, default it to total_price
         if not sale_data.get('sub_total'):
