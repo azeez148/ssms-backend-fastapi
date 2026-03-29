@@ -95,5 +95,47 @@ class TestSales(unittest.TestCase):
         # Should default to total_price as per my change in SaleService
         self.assertEqual(db_sale.sub_total, 160.0)
 
+    @patch('app.services.sale.selectinload')
+    @patch('app.services.sale.joinedload')
+    def test_get_all_sales_eager_loads_relationships(self, mock_joinedload, mock_selectinload):
+        # Arrange
+        query = MagicMock()
+        options_query = MagicMock()
+        self.db_session.query.return_value = query
+        query.options.return_value = options_query
+        options_query.all.return_value = []
+
+        customer_loader = MagicMock(name="customer_loader")
+        payment_loader = MagicMock(name="payment_loader")
+        delivery_loader = MagicMock(name="delivery_loader")
+        sale_items_loader = MagicMock(name="sale_items_loader")
+        mock_joinedload.side_effect = [customer_loader, payment_loader, delivery_loader]
+        mock_selectinload.return_value = sale_items_loader
+
+        # Act
+        self.sale_service.get_all_sales(self.db_session)
+
+        # Assert
+        self.db_session.query.assert_called_once_with(Sale)
+        query.options.assert_called_once_with(
+            customer_loader,
+            payment_loader,
+            delivery_loader,
+            sale_items_loader
+        )
+        self.assertEqual(mock_joinedload.call_count, 3)
+        called_attributes = []
+        for call in mock_joinedload.call_args_list:
+            if call.args:
+                called_attributes.append(call.args[0])
+            elif "attr" in call.kwargs:
+                called_attributes.append(call.kwargs["attr"])
+
+        self.assertTrue(any(attribute is Sale.customer for attribute in called_attributes))
+        self.assertTrue(any(attribute is Sale.payment_type for attribute in called_attributes))
+        self.assertTrue(any(attribute is Sale.delivery_type for attribute in called_attributes))
+        mock_selectinload.assert_called_once_with(Sale.sale_items)
+        options_query.all.assert_called_once()
+
 if __name__ == '__main__':
     unittest.main()
