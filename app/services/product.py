@@ -1,5 +1,5 @@
 import os
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 from fastapi import HTTPException
 
@@ -96,7 +96,10 @@ class ProductService:
             raise e
 
     def get_all_products(self, db: Session) -> List[Product]:
-        products = db.query(Product).options(joinedload(Product.shops)).all()
+        products = db.query(Product).options(
+            joinedload(Product.shops),
+            selectinload(Product.tags)
+        ).all()
         return products
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
