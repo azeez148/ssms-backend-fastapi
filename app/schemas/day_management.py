@@ -9,7 +9,8 @@ class ExpenseBase(BaseModel):
     amount: float
 
 class ExpenseCreate(ExpenseBase):
-    day_id: int
+    day_id: Optional[int] = None
+    shop_id: Optional[int] = None
 
 class Expense(ExpenseBase, BaseSchema):
     id: int
@@ -23,6 +24,7 @@ class DayBase(BaseModel):
     opening_balance: float
 
 class DayCreate(DayBase):
+    shop_id: Optional[int] = 1
     variance: Optional[float] = None
     variance_reason: Optional[str] = None
 
@@ -40,6 +42,7 @@ class EndDayRequest(BaseModel):
 
 class Day(DayBase, BaseSchema):
     id: int
+    shop_id: Optional[int] = None
     start_time: datetime
     end_time: Optional[datetime] = None
     closing_balance: Optional[float] = None
@@ -60,7 +63,7 @@ class DaySummary(BaseSchema):
     total_expense: float
     cash_in_hand: float
     cash_in_account: float
-    message: str
+    message: Optional[str] = None
     opening_balance: float
     start_time: datetime
     end_time: Optional[datetime] = None
@@ -70,5 +73,11 @@ class DaySummary(BaseSchema):
 
 
 class StatusResponse(BaseModel):
+    day_started: bool
+    active_day: Optional[Day] = None
+
+class ShopStatusResponse(BaseModel):
+    shop_id: int
+    shop_name: str
     day_started: bool
     active_day: Optional[Day] = None

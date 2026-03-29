@@ -1,0 +1,194 @@
+[
+  {
+    "name": "The Goat Edition Messi Black",
+    "description": "The Goat Edition Messi Black Jersey",
+    "unit_price": 190,
+    "selling_price": 350,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "S", "quantity": 1},
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1},
+      {"size": "XXL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 300,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "Neaymar Signature Edition Black Collar",
+    "description": "Neaymar Signature Edition Black Collar Jersey",
+    "unit_price": 230,
+    "selling_price": 400,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1},
+      {"size": "XXL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 350,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "Barca White Red Embroidery Messi",
+    "description": "Barca White Red Embroidery Messi Jersey",
+    "unit_price": 230,
+    "selling_price": 400,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "S", "quantity": 1},
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1},
+      {"size": "XXL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 350,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "England Red 10",
+    "description": "England Red 10 Jersey",
+    "unit_price": 190,
+    "selling_price": 350,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "S", "quantity": 1},
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1},
+      {"size": "XXL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 300,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "FC Barcelona White Collar 125th Anniversary Cruyff",
+    "description": "FC Barcelona White Collar 125th Anniversary Cruyff Jersey",
+    "unit_price": 230,
+    "selling_price": 400,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "S", "quantity": 1},
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 350,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "Arsenal White JVC 14",
+    "description": "Arsenal White JVC 14 Jersey",
+    "unit_price": 190,
+    "selling_price": 350,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "S", "quantity": 1},
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1},
+      {"size": "XXL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 300,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "AC Milan Home Bwin Maldini",
+    "description": "AC Milan Home Bwin Maldini Jersey",
+    "unit_price": 190,
+    "selling_price": 350,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1},
+      {"size": "XXL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 300,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "AC Milan Home Bwin Kaka Collar Embroidery",
+    "description": "AC Milan Home Bwin Kaka Collar Embroidery Jersey",
+    "unit_price": 230,
+    "selling_price": 400,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 350,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  },
+  {
+    "name": "Fiorentina Batistuta Purple Collar",
+    "description": "Fiorentina Batistuta Purple Collar Jersey",
+    "unit_price": 230,
+    "selling_price": 400,
+    "category_id": 3,
+    "is_active": true,
+    "can_listed": true,
+    "size_map": [
+      {"size": "S", "quantity": 1},
+      {"size": "M", "quantity": 1},
+      {"size": "L", "quantity": 1},
+      {"size": "XL", "quantity": 1}
+    ],
+    "image_url": null,
+    "offer_id": 0,
+    "discounted_price": 350,
+    "offer_price": 0,
+    "offer_name": "",
+     "shop_ids": [2]
+  }
+]
