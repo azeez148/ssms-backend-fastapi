@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
 from app.schemas.customer import CustomerCreate
@@ -100,7 +100,12 @@ class SaleService:
         return db.query(Sale).filter(Sale.id == sale_id).first()
 
     def get_all_sales(self, db: Session) -> List[Sale]:
-        return db.query(Sale).options(joinedload(Sale.customer)).all()
+        return db.query(Sale).options(
+            joinedload(Sale.customer),
+            joinedload(Sale.payment_type),
+            joinedload(Sale.delivery_type),
+            selectinload(Sale.sale_items),
+        ).all()
 
     def get_recent_sales(self, db: Session, limit: int = 10) -> List[Sale]:
         return db.query(Sale).options(joinedload(Sale.customer)).order_by(Sale.date.desc()).limit(limit).all()
