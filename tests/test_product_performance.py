@@ -5,7 +5,7 @@ from app.models.product import Product
 from app.services.product import ProductService
 
 
-class TestProductPerformance(unittest.TestCase):
+class TestProductEagerLoading(unittest.TestCase):
     def setUp(self):
         self.product_service = ProductService()
         self.db = MagicMock()
