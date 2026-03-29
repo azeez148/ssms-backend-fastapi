@@ -1,29 +1,34 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 import os
 
-# Database connection URL - defaulting to SQLite for this environment but typically set via DATABASE_URL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ssms.db")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "localhost")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "ssms-db")
+
+# Allow overriding the entire URL via environment variable
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)
 
 def migrate_days_table():
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
-    with engine.connect() as connection:
-        # Check if shop_id column exists
-        inspector = text("PRAGMA table_info(days)")
-        result = connection.execute(inspector)
-        columns = [row[1] for row in result.fetchall()]
+    with engine.begin() as connection:
+        # Use SQLAlchemy inspection to stay database-dialect agnostic.
+        columns = [col["name"] for col in inspect(connection).get_columns("days")]
 
         if 'shop_id' not in columns:
             print("Adding shop_id column to days table...")
             connection.execute(text("ALTER TABLE days ADD COLUMN shop_id INTEGER REFERENCES shops(id)"))
-            connection.commit()
         else:
             print("shop_id column already exists in days table.")
 
         # Update existing records to default shop_id 1
         print("Updating existing records to shop_id 1...")
         connection.execute(text("UPDATE days SET shop_id = 1 WHERE shop_id IS NULL"))
-        connection.commit()
 
         print("Migration complete.")
 
