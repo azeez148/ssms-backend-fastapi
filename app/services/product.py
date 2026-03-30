@@ -301,7 +301,7 @@ class ProductService:
             db.refresh(product)
 
         try:
-            self.email_notification.send_product_transfer_notification(products, operation, destination_shop_id)
+            self.email_notification.send_product_transfer_notification(products, operation, destination_shop)
         except Exception as e:
             logger.error(f"Failed to send product transfer notification: {str(e)}")
 
