@@ -51,6 +51,7 @@ from app.api import (
     vendors,
     delivery,
     dashboard,
+    dashboard_v2,
     home,
     stock,
     system,
@@ -78,6 +79,7 @@ app.include_router(shops.router, prefix="/shops", tags=["shops"])
 app.include_router(payments.router, prefix="/paymentType", tags=["payments"])
 app.include_router(delivery.router, prefix="/deliveryType", tags=["delivery"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+app.include_router(dashboard_v2.router, prefix="/v2/dashboard", tags=["dashboard-v2"])
 app.include_router(home.router, prefix="/public", tags=["public"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
