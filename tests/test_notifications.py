@@ -66,8 +66,8 @@ class TestNotifications(unittest.TestCase):
 
         # Assert
         # The sale object passed to the notification service should have a customer
-        mock_email_service.send_sale_notification.assert_called_once()
-        sent_sale = mock_email_service.send_sale_notification.call_args[0][0]
+        mock_email_service.send_sale_created_notification.assert_called_once()
+        sent_sale = mock_email_service.send_sale_created_notification.call_args[0][0]
         self.assertEqual(sent_sale.customer.name, "Test Customer")
 
 if __name__ == '__main__':

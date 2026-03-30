@@ -183,7 +183,7 @@ class DayManagementService:
         # Send notifications
         try:
             day_summary = self.get_day_summary(db, day_id)
-            self.email_notification_service.send_day_summary_notification(day_summary)
+            self.email_notification_service.send_day_summary_notification(day_summary, db_day.shop)
         except Exception as e:
             logger.error(f"Failed to send day summary notification: {str(e)}")
 
