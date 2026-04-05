@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import date, timedelta
 from calendar import monthrange
 from app.core.database import get_db
-from app.schemas.report import SalesReportResponse, SalesComparisonResponse
+from app.schemas.report import SalesReportResponse, SalesComparisonResponse, SalesPerformanceResponse
 from app.services.report import ReportService
 
 router = APIRouter()
@@ -17,6 +17,42 @@ async def get_sales_report(
     db: Session = Depends(get_db)
 ):
     return report_service.get_sales_report(db, start_date, end_date)
+
+
+@router.get("/sales/performance", response_model=SalesPerformanceResponse)
+async def get_sales_performance_report(
+    date_value: Optional[str] = Query(None, alias="date", description="Specific date in YYYY-MM-DD format"),
+    start_date: Optional[str] = Query(None, description="Start date in YYYY-MM-DD format"),
+    end_date: Optional[str] = Query(None, description="End date in YYYY-MM-DD format"),
+    db: Session = Depends(get_db),
+):
+    if date_value and (start_date or end_date):
+        raise HTTPException(status_code=400, detail="Use either 'date' or 'start_date' and 'end_date', not both.")
+
+    if date_value:
+        try:
+            target_date = date.fromisoformat(date_value).isoformat()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+        return report_service.get_detailed_sales_performance(db, target_date, target_date)
+
+    if not start_date and not end_date:
+        raise HTTPException(status_code=400, detail="Provide either 'date' or both 'start_date' and 'end_date'.")
+
+    if not start_date or not end_date:
+        raise HTTPException(status_code=400, detail="Both 'start_date' and 'end_date' are required for range queries.")
+
+    try:
+        start_dt = date.fromisoformat(start_date)
+        end_dt = date.fromisoformat(end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+    if start_dt > end_dt:
+        raise HTTPException(status_code=400, detail="'start_date' cannot be greater than 'end_date'.")
+
+    return report_service.get_detailed_sales_performance(db, start_dt.isoformat(), end_dt.isoformat())
 
 @router.get("/sales/today", response_model=SalesReportResponse)
 async def get_today_sales_report(db: Session = Depends(get_db)):
