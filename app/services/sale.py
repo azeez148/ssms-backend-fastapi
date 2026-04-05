@@ -20,14 +20,38 @@ class SaleService:
         # Get or create customer
         customer_id = sale.customer_id
         if customer_id == 0:
-            if not sale.customer_mobile:
+            customer_payload = sale.customer_address if hasattr(sale, "customer_address") else None
+            payload_dict = customer_payload.model_dump() if hasattr(customer_payload, "model_dump") else {}
+
+            customer_name = payload_dict.get("name") or sale.customer_name
+            customer_mobile = payload_dict.get("mobile") or sale.customer_mobile
+            customer_email = payload_dict.get("email") or sale.customer_email
+
+            # Keep legacy support where customer_address was a plain string address.
+            if isinstance(customer_payload, str):
+                customer_address = customer_payload
+                customer_city = None
+                customer_state = None
+                customer_zip_code = None
+            else:
+                customer_address = payload_dict.get("address")
+                customer_city = payload_dict.get("city")
+                customer_state = payload_dict.get("state")
+                customer_zip_code = payload_dict.get("zip_code")
+
+            if not customer_mobile:
                 raise ValueError("Customer mobile number is required to create a new customer.")
+            if not customer_name:
+                raise ValueError("Customer name is required to create a new customer.")
 
             customer_data = CustomerCreate(
-                name=sale.customer_name,
-                address=sale.customer_address,
-                mobile=sale.customer_mobile,
-                email=sale.customer_email
+                name=customer_name,
+                address=customer_address,
+                mobile=customer_mobile,
+                email=customer_email,
+                city=customer_city,
+                state=customer_state,
+                zip_code=customer_zip_code,
             )
             customer = get_or_create_customer(db, customer_data)
             customer_id = customer.id
