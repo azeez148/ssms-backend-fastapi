@@ -1,14 +1,26 @@
+from datetime import date, timedelta
 from sqlalchemy.orm import Session, joinedload
 from app.models.sale import Sale
 from app.models.product import Product
 from app.schemas.report import (
     SalesReportResponse, SalesComparisonResponse,
-    SalesReportSummary, SalesComparisonDifference
+    SalesReportSummary, SalesComparisonDifference,
+    SalesPerformanceResponse,
+    SalesPerformanceSummary,
+    DailySalesPerformance,
+    SalesPerformanceItemDetail,
+    ShopPerformanceSummary,
+    StatusBreakdownItem,
 )
 from app.schemas.enums import SaleStatus
 from typing import Optional
 
 class ReportService:
+    @staticmethod
+    def _normalized_date(value: str) -> str:
+        """Normalize sale date strings to YYYY-MM-DD."""
+        return (value or "")[:10]
+
     def _calculate_summary(self, db: Session, sales) -> dict:
         """Calculate summary metrics for a list of sales."""
         # Filter sales to avoid CANCELLED, PENDING, RETURNED for summary calculation
@@ -127,4 +139,244 @@ class ReportService:
             period_1=period_1,
             period_2=period_2,
             difference=difference
+        )
+
+    def get_detailed_sales_performance(
+        self,
+        db: Session,
+        start_date: str,
+        end_date: str,
+    ) -> SalesPerformanceResponse:
+        start_dt = date.fromisoformat(start_date)
+        end_dt = date.fromisoformat(end_date)
+        end_exclusive = (end_dt + timedelta(days=1)).isoformat()
+
+        all_sales = (
+            db.query(Sale)
+            .options(joinedload(Sale.sale_items), joinedload(Sale.shop))
+            .filter(Sale.date >= start_dt.isoformat())
+            .filter(Sale.date < end_exclusive)
+            .all()
+        )
+
+        status_breakdown_map = {}
+        for sale in all_sales:
+            status = sale.status.value if hasattr(sale.status, "value") else str(sale.status)
+            status_breakdown_map[status] = status_breakdown_map.get(status, 0) + 1
+
+        included_statuses = {SaleStatus.COMPLETED, SaleStatus.SHIPPED}
+        included_sales = [sale for sale in all_sales if sale.status in included_statuses]
+
+        product_ids = {
+            item.product_id
+            for sale in included_sales
+            for item in sale.sale_items
+            if item.product_id is not None
+        }
+        products = db.query(Product.id, Product.unit_price).filter(Product.id.in_(product_ids)).all() if product_ids else []
+        product_unit_price_map = {product_id: float(unit_price or 0.0) for product_id, unit_price in products}
+
+        daily_map = {}
+        shop_map = {}
+        total_revenue = 0.0
+        total_profit = 0.0
+        total_items = 0
+
+        for sale in included_sales:
+            day_key = self._normalized_date(sale.date)
+            if day_key not in daily_map:
+                daily_map[day_key] = {
+                    "date": day_key,
+                    "no_of_orders": 0,
+                    "no_of_items": 0,
+                    "total_revenue": 0.0,
+                    "total_profit_loss": 0.0,
+                    "sale_items": [],
+                }
+
+            day_entry = daily_map[day_key]
+            day_entry["no_of_orders"] += 1
+            day_entry["total_revenue"] += float(sale.total_price or 0.0)
+
+            sale_item_qty_total = 0
+            sale_profit = 0.0
+
+            for item in sale.sale_items:
+                quantity = int(item.quantity or 0)
+                sale_item_qty_total += quantity
+
+                unit_price = float(product_unit_price_map.get(item.product_id, 0.0))
+                sale_price = float(item.sale_price or 0.0)
+                revenue = float(item.total_price or (sale_price * quantity))
+                profit_loss = quantity * (sale_price - unit_price)
+                sale_profit += profit_loss
+
+                day_entry["sale_items"].append(
+                    {
+                        "item_name": item.product_name,
+                        "quantity": quantity,
+                        "unit_price": unit_price,
+                        "sale_price": sale_price,
+                        "revenue": revenue,
+                        "profit_loss": profit_loss,
+                    }
+                )
+
+                shop_key = sale.shop_id
+                if shop_key not in shop_map:
+                    shop_map[shop_key] = {
+                        "shop_name": sale.shop.name if sale.shop else "Unknown",
+                        "shop_code": sale.shop.shop_code if sale.shop else None,
+                        "revenue": 0.0,
+                        "profit": 0.0,
+                        "sale_items": [],
+                        "daily_map": {},
+                    }
+                shop_map[shop_key]["profit"] += profit_loss
+                shop_map[shop_key]["sale_items"].append(
+                    {
+                        "item_name": item.product_name,
+                        "quantity": quantity,
+                        "unit_price": unit_price,
+                        "sale_price": sale_price,
+                        "revenue": revenue,
+                        "profit_loss": profit_loss,
+                    }
+                )
+
+                if day_key not in shop_map[shop_key]["daily_map"]:
+                    shop_map[shop_key]["daily_map"][day_key] = {
+                        "date": day_key,
+                        "no_of_orders": 0,
+                        "no_of_items": 0,
+                        "total_revenue": 0.0,
+                        "total_profit_loss": 0.0,
+                        "sale_items": [],
+                    }
+
+                shop_map[shop_key]["daily_map"][day_key]["no_of_items"] += quantity
+                shop_map[shop_key]["daily_map"][day_key]["total_profit_loss"] += profit_loss
+                shop_map[shop_key]["daily_map"][day_key]["sale_items"].append(
+                    {
+                        "item_name": item.product_name,
+                        "quantity": quantity,
+                        "unit_price": unit_price,
+                        "sale_price": sale_price,
+                        "revenue": revenue,
+                        "profit_loss": profit_loss,
+                    }
+                )
+
+            day_entry["no_of_items"] += sale_item_qty_total
+            day_entry["total_profit_loss"] += sale_profit
+
+            total_items += sale_item_qty_total
+            total_revenue += float(sale.total_price or 0.0)
+            total_profit += sale_profit
+
+            shop_key = sale.shop_id
+            if shop_key not in shop_map:
+                shop_map[shop_key] = {
+                    "shop_name": sale.shop.name if sale.shop else "Unknown",
+                    "shop_code": sale.shop.shop_code if sale.shop else None,
+                    "revenue": 0.0,
+                    "profit": 0.0,
+                    "sale_items": [],
+                    "daily_map": {},
+                }
+            shop_map[shop_key]["revenue"] += float(sale.total_price or 0.0)
+
+            if day_key not in shop_map[shop_key]["daily_map"]:
+                shop_map[shop_key]["daily_map"][day_key] = {
+                    "date": day_key,
+                    "no_of_orders": 0,
+                    "no_of_items": 0,
+                    "total_revenue": 0.0,
+                    "total_profit_loss": 0.0,
+                    "sale_items": [],
+                }
+            shop_map[shop_key]["daily_map"][day_key]["no_of_orders"] += 1
+            shop_map[shop_key]["daily_map"][day_key]["total_revenue"] += float(sale.total_price or 0.0)
+
+        daily_performance = [
+            DailySalesPerformance(
+                date=entry["date"],
+                no_of_orders=entry["no_of_orders"],
+                no_of_items=entry["no_of_items"],
+                total_revenue=round(entry["total_revenue"], 2),
+                total_profit_loss=round(entry["total_profit_loss"], 2),
+                sale_items=[
+                    SalesPerformanceItemDetail(
+                        item_name=item["item_name"],
+                        quantity=item["quantity"],
+                        unit_price=round(item["unit_price"], 2),
+                        sale_price=round(item["sale_price"], 2),
+                        revenue=round(item["revenue"], 2),
+                        profit_loss=round(item["profit_loss"], 2),
+                    )
+                    for item in entry["sale_items"]
+                ],
+            )
+            for entry in sorted(daily_map.values(), key=lambda x: x["date"])
+        ]
+
+        shop_wise_performance = [
+            ShopPerformanceSummary(
+                shop_name=entry["shop_name"],
+                shop_code=entry["shop_code"],
+                revenue=round(entry["revenue"], 2),
+                profit=round(entry["profit"], 2),
+                sale_items=[
+                    SalesPerformanceItemDetail(
+                        item_name=item["item_name"],
+                        quantity=item["quantity"],
+                        unit_price=round(item["unit_price"], 2),
+                        sale_price=round(item["sale_price"], 2),
+                        revenue=round(item["revenue"], 2),
+                        profit_loss=round(item["profit_loss"], 2),
+                    )
+                    for item in entry["sale_items"]
+                ],
+                daily_performance=[
+                    DailySalesPerformance(
+                        date=shop_day_entry["date"],
+                        no_of_orders=shop_day_entry["no_of_orders"],
+                        no_of_items=shop_day_entry["no_of_items"],
+                        total_revenue=round(shop_day_entry["total_revenue"], 2),
+                        total_profit_loss=round(shop_day_entry["total_profit_loss"], 2),
+                        sale_items=[
+                            SalesPerformanceItemDetail(
+                                item_name=item["item_name"],
+                                quantity=item["quantity"],
+                                unit_price=round(item["unit_price"], 2),
+                                sale_price=round(item["sale_price"], 2),
+                                revenue=round(item["revenue"], 2),
+                                profit_loss=round(item["profit_loss"], 2),
+                            )
+                            for item in shop_day_entry["sale_items"]
+                        ],
+                    )
+                    for shop_day_entry in sorted(entry["daily_map"].values(), key=lambda x: x["date"])
+                ],
+            )
+            for entry in sorted(shop_map.values(), key=lambda x: x["shop_name"])
+        ]
+
+        status_breakdown = [
+            StatusBreakdownItem(status=status, count=count)
+            for status, count in sorted(status_breakdown_map.items(), key=lambda item: item[0])
+        ]
+
+        return SalesPerformanceResponse(
+            start_date=start_dt.isoformat(),
+            end_date=end_dt.isoformat(),
+            daily_performance=daily_performance,
+            summary=SalesPerformanceSummary(
+                total_sales=len(included_sales),
+                total_revenue=round(total_revenue, 2),
+                total_items=total_items,
+                total_profit=round(total_profit, 2),
+            ),
+            shop_wise_performance=shop_wise_performance,
+            status_breakdown=status_breakdown,
         )
