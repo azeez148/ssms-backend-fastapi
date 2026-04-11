@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 from .payment import PaymentTypeResponse
 from .delivery import DeliveryTypeResponse
 from .customer import CustomerResponse
@@ -46,8 +46,17 @@ class SaleBase(BaseModel):
         from_attributes = True
 
 class SaleCreate(SaleBase):
+    class CustomerAddressPayload(BaseModel):
+        name: str
+        address: Optional[str] = None
+        mobile: str
+        email: Optional[str] = None
+        city: Optional[str] = None
+        state: Optional[str] = None
+        zip_code: Optional[str] = None
+
     customer_name: Optional[str] = None
-    customer_address: Optional[str] = None
+    customer_address: Optional[Union[str, CustomerAddressPayload]] = None
     customer_mobile: Optional[str] = None
     customer_email: Optional[str] = None
     sale_items: List[SaleItemCreate]
