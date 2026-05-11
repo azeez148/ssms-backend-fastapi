@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, date
 from app.schemas.base import BaseSchema
 
 # Expense Schemas
@@ -25,19 +25,9 @@ class DayBase(BaseModel):
 
 class DayCreate(DayBase):
     shop_id: Optional[int] = 1
-    variance: Optional[float] = None
-    variance_reason: Optional[str] = None
-
-class DayUpdate(BaseModel):
-    closing_balance: float
-    total_expense: float
-    cash_in_hand: float
-    cash_in_account: float
-    end_time: datetime
 
 class EndDayRequest(BaseModel):
-    closing_balance_actual: float
-    variance: float = 0
+    closing_balance: float          # actual cash counted by staff
     variance_reason: Optional[str] = None
 
 class Day(DayBase, BaseSchema):
@@ -49,6 +39,9 @@ class Day(DayBase, BaseSchema):
     total_expense: Optional[float] = None
     cash_in_hand: Optional[float] = None
     cash_in_account: Optional[float] = None
+    total_sales: Optional[float] = None
+    total_cash_sales: Optional[float] = None
+    total_account_sales: Optional[float] = None
     variance: Optional[float] = None
     variance_reason: Optional[str] = None
     expenses: List[Expense] = []
@@ -56,20 +49,31 @@ class Day(DayBase, BaseSchema):
     class Config:
         from_attributes = True
 
-# Day Summary Schema
-class DaySummary(BaseSchema):
+# Day Summary Schema — full status for a day
+class DaySummary(BaseModel):
     day_id: int
-    closing_balance: float
-    total_expense: float
-    cash_in_hand: float
-    cash_in_account: float
-    message: Optional[str] = None
+    date: Optional[str] = None
+    shop_id: Optional[int] = None
+    shop_name: Optional[str] = None
     opening_balance: float
+    total_expense: float
+    expenses: List[Expense] = []
+    total_sales: float
+    total_cash_sales: float
+    total_account_sales: float
+    cash_in_hand: float             # expected cash (calculated)
+    cash_in_account: float          # total non-cash sales
+    closing_balance: Optional[float] = None   # actual cash counted
+    variance: Optional[float] = None          # closing_balance - cash_in_hand
+    variance_reason: Optional[str] = None
+    day_started: bool
+    day_ended: bool
     start_time: datetime
     end_time: Optional[datetime] = None
-    variance: Optional[float] = None
-    variance_reason: Optional[str] = None
-    expenses: List[Expense] = []
+    message: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 class StatusResponse(BaseModel):
@@ -80,4 +84,5 @@ class ShopStatusResponse(BaseModel):
     shop_id: int
     shop_name: str
     day_started: bool
+    day_ended: bool
     active_day: Optional[Day] = None

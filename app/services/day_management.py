@@ -16,11 +16,60 @@ class DayManagementService:
     def __init__(self):
         self.email_notification_service = EmailNotificationService()
 
+    def _populate_live_totals(self, db: Session, day: Day) -> Day:
+        """
+        Calculates and injects live sales/expense totals into an active day object
+        without persisting to the database.
+        """
+        if day is None:
+            return day
+
+        total_expense = db.query(func.sum(Expense.amount)).filter(Expense.day_id == day.id).scalar() or 0.0
+
+        target_date = day.start_time.date().isoformat()
+        sales = db.query(Sale).options(joinedload(Sale.payment_type)).filter(
+            Sale.date == target_date,
+            Sale.status != SaleStatus.CANCELLED,
+            Sale.shop_id == day.shop_id
+        ).all()
+
+        total_cash_sales = sum(s.total_price for s in sales if s.payment_type and s.payment_type.name == 'Cash on Delivery')
+        total_account_sales = sum(s.total_price for s in sales if s.payment_type and s.payment_type.name != 'Cash on Delivery')
+
+        # Set in-memory only — do not commit
+        day.total_expense = total_expense
+        day.total_cash_sales = total_cash_sales
+        day.total_account_sales = total_account_sales
+        day.total_sales = total_cash_sales + total_account_sales
+        day.cash_in_hand = (day.opening_balance or 0.0) + total_cash_sales - total_expense
+        day.cash_in_account = total_account_sales
+
+        return day
+
     def get_active_day(self, db: Session, shop_id: int) -> Optional[Day]:
         """
-        Retrieves the currently active day for a specific shop (a day that has been started but not ended).
+        Retrieves the currently active (not ended) day for a shop with live totals.
         """
-        return db.query(Day).filter(Day.shop_id == shop_id, Day.end_time.is_(None)).first()
+        day = db.query(Day).filter(Day.shop_id == shop_id, Day.end_time.is_(None)).first()
+        return self._populate_live_totals(db, day)
+
+    def get_today_day(self, db: Session, shop_id: int) -> Optional[Day]:
+        """
+        Returns today's day for a shop regardless of whether it is active or ended.
+        For an active day, live totals are injected. For an ended day, stored totals are returned.
+        """
+        today = datetime.utcnow().date()
+        day = db.query(Day).filter(
+            Day.shop_id == shop_id,
+            cast(Day.start_time, Date) == today
+        ).first()
+        if day is None:
+            return None
+        if day.end_time is None:
+            # Active — populate live totals
+            return self._populate_live_totals(db, day)
+        # Ended — stored totals are already accurate from end_day()
+        return day
 
     def start_day(self, db: Session, day: DayCreate) -> Day:
         """
@@ -140,9 +189,12 @@ class DayManagementService:
         """
         return db.query(Expense).filter(Expense.day_id == day_id).all()
 
-    def end_day(self, db: Session, day_id: int, closing_balance_actual: float = None, variance: float = 0, variance_reason: str = None) -> Day:
+    def end_day(self, db: Session, day_id: int, closing_balance: float, variance_reason: str = None) -> Day:
         """
-        Ends the specified day, calculates totals, and updates the day's record.
+        Ends the specified day.
+        - Recalculates totals from actual sales and expenses.
+        - Stores the closing_balance entered by staff.
+        - Computes variance = closing_balance - expected_cash_in_hand.
         """
         db_day = db.query(Day).filter(Day.id == day_id).first()
         if not db_day:
@@ -151,9 +203,10 @@ class DayManagementService:
         if db_day.end_time is not None:
             raise Exception("This day has already been ended.")
 
-        # Final recalculation to ensure accuracy
+        # Recalculate expenses
         total_expense = db.query(func.sum(Expense.amount)).filter(Expense.day_id == day_id).scalar() or 0.0
 
+        # Recalculate sales for the day
         target_date = db_day.start_time.date().isoformat()
         sales_for_day = db.query(Sale).options(joinedload(Sale.payment_type)).filter(
             Sale.date == target_date,
@@ -161,26 +214,31 @@ class DayManagementService:
             Sale.shop_id == db_day.shop_id
         ).all()
 
-        total_cash_sales = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name == 'Cash on Delivery')
-        total_account_sales = sum(sale.total_price for sale in sales_for_day if sale.payment_type.name != 'Cash on Delivery')
+        total_cash_sales = sum(sale.total_price for sale in sales_for_day if sale.payment_type and sale.payment_type.name == 'Cash on Delivery')
+        total_account_sales = sum(sale.total_price for sale in sales_for_day if sale.payment_type and sale.payment_type.name != 'Cash on Delivery')
+        total_sales = total_cash_sales + total_account_sales
 
-        # Update day record
+        # Expected cash in hand = opening + cash sales - expenses
+        expected_cash_in_hand = db_day.opening_balance + total_cash_sales - total_expense
+
+        # Variance = actual closing balance counted - expected cash in hand
+        variance = closing_balance - expected_cash_in_hand
+
         db_day.end_time = datetime.now()
         db_day.total_expense = total_expense
-        db_day.cash_in_hand = db_day.opening_balance + total_cash_sales - total_expense
+        db_day.total_sales = total_sales
+        db_day.total_cash_sales = total_cash_sales
+        db_day.total_account_sales = total_account_sales
+        db_day.cash_in_hand = expected_cash_in_hand
         db_day.cash_in_account = total_account_sales
-        db_day.closing_balance = db_day.cash_in_hand + db_day.cash_in_account
-        
-        # Set variance (default to 0 if not provided)
-        db_day.variance = variance if variance is not None else 0
-        # Set variance_reason (default to None if not provided)
+        db_day.closing_balance = closing_balance
+        db_day.variance = variance
         db_day.variance_reason = variance_reason
-
         db_day.updated_by = "system"
+
         db.commit()
         db.refresh(db_day)
 
-        # Send notifications
         try:
             day_summary = self.get_day_summary(db, day_id)
             self.email_notification_service.send_day_summary_notification(day_summary, db_day.shop)
@@ -191,40 +249,54 @@ class DayManagementService:
 
     def get_day_summary(self, db: Session, day_id: int) -> DaySummary:
         """
-        Generates a summary for a specific day.
+        Generates a full status summary for a specific day.
         """
         db_day = db.query(Day).filter(Day.id == day_id).first()
         if not db_day:
             raise Exception("Day not found.")
 
+        expenses = self.get_expenses_for_day(db, day_id)
+        shop_name = db_day.shop.name if db_day.shop else "Unknown"
+        day_date = db_day.start_time.date().isoformat() if db_day.start_time else None
+
         return DaySummary(
             day_id=db_day.id,
-            closing_balance=db_day.closing_balance or 0.0,
+            date=day_date,
+            shop_id=db_day.shop_id,
+            shop_name=shop_name,
+            opening_balance=db_day.opening_balance,
             total_expense=db_day.total_expense or 0.0,
+            expenses=expenses,
+            total_sales=db_day.total_sales or 0.0,
+            total_cash_sales=db_day.total_cash_sales or 0.0,
+            total_account_sales=db_day.total_account_sales or 0.0,
             cash_in_hand=db_day.cash_in_hand or 0.0,
             cash_in_account=db_day.cash_in_account or 0.0,
-            opening_balance=db_day.opening_balance,
+            closing_balance=db_day.closing_balance,
+            variance=db_day.variance,
+            variance_reason=db_day.variance_reason,
+            day_started=True,
+            day_ended=db_day.end_time is not None,
             start_time=db_day.start_time,
             end_time=db_day.end_time,
-            variance=db_day.variance or 0.0,
-            variance_reason=db_day.variance_reason,
-            expenses=self.get_expenses_for_day(db, day_id),
             message="Day summary retrieved successfully."
         )
 
-    def get_all_shops_status(self, db: Session) -> List[dict]:
+    def get_all_shops_status(self, db: Session) -> list:
         """
-        Retrieves the status of all shops (whether they have an active day).
+        Retrieves the status of all shops for today.
+        Returns the day record (active or ended) so the frontend always gets details.
         """
         from app.models.shop import Shop
         shops = db.query(Shop).all()
         status_list = []
         for shop in shops:
-            active_day = self.get_active_day(db, shop.id)
+            today_day = self.get_today_day(db, shop.id)
             status_list.append({
                 "shop_id": shop.id,
                 "shop_name": shop.name,
-                "day_started": active_day is not None,
-                "active_day": active_day
+                "day_started": today_day is not None,
+                "day_ended": today_day is not None and today_day.end_time is not None,
+                "active_day": today_day
             })
         return status_list
