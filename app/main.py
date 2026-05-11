@@ -24,7 +24,7 @@ app.mount("/images", StaticFiles(directory="images"), name="images")
 load_dotenv()
 
 # Get CORS URLs as a list
-cors_urls = os.getenv("CORS_URLS", "")
+cors_urls = os.getenv("CORS_URLS", "http://localhost:4200")
 origins = [url.strip() for url in cors_urls.split(",") if url.strip()]
 
 # Configure CORS middleware

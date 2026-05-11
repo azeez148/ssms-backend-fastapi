@@ -35,19 +35,14 @@ def start_day(day: DayCreate, db: Session = Depends(get_db), current_user: User 
 
 @router.post("/addExpense", response_model=Expense)
 def add_expense(expense: ExpenseCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # If shop_id is not in ExpenseCreate, we might need to get it from the active day
-    # But for staff, we should verify their shop_id
     if current_user.role != "admin":
         active_day = day_management_service.get_active_day(db, current_user.shop_id)
         if not active_day:
-             raise HTTPException(status_code=400, detail="No active day found for your shop.")
-        # Ensure if day_id is passed, it matches staff's shop's active day
+            raise HTTPException(status_code=400, detail="No active day found for your shop.")
         if expense.day_id and expense.day_id != active_day.id:
             raise HTTPException(status_code=403, detail="You can only add expenses to your own shop's active day.")
         shop_id = current_user.shop_id
     else:
-        # Admin must provide shop_id somehow if multiple active days exist,
-        # but here we can try to derive it from day_id or shop_id in the body
         if expense.shop_id:
             shop_id = expense.shop_id
         elif expense.day_id:
@@ -57,7 +52,6 @@ def add_expense(expense: ExpenseCreate, db: Session = Depends(get_db), current_u
             shop_id = db_day.shop_id
         else:
             raise HTTPException(status_code=400, detail="Admin must provide shop_id or day_id.")
-
     try:
         return day_management_service.add_expense(db, expense, shop_id=shop_id)
     except Exception as e:
@@ -78,7 +72,7 @@ def end_day(day_id: int, day_data: EndDayRequest, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Day not found.")
     check_shop_access(current_user, db_day.shop_id)
     try:
-        day_management_service.end_day(db, day_id, day_data.closing_balance_actual, day_data.variance, day_data.variance_reason)
+        day_management_service.end_day(db, day_id, day_data.closing_balance, day_data.variance_reason)
         return day_management_service.get_day_summary(db, day_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -95,18 +89,31 @@ def get_active_day(shop_id: Optional[int] = None, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="No active day found for this shop.")
     return active_day
 
+@router.get("/day/{day_id}", response_model=DaySummary)
+def get_day_summary(day_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Retrieve full status/summary of a specific day."""
+    db_day = db.query(DayModel).filter(DayModel.id == day_id).first()
+    if not db_day:
+        raise HTTPException(status_code=404, detail="Day not found.")
+    check_shop_access(current_user, db_day.shop_id)
+    try:
+        return day_management_service.get_day_summary(db, day_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/today", response_model=List[ShopStatusResponse])
-def get_status(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_today_status(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get the day status for all shops (admin) or current shop (staff)."""
     if current_user.role == "admin":
         return day_management_service.get_all_shops_status(db)
     else:
-        active_day = day_management_service.get_active_day(db, current_user.shop_id)
-        # We need a shop name here for the response
         from app.models.shop import Shop
         shop = db.query(Shop).filter(Shop.id == current_user.shop_id).first()
+        today_day = day_management_service.get_today_day(db, current_user.shop_id)
         return [ShopStatusResponse(
             shop_id=current_user.shop_id,
             shop_name=shop.name if shop else "Unknown",
-            day_started=active_day is not None,
-            active_day=active_day
+            day_started=today_day is not None,
+            day_ended=today_day is not None and today_day.end_time is not None,
+            active_day=today_day
         )]
