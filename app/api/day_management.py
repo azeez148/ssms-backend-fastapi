@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -98,6 +98,23 @@ def get_day_summary(day_id: int, db: Session = Depends(get_db), current_user: Us
     check_shop_access(current_user, db_day.shop_id)
     try:
         return day_management_service.get_day_summary(db, day_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/history", response_model=List[DaySummary])
+def get_day_history(
+    start_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
+    end_date: str = Query(..., description="End date in YYYY-MM-DD format"),
+    shop_id: Optional[int] = Query(None, description="Shop ID (admin only)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Retrieve day management history for a date range."""
+    if current_user.role != "admin":
+        shop_id = current_user.shop_id
+
+    try:
+        return day_management_service.get_days_range(db, start_date, end_date, shop_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
