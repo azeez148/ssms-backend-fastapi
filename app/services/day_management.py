@@ -255,7 +255,16 @@ class DayManagementService:
         if not db_day:
             raise Exception("Day not found.")
 
-        expenses = self.get_expenses_for_day(db, day_id)
+        if db_day.end_time is None:
+            self._populate_live_totals(db, db_day)
+
+        return self._get_day_summary_from_obj(db, db_day)
+
+    def _get_day_summary_from_obj(self, db: Session, db_day: Day) -> DaySummary:
+        """
+        Generates a DaySummary schema from a Day model instance.
+        """
+        expenses = self.get_expenses_for_day(db, db_day.id)
         shop_name = db_day.shop.name if db_day.shop else "Unknown"
         day_date = db_day.start_time.date().isoformat() if db_day.start_time else None
 
@@ -281,6 +290,25 @@ class DayManagementService:
             end_time=db_day.end_time,
             message="Day summary retrieved successfully."
         )
+
+    def get_days_range(self, db: Session, start_date: str, end_date: str, shop_id: Optional[int] = None) -> List[DaySummary]:
+        """
+        Retrieves day summaries for a date range and optional shop.
+        """
+        query = db.query(Day).filter(
+            cast(Day.start_time, Date) >= date.fromisoformat(start_date),
+            cast(Day.start_time, Date) <= date.fromisoformat(end_date)
+        )
+        if shop_id:
+            query = query.filter(Day.shop_id == shop_id)
+
+        days = query.order_by(Day.start_time.desc()).all()
+        summaries = []
+        for day in days:
+            if day.end_time is None:
+                self._populate_live_totals(db, day)
+            summaries.append(self._get_day_summary_from_obj(db, day))
+        return summaries
 
     def get_all_shops_status(self, db: Session) -> list:
         """
