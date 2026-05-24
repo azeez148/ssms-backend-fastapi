@@ -59,7 +59,8 @@ from app.api import (
     tags,
     users,
     pricelist,
-    report
+    report,
+    dashboardv2,
 )
 
 # Include all routers
@@ -78,6 +79,7 @@ app.include_router(shops.router, prefix="/shops", tags=["shops"])
 app.include_router(payments.router, prefix="/paymentType", tags=["payments"])
 app.include_router(delivery.router, prefix="/deliveryType", tags=["delivery"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+app.include_router(dashboardv2.router, prefix="/dashboardv2", tags=["dashboardv2"])
 app.include_router(home.router, prefix="/public", tags=["public"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
