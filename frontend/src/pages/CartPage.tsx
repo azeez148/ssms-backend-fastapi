@@ -17,6 +17,7 @@ import { Add, Remove, Delete, ShoppingBag } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { config } from '../config';
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const CartPage: React.FC = () => {
   };
 
   const handlePlaceOrder = () => {
-    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919999999999';
+    const whatsappNumber = config.whatsappNumber;
     const orderItems = items
       .map((item) => `• ${item.product.name} (x${item.quantity}) - ₹${(item.product.offer_price || item.product.selling_price) * item.quantity}`)
       .join('\n');

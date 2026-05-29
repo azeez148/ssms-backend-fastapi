@@ -4,9 +4,10 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import { WhatsAppFloatingButton } from '../common';
+import { config } from '../../config';
 
 const Layout: React.FC = () => {
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919999999999';
+  const whatsappNumber = config.whatsappNumber;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
