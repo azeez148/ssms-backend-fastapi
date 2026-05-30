@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { Store } from '@ngrx/store';
+import * as AuthActions from '../../store/auth/auth.actions';
+import { selectAuthLoading, selectAuthError } from '../../store/auth/auth.selectors';
 
 @Component({
   selector: 'app-login',
@@ -62,31 +63,27 @@ import { AuthService } from '../../services/auth.service';
     mat-form-field { margin-bottom: 8px; }
   `],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   form: FormGroup;
   loading = false;
   error = '';
   showPwd = false;
 
-  constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
+  constructor(private fb: FormBuilder, private store: Store) {
     this.form = this.fb.group({
       mobile: ['', [Validators.required, Validators.minLength(10)]],
       password: ['', Validators.required],
     });
   }
 
+  ngOnInit(): void {
+    this.store.select(selectAuthLoading).subscribe((loading) => (this.loading = loading));
+    this.store.select(selectAuthError).subscribe((error) => (this.error = error || ''));
+  }
+
   onSubmit(): void {
     if (this.form.invalid) return;
-    this.error = '';
-    this.loading = true;
     const { mobile, password } = this.form.value;
-
-    this.auth.login(mobile, password).subscribe({
-      next: () => { this.router.navigate(['/']); },
-      error: (err) => {
-        this.error = err.error?.detail || 'Login failed. Please check your credentials.';
-        this.loading = false;
-      },
-    });
+    this.store.dispatch(AuthActions.login({ mobile, password }));
   }
 }

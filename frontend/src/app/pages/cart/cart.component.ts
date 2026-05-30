@@ -1,8 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 import { CartItem } from '../../models';
-import { CartService } from '../../services/cart.service';
-import { AuthService } from '../../services/auth.service';
+import { selectCartItems, selectCartItemCount, selectCartTotal } from '../../store/cart/cart.selectors';
+import { selectUser, selectIsAuthenticated } from '../../store/auth/auth.selectors';
+import * as CartActions from '../../store/cart/cart.actions';
+import * as AuthActions from '../../store/auth/auth.actions';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -58,7 +62,7 @@ import { environment } from '../../../environments/environment';
             <mat-card-content>
               <div class="summary-row">
                 <span>Total ({{ itemCount }} items)</span>
-                <strong>₹{{ cart.getTotal() }}</strong>
+                <strong>₹{{ total }}</strong>
               </div>
             </mat-card-content>
             <mat-card-actions>
@@ -105,13 +109,13 @@ import { environment } from '../../../environments/environment';
             <mat-card-content>
               <h3>Order Summary</h3>
               <div *ngFor="let item of items" class="confirm-item">
-                <span>{{ item.product.name }} × {{ item.quantity }}</span>
+                <span>{{ item.product.name }}{{ item.selectedSize ? ' (' + item.selectedSize + ')' : '' }} × {{ item.quantity }}</span>
                 <span>₹{{ getItemPrice(item) * item.quantity }}</span>
               </div>
               <mat-divider class="divider"></mat-divider>
               <div class="confirm-total">
                 <strong>Total</strong>
-                <strong>₹{{ cart.getTotal() }}</strong>
+                <strong>₹{{ total }}</strong>
               </div>
               <h3>Delivery To</h3>
               <p>{{ address.address }}, {{ address.city }}, {{ address.state }} - {{ address.zip_code }}</p>
@@ -160,24 +164,34 @@ export class CartComponent implements OnInit {
   items: CartItem[] = [];
   activeStep = 0;
   address = { address: '', city: '', state: '', zip_code: '' };
+  itemCount = 0;
+  total = 0;
+  private isAuthenticated = false;
 
-  constructor(public cart: CartService, private auth: AuthService, private router: Router) {}
+  constructor(private store: Store, private router: Router) {}
 
   ngOnInit(): void {
-    this.cart.items$.subscribe((items) => (this.items = items));
-    const user = this.auth.currentUser;
-    if (user) {
-      this.address = {
-        address: user.address || '',
-        city: user.city || '',
-        state: user.state || '',
-        zip_code: user.zip_code || '',
-      };
-    }
-  }
+    this.store.select(selectCartItems).subscribe((items) => (this.items = items));
+    this.store.select(selectCartItemCount).subscribe((count) => (this.itemCount = count));
+    this.store.select(selectCartTotal).subscribe((total) => (this.total = total));
+    this.store.select(selectIsAuthenticated).subscribe((auth) => (this.isAuthenticated = auth));
 
-  get itemCount(): number {
-    return this.cart.getItemCount();
+    // Load fresh profile to populate address
+    this.store.select(selectUser).subscribe((user) => {
+      if (user) {
+        this.address = {
+          address: user.address || '',
+          city: user.city || '',
+          state: user.state || '',
+          zip_code: user.zip_code || '',
+        };
+      }
+    });
+
+    // Fetch fresh profile data from API to ensure address is populated
+    if (this.isAuthenticated) {
+      this.store.dispatch(AuthActions.loadProfile());
+    }
   }
 
   getItemPrice(item: CartItem): number {
@@ -185,15 +199,22 @@ export class CartComponent implements OnInit {
   }
 
   updateQty(item: CartItem, qty: number): void {
-    this.cart.updateQuantity(item.product.id, qty);
+    this.store.dispatch(CartActions.updateQuantity({
+      productId: item.product.id,
+      size: item.selectedSize,
+      quantity: qty,
+    }));
   }
 
   removeItem(item: CartItem): void {
-    this.cart.removeFromCart(item.product.id);
+    this.store.dispatch(CartActions.removeFromCart({
+      productId: item.product.id,
+      size: item.selectedSize,
+    }));
   }
 
   continueToBuy(): void {
-    if (!this.auth.isAuthenticated) {
+    if (!this.isAuthenticated) {
       this.router.navigate(['/login']);
       return;
     }
@@ -205,17 +226,28 @@ export class CartComponent implements OnInit {
   }
 
   placeOrder(): void {
-    const user = this.auth.currentUser;
+    let userName = '';
+    let userMobile = '';
+    this.store.select(selectUser).subscribe((user) => {
+      if (user) {
+        userName = `${user.first_name} ${user.last_name}`;
+        userMobile = user.mobile;
+      }
+    }).unsubscribe();
+
     const orderItems = this.items
-      .map((i) => `• ${i.product.name} (x${i.quantity}) - ₹${this.getItemPrice(i) * i.quantity}`)
+      .map((i) => {
+        const sizeInfo = i.selectedSize ? ` (${i.selectedSize})` : '';
+        return `• ${i.product.name}${sizeInfo} (x${i.quantity}) - ₹${this.getItemPrice(i) * i.quantity}`;
+      })
       .join('\n');
     const message =
-      `🛒 *New Order*\n\n${orderItems}\n\n💰 *Total: ₹${this.cart.getTotal()}*\n\n` +
+      `🛒 *New Order*\n\n${orderItems}\n\n💰 *Total: ₹${this.total}*\n\n` +
       `📍 *Delivery Address:*\n${this.address.address}, ${this.address.city}, ${this.address.state} - ${this.address.zip_code}\n\n` +
-      `👤 *Customer:* ${user?.first_name} ${user?.last_name}\n📱 *Mobile:* ${user?.mobile}`;
+      `👤 *Customer:* ${userName}\n📱 *Mobile:* ${userMobile}`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${environment.whatsappNumber}?text=${encoded}`, '_blank');
-    this.cart.clearCart();
+    this.store.dispatch(CartActions.clearCart());
     this.activeStep = 0;
     this.router.navigate(['/']);
   }

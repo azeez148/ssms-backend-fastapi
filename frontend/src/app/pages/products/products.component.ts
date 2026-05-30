@@ -1,8 +1,12 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { forkJoin } from 'rxjs';
 import { Product, Category } from '../../models';
 import { ProductService } from '../../services/product.service';
-import { CartService } from '../../services/cart.service';
+import * as CartActions from '../../store/cart/cart.actions';
+import * as FavoritesActions from '../../store/favorites/favorites.actions';
+import { selectFavoriteIds } from '../../store/favorites/favorites.selectors';
 
 @Component({
   selector: 'app-products',
@@ -37,6 +41,7 @@ import { CartService } from '../../services/cart.service';
             [showFavorite]="true"
             (addToCart)="onAddToCart($event)"
             (toggleFavorite)="onToggleFavorite($event)"
+            (viewDetails)="onViewDetails($event)"
           ></app-product-card>
         </div>
 
@@ -69,12 +74,15 @@ export class ProductsComponent implements OnInit {
   sortBy = '';
   favorites: number[] = [];
 
-  constructor(private productService: ProductService, private cart: CartService) {
-    const saved = localStorage.getItem('favorites');
-    this.favorites = saved ? JSON.parse(saved) : [];
-  }
+  constructor(
+    private productService: ProductService,
+    private store: Store,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    this.store.select(selectFavoriteIds).subscribe((ids) => (this.favorites = ids));
+
     forkJoin({
       products: this.productService.getAllProducts(),
       categories: this.productService.getCategories(),
@@ -119,15 +127,15 @@ export class ProductsComponent implements OnInit {
   onCategoryChange(cat: string): void { this.selectedCategory = cat; }
   onSortChange(sort: string): void { this.sortBy = sort; }
 
-  onAddToCart(product: Product): void { this.cart.addToCart(product); }
+  onAddToCart(event: { product: Product; size?: string }): void {
+    this.store.dispatch(CartActions.addToCart({ product: event.product, quantity: 1, size: event.size }));
+  }
 
   onToggleFavorite(product: Product): void {
-    const idx = this.favorites.indexOf(product.id);
-    if (idx >= 0) {
-      this.favorites.splice(idx, 1);
-    } else {
-      this.favorites.push(product.id);
-    }
-    localStorage.setItem('favorites', JSON.stringify(this.favorites));
+    this.store.dispatch(FavoritesActions.toggleFavorite({ productId: product.id }));
+  }
+
+  onViewDetails(product: Product): void {
+    this.router.navigate(['/products', product.id]);
   }
 }

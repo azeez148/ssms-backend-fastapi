@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
-import { Observable, filter, map } from 'rxjs';
-import { AuthService } from '../../../services/auth.service';
-import { CartService } from '../../../services/cart.service';
+import { Component } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
 import { UserProfile } from '../../../models';
+import { selectUser } from '../../../store/auth/auth.selectors';
+import { selectCartItemCount } from '../../../store/cart/cart.selectors';
+import * as AuthActions from '../../../store/auth/auth.actions';
 
 @Component({
   selector: 'app-header',
@@ -100,14 +101,12 @@ export class HeaderComponent {
   user$: Observable<UserProfile | null>;
   itemCount$: Observable<number>;
 
-  constructor(private auth: AuthService, private cart: CartService) {
-    this.user$ = this.auth.user$;
-    this.itemCount$ = this.cart.items$.pipe(
-      map((items) => items.reduce((c, i) => c + i.quantity, 0))
-    );
+  constructor(private store: Store) {
+    this.user$ = this.store.select(selectUser);
+    this.itemCount$ = this.store.select(selectCartItemCount);
   }
 
   logout(): void {
-    this.auth.logout();
+    this.store.dispatch(AuthActions.logout());
   }
 }

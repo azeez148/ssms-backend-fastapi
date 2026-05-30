@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { forkJoin } from 'rxjs';
 import { Product, Category, EventOffer } from '../../models';
 import { ProductService } from '../../services/product.service';
-import { CartService } from '../../services/cart.service';
+import * as CartActions from '../../store/cart/cart.actions';
 
 @Component({
   selector: 'app-offers',
@@ -49,6 +51,7 @@ import { CartService } from '../../services/cart.service';
             *ngFor="let product of filteredProducts"
             [product]="product"
             (addToCart)="onAddToCart($event)"
+            (viewDetails)="onViewDetails($event)"
           ></app-product-card>
         </div>
 
@@ -85,7 +88,11 @@ export class OffersComponent implements OnInit {
   selectedCategory = '';
   sortBy = '';
 
-  constructor(private productService: ProductService, private cart: CartService) {}
+  constructor(
+    private productService: ProductService,
+    private store: Store,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     forkJoin({
@@ -130,5 +137,12 @@ export class OffersComponent implements OnInit {
   onSearch(q: string): void { this.search = q; }
   onCategoryChange(cat: string): void { this.selectedCategory = cat; }
   onSortChange(sort: string): void { this.sortBy = sort; }
-  onAddToCart(product: Product): void { this.cart.addToCart(product); }
+
+  onAddToCart(event: { product: Product; size?: string }): void {
+    this.store.dispatch(CartActions.addToCart({ product: event.product, quantity: 1, size: event.size }));
+  }
+
+  onViewDetails(product: Product): void {
+    this.router.navigate(['/products', product.id]);
+  }
 }

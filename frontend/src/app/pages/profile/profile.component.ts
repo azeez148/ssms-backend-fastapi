@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { Store } from '@ngrx/store';
+import { selectUser, selectAuthLoading, selectAuthError } from '../../store/auth/auth.selectors';
+import * as AuthActions from '../../store/auth/auth.actions';
 import { UserProfile } from '../../models';
 
 @Component({
@@ -96,7 +98,7 @@ export class ProfileComponent implements OnInit {
   success = '';
   error = '';
 
-  constructor(private auth: AuthService, private fb: FormBuilder, private router: Router) {
+  constructor(private store: Store, private fb: FormBuilder, private router: Router) {
     this.form = this.fb.group({
       first_name: [{ value: '', disabled: true }],
       last_name: [{ value: '', disabled: true }],
@@ -108,17 +110,24 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.auth.user$.subscribe((user) => {
+    // Dispatch loadProfile to fetch fresh data from API
+    this.store.dispatch(AuthActions.loadProfile());
+
+    this.store.select(selectUser).subscribe((user) => {
       if (!user) { this.router.navigate(['/login']); return; }
       this.user = user;
       this.form.patchValue({
-        first_name: user.first_name,
-        last_name: user.last_name,
-        address: user.address,
-        city: user.city,
-        state: user.state,
-        zip_code: user.zip_code,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zip_code: user.zip_code || '',
       });
+    });
+
+    this.store.select(selectAuthError).subscribe((err) => {
+      if (err) this.error = err;
     });
   }
 
@@ -132,24 +141,30 @@ export class ProfileComponent implements OnInit {
   cancelEdit(): void {
     this.editing = false;
     this.form.disable();
-    if (this.user) this.form.patchValue(this.user);
+    if (this.user) {
+      this.form.patchValue({
+        first_name: this.user.first_name || '',
+        last_name: this.user.last_name || '',
+        address: this.user.address || '',
+        city: this.user.city || '',
+        state: this.user.state || '',
+        zip_code: this.user.zip_code || '',
+      });
+    }
   }
 
   save(): void {
-    this.auth.updateProfile(this.form.value).subscribe({
-      next: () => {
+    this.store.dispatch(AuthActions.updateProfile({ data: this.form.value }));
+    this.store.select(selectAuthLoading).subscribe((loading) => {
+      if (!loading && !this.error) {
         this.success = 'Profile updated successfully!';
         this.editing = false;
         this.form.disable();
-        this.error = '';
-      },
-      error: (err) => {
-        this.error = err.error?.detail || 'Failed to update profile';
-      },
+      }
     });
   }
 
   logout(): void {
-    this.auth.logout();
+    this.store.dispatch(AuthActions.logout());
   }
 }
