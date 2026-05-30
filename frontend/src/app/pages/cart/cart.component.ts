@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { CartItem } from '../../models';
 import { selectCartItems, selectCartItemCount, selectCartTotal } from '../../store/cart/cart.selectors';
 import { selectUser, selectIsAuthenticated } from '../../store/auth/auth.selectors';
@@ -160,38 +161,52 @@ import { environment } from '../../../environments/environment';
     .confirm-total { display: flex; justify-content: space-between; font-size: 1.1rem; padding: 8px 0; }
   `],
 })
-export class CartComponent implements OnInit {
+export class CartComponent implements OnInit, OnDestroy {
   items: CartItem[] = [];
   activeStep = 0;
   address = { address: '', city: '', state: '', zip_code: '' };
   itemCount = 0;
   total = 0;
   private isAuthenticated = false;
+  private userName = '';
+  private userMobile = '';
+  private destroy$ = new Subject<void>();
 
   constructor(private store: Store, private router: Router) {}
 
   ngOnInit(): void {
-    this.store.select(selectCartItems).subscribe((items) => (this.items = items));
-    this.store.select(selectCartItemCount).subscribe((count) => (this.itemCount = count));
-    this.store.select(selectCartTotal).subscribe((total) => (this.total = total));
-    this.store.select(selectIsAuthenticated).subscribe((auth) => (this.isAuthenticated = auth));
+    this.store.select(selectCartItems).pipe(takeUntil(this.destroy$))
+      .subscribe((items) => (this.items = items));
+    this.store.select(selectCartItemCount).pipe(takeUntil(this.destroy$))
+      .subscribe((count) => (this.itemCount = count));
+    this.store.select(selectCartTotal).pipe(takeUntil(this.destroy$))
+      .subscribe((total) => (this.total = total));
+    this.store.select(selectIsAuthenticated).pipe(takeUntil(this.destroy$))
+      .subscribe((auth) => {
+        this.isAuthenticated = auth;
+        if (auth) {
+          this.store.dispatch(AuthActions.loadProfile());
+        }
+      });
 
-    // Load fresh profile to populate address
-    this.store.select(selectUser).subscribe((user) => {
-      if (user) {
-        this.address = {
-          address: user.address || '',
-          city: user.city || '',
-          state: user.state || '',
-          zip_code: user.zip_code || '',
-        };
-      }
-    });
+    this.store.select(selectUser).pipe(takeUntil(this.destroy$))
+      .subscribe((user) => {
+        if (user) {
+          this.address = {
+            address: user.address || '',
+            city: user.city || '',
+            state: user.state || '',
+            zip_code: user.zip_code || '',
+          };
+          this.userName = `${user.first_name} ${user.last_name}`;
+          this.userMobile = user.mobile;
+        }
+      });
+  }
 
-    // Fetch fresh profile data from API to ensure address is populated
-    if (this.isAuthenticated) {
-      this.store.dispatch(AuthActions.loadProfile());
-    }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   getItemPrice(item: CartItem): number {
@@ -226,15 +241,6 @@ export class CartComponent implements OnInit {
   }
 
   placeOrder(): void {
-    let userName = '';
-    let userMobile = '';
-    this.store.select(selectUser).subscribe((user) => {
-      if (user) {
-        userName = `${user.first_name} ${user.last_name}`;
-        userMobile = user.mobile;
-      }
-    }).unsubscribe();
-
     const orderItems = this.items
       .map((i) => {
         const sizeInfo = i.selectedSize ? ` (${i.selectedSize})` : '';
@@ -244,7 +250,7 @@ export class CartComponent implements OnInit {
     const message =
       `🛒 *New Order*\n\n${orderItems}\n\n💰 *Total: ₹${this.total}*\n\n` +
       `📍 *Delivery Address:*\n${this.address.address}, ${this.address.city}, ${this.address.state} - ${this.address.zip_code}\n\n` +
-      `👤 *Customer:* ${userName}\n📱 *Mobile:* ${userMobile}`;
+      `👤 *Customer:* ${this.userName}\n📱 *Mobile:* ${this.userMobile}`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/${environment.whatsappNumber}?text=${encoded}`, '_blank');
     this.store.dispatch(CartActions.clearCart());

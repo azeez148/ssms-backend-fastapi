@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Store } from '@ngrx/store';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import * as AuthActions from '../../store/auth/auth.actions';
 import { selectAuthLoading, selectAuthError } from '../../store/auth/auth.selectors';
 
@@ -110,11 +112,12 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     .error-alert { display: block; padding: 12px; background: #fde8e8; border-radius: 4px; margin-bottom: 16px; }
   `],
 })
-export class RegisterComponent implements OnInit {
+export class RegisterComponent implements OnInit, OnDestroy {
   form: FormGroup;
   loading = false;
   error = '';
   showPwd = false;
+  private destroy$ = new Subject<void>();
 
   constructor(private fb: FormBuilder, private store: Store) {
     this.form = this.fb.group({
@@ -132,8 +135,15 @@ export class RegisterComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.store.select(selectAuthLoading).subscribe((loading) => (this.loading = loading));
-    this.store.select(selectAuthError).subscribe((error) => (this.error = error || ''));
+    this.store.select(selectAuthLoading).pipe(takeUntil(this.destroy$))
+      .subscribe((loading) => (this.loading = loading));
+    this.store.select(selectAuthError).pipe(takeUntil(this.destroy$))
+      .subscribe((error) => (this.error = error || ''));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   onSubmit(): void {

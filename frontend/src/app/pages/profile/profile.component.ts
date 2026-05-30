@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
+import { Subject } from 'rxjs';
+import { takeUntil, filter, take } from 'rxjs/operators';
 import { selectUser, selectAuthLoading, selectAuthError } from '../../store/auth/auth.selectors';
 import * as AuthActions from '../../store/auth/auth.actions';
 import { UserProfile } from '../../models';
@@ -91,12 +93,13 @@ import { UserProfile } from '../../models';
     .success-alert { background: #e8f5e9; color: #2e7d32; }
   `],
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
   user: UserProfile | null = null;
   form: FormGroup;
   editing = false;
   success = '';
   error = '';
+  private destroy$ = new Subject<void>();
 
   constructor(private store: Store, private fb: FormBuilder, private router: Router) {
     this.form = this.fb.group({
@@ -113,7 +116,7 @@ export class ProfileComponent implements OnInit {
     // Dispatch loadProfile to fetch fresh data from API
     this.store.dispatch(AuthActions.loadProfile());
 
-    this.store.select(selectUser).subscribe((user) => {
+    this.store.select(selectUser).pipe(takeUntil(this.destroy$)).subscribe((user) => {
       if (!user) { this.router.navigate(['/login']); return; }
       this.user = user;
       this.form.patchValue({
@@ -126,9 +129,14 @@ export class ProfileComponent implements OnInit {
       });
     });
 
-    this.store.select(selectAuthError).subscribe((err) => {
+    this.store.select(selectAuthError).pipe(takeUntil(this.destroy$)).subscribe((err) => {
       if (err) this.error = err;
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   startEdit(): void {
@@ -155,8 +163,12 @@ export class ProfileComponent implements OnInit {
 
   save(): void {
     this.store.dispatch(AuthActions.updateProfile({ data: this.form.value }));
-    this.store.select(selectAuthLoading).subscribe((loading) => {
-      if (!loading && !this.error) {
+    // Wait for loading to become false (save completed)
+    this.store.select(selectAuthLoading).pipe(
+      filter((loading) => !loading),
+      take(1)
+    ).subscribe(() => {
+      if (!this.error) {
         this.success = 'Profile updated successfully!';
         this.editing = false;
         this.form.disable();

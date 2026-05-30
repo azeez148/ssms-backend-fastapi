@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Product, Category } from '../../models';
 import { ProductService } from '../../services/product.service';
 import * as CartActions from '../../store/cart/cart.actions';
@@ -65,7 +66,7 @@ import { selectFavoriteIds } from '../../store/favorites/favorites.selectors';
     .empty-icon { font-size: 64px; width: 64px; height: 64px; margin-bottom: 16px; }
   `],
 })
-export class ProductsComponent implements OnInit {
+export class ProductsComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   categories: Category[] = [];
   loading = true;
@@ -73,6 +74,7 @@ export class ProductsComponent implements OnInit {
   selectedCategory = '';
   sortBy = '';
   favorites: number[] = [];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private productService: ProductService,
@@ -81,7 +83,8 @@ export class ProductsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.store.select(selectFavoriteIds).subscribe((ids) => (this.favorites = ids));
+    this.store.select(selectFavoriteIds).pipe(takeUntil(this.destroy$))
+      .subscribe((ids) => (this.favorites = ids));
 
     forkJoin({
       products: this.productService.getAllProducts(),
@@ -137,5 +140,10 @@ export class ProductsComponent implements OnInit {
 
   onViewDetails(product: Product): void {
     this.router.navigate(['/products', product.id]);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
