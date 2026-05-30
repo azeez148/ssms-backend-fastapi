@@ -1,7 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { Store } from '@ngrx/store';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import * as AuthActions from '../../store/auth/auth.actions';
+import { selectAuthLoading, selectAuthError } from '../../store/auth/auth.selectors';
 
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   const pw = group.get('password')?.value;
@@ -109,13 +112,14 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     .error-alert { display: block; padding: 12px; background: #fde8e8; border-radius: 4px; margin-bottom: 16px; }
   `],
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit, OnDestroy {
   form: FormGroup;
   loading = false;
   error = '';
   showPwd = false;
+  private destroy$ = new Subject<void>();
 
-  constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
+  constructor(private fb: FormBuilder, private store: Store) {
     this.form = this.fb.group({
       first_name: ['', Validators.required],
       last_name: ['', Validators.required],
@@ -130,18 +134,21 @@ export class RegisterComponent {
     }, { validators: passwordsMatch });
   }
 
+  ngOnInit(): void {
+    this.store.select(selectAuthLoading).pipe(takeUntil(this.destroy$))
+      .subscribe((loading) => (this.loading = loading));
+    this.store.select(selectAuthError).pipe(takeUntil(this.destroy$))
+      .subscribe((error) => (this.error = error || ''));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   onSubmit(): void {
     if (this.form.invalid) return;
-    this.error = '';
-    this.loading = true;
     const { confirmPassword, ...data } = this.form.value;
-
-    this.auth.register(data).subscribe({
-      next: () => { this.router.navigate(['/']); },
-      error: (err) => {
-        this.error = err.error?.detail || 'Registration failed. Please try again.';
-        this.loading = false;
-      },
-    });
+    this.store.dispatch(AuthActions.register({ data }));
   }
 }

@@ -1,8 +1,13 @@
-import { Component, OnInit } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { forkJoin, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Product, Category } from '../../models';
 import { ProductService } from '../../services/product.service';
-import { CartService } from '../../services/cart.service';
+import * as CartActions from '../../store/cart/cart.actions';
+import * as FavoritesActions from '../../store/favorites/favorites.actions';
+import { selectFavoriteIds } from '../../store/favorites/favorites.selectors';
 
 @Component({
   selector: 'app-products',
@@ -37,6 +42,7 @@ import { CartService } from '../../services/cart.service';
             [showFavorite]="true"
             (addToCart)="onAddToCart($event)"
             (toggleFavorite)="onToggleFavorite($event)"
+            (viewDetails)="onViewDetails($event)"
           ></app-product-card>
         </div>
 
@@ -60,7 +66,7 @@ import { CartService } from '../../services/cart.service';
     .empty-icon { font-size: 64px; width: 64px; height: 64px; margin-bottom: 16px; }
   `],
 })
-export class ProductsComponent implements OnInit {
+export class ProductsComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   categories: Category[] = [];
   loading = true;
@@ -68,13 +74,18 @@ export class ProductsComponent implements OnInit {
   selectedCategory = '';
   sortBy = '';
   favorites: number[] = [];
+  private destroy$ = new Subject<void>();
 
-  constructor(private productService: ProductService, private cart: CartService) {
-    const saved = localStorage.getItem('favorites');
-    this.favorites = saved ? JSON.parse(saved) : [];
-  }
+  constructor(
+    private productService: ProductService,
+    private store: Store,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    this.store.select(selectFavoriteIds).pipe(takeUntil(this.destroy$))
+      .subscribe((ids) => (this.favorites = ids));
+
     forkJoin({
       products: this.productService.getAllProducts(),
       categories: this.productService.getCategories(),
@@ -119,15 +130,20 @@ export class ProductsComponent implements OnInit {
   onCategoryChange(cat: string): void { this.selectedCategory = cat; }
   onSortChange(sort: string): void { this.sortBy = sort; }
 
-  onAddToCart(product: Product): void { this.cart.addToCart(product); }
+  onAddToCart(event: { product: Product; size?: string }): void {
+    this.store.dispatch(CartActions.addToCart({ product: event.product, quantity: 1, size: event.size }));
+  }
 
   onToggleFavorite(product: Product): void {
-    const idx = this.favorites.indexOf(product.id);
-    if (idx >= 0) {
-      this.favorites.splice(idx, 1);
-    } else {
-      this.favorites.push(product.id);
-    }
-    localStorage.setItem('favorites', JSON.stringify(this.favorites));
+    this.store.dispatch(FavoritesActions.toggleFavorite({ productId: product.id }));
+  }
+
+  onViewDetails(product: Product): void {
+    this.router.navigate(['/products', product.id]);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

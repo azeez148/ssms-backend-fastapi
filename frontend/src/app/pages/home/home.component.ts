@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { forkJoin } from 'rxjs';
 import { Product, OfferData } from '../../models';
 import { ProductService } from '../../services/product.service';
-import { CartService } from '../../services/cart.service';
+import * as CartActions from '../../store/cart/cart.actions';
 
 @Component({
   selector: 'app-home',
@@ -49,6 +51,7 @@ import { CartService } from '../../services/cart.service';
           *ngFor="let product of products.slice(0, 8)"
           [product]="product"
           (addToCart)="onAddToCart($event)"
+          (viewDetails)="onViewDetails($event)"
         ></app-product-card>
       </div>
 
@@ -77,6 +80,7 @@ import { CartService } from '../../services/cart.service';
             *ngFor="let product of weeklyOffers.slice(0, 4)"
             [product]="product"
             (addToCart)="onAddToCart($event)"
+            (viewDetails)="onViewDetails($event)"
           ></app-product-card>
         </div>
       </div>
@@ -144,7 +148,11 @@ export class HomeComponent implements OnInit {
     { name: 'Amit K.', review: 'Great offers and excellent customer service.', rating: 4 },
   ];
 
-  constructor(private productService: ProductService, private cart: CartService) {}
+  constructor(
+    private productService: ProductService,
+    private store: Store,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     forkJoin({
@@ -162,7 +170,11 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  onAddToCart(product: Product): void {
-    this.cart.addToCart(product);
+  onAddToCart(event: { product: Product; size?: string }): void {
+    this.store.dispatch(CartActions.addToCart({ product: event.product, quantity: 1, size: event.size }));
+  }
+
+  onViewDetails(product: Product): void {
+    this.router.navigate(['/products', product.id]);
   }
 }

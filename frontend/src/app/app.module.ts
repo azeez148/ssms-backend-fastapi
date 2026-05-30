@@ -4,6 +4,18 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
+// NgRx
+import { StoreModule } from '@ngrx/store';
+import { EffectsModule } from '@ngrx/effects';
+import { StoreDevtoolsModule } from '@ngrx/store-devtools';
+import { authReducer } from './store/auth/auth.reducer';
+import { cartReducer } from './store/cart/cart.reducer';
+import { favoritesReducer } from './store/favorites/favorites.reducer';
+import { AuthEffects } from './store/auth/auth.effects';
+import { CartEffects } from './store/cart/cart.effects';
+import { FavoritesEffects } from './store/favorites/favorites.effects';
+import { environment } from '../environments/environment';
+
 // Angular Material
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -47,6 +59,7 @@ import { CartComponent } from './pages/cart/cart.component';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { ProductDetailComponent } from './pages/product-detail/product-detail.component';
 
 const MATERIAL_MODULES = [
   MatToolbarModule,
@@ -86,6 +99,7 @@ const MATERIAL_MODULES = [
     LoginComponent,
     RegisterComponent,
     ProfileComponent,
+    ProductDetailComponent,
   ],
   imports: [
     BrowserModule,
@@ -95,6 +109,16 @@ const MATERIAL_MODULES = [
     FormsModule,
     AppRoutingModule,
     ...MATERIAL_MODULES,
+    StoreModule.forRoot({
+      auth: authReducer,
+      cart: cartReducer,
+      favorites: favoritesReducer,
+    }),
+    EffectsModule.forRoot([AuthEffects, CartEffects, FavoritesEffects]),
+    StoreDevtoolsModule.instrument({
+      maxAge: 25,
+      logOnly: environment.production,
+    }),
   ],
   providers: [
     {
@@ -106,3 +130,4 @@ const MATERIAL_MODULES = [
   bootstrap: [AppComponent],
 })
 export class AppModule {}
+
