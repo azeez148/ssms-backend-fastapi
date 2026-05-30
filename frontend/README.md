@@ -1,93 +1,47 @@
-# Adrenaline Sports Store - Frontend
+# SSMS Frontend — Angular
 
-A customer-facing React application for the Adrenaline Sports Store retail shop.
+This is the Angular frontend for the Adrenaline Sports Store Management System. It communicates with the FastAPI backend at `/api`.
 
 ## Tech Stack
 
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **Material UI (MUI)** for UI components
-- **React Router** for navigation
-- **Axios** for API communication
-- **Context API** for state management (Auth + Cart)
+- **Angular 17** (NgModule-based)
+- **Angular Material** — UI component library
+- **RxJS** — Reactive state management
+- **TypeScript**
 
-## Features
-
-1. **Home Page** - Hero banner, new products, weekly offers, customer reviews
-2. **Products Page** - All products with search, filter by category, sort options, add to cart, favorites
-3. **Offers Page** - Active events/offers with product listings, search, filter, sort
-4. **Cart Page** - Add/remove items, update quantity, 3-step checkout (Cart → Address → WhatsApp order)
-5. **Login/Register** - Mobile number based authentication
-6. **Profile** - View/edit profile, logout (protected - login required)
-7. **Floating WhatsApp** - Quick contact button on all pages
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-
-### Installation
+## Development Setup
 
 ```bash
-cd frontend
 npm install
+npm start          # starts dev server at http://localhost:4200
+                   # API requests proxied to http://localhost:8000
 ```
 
-### Configuration
-
-Copy `.env.example` to `.env` and update the values:
+## Build
 
 ```bash
-cp .env.example .env
+npm run build      # production build → dist/ssms-frontend/
 ```
 
-Environment variables:
-- `VITE_API_URL` - Backend API URL (default: `/api` which proxies to `http://localhost:8000`)
-- `VITE_WHATSAPP_NUMBER` - Admin WhatsApp number for order messages
-
-### Development
-
-```bash
-npm run dev
-```
-
-The app runs on `http://localhost:3000` and proxies API requests to the FastAPI backend on port 8000.
-
-### Production Build
-
-```bash
-npm run build
-```
-
-Build output will be in the `dist/` directory.
-
-## Architecture
+## Project Structure
 
 ```
-src/
+src/app/
+├── models/          # TypeScript interfaces (Product, User, Cart…)
+├── services/        # AuthService, CartService, ProductService, AuthInterceptor
+├── guards/          # AuthGuard (protects /profile)
 ├── components/
-│   ├── common/          # Reusable components (ProductCard, SearchBar, FilterBar, etc.)
-│   └── layout/          # Layout components (Header, Footer, Layout)
-├── context/             # React Context (AuthContext, CartContext)
-├── pages/               # Page components
-├── services/            # API service layer
-├── theme/               # MUI theme customization
-└── types/               # TypeScript type definitions
+│   ├── layout/      # Header, Footer, Layout (shell with router-outlet)
+│   └── common/      # SearchBar, FilterBar, ProductCard, LoadingSpinner, WhatsAppButton
+└── pages/           # Home, Products, Offers, Cart, Login, Register, Profile
 ```
 
-## Theme Customization
+## Environment Variables
 
-The app uses a customizable MUI theme defined in `src/theme/index.ts`. Key customization points:
-- **Primary color**: Deep blue (`#1a237e`)
-- **Secondary color**: Orange (`#ff6f00`)
-- **Font**: Poppins
-- **Border radius**: 8px
-- **Card hover effects**: Elevation + translateY animation
+Copy `src/environments/environment.ts` and set:
+- `apiUrl` — backend API base URL (default: `/api`)
+- `whatsappNumber` — WhatsApp phone number for order placement
 
-## Flow
+## Proxy
 
-1. Users can browse Home, Products, and Offers pages without logging in
-2. Profile page requires authentication
-3. Cart checkout redirects to login if not authenticated
-4. Order placement sends a formatted WhatsApp message to the admin with order details
+In development, `/api/*` is proxied to `http://localhost:8000` via `proxy.conf.json`.
