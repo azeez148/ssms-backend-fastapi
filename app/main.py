@@ -59,7 +59,8 @@ from app.api import (
     tags,
     users,
     pricelist,
-    report
+    report,
+    campaigns
 )
 
 # Include all routers
@@ -84,6 +85,7 @@ app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(pricelist.router, prefix="/pricelists", tags=["pricelists"])
+app.include_router(campaigns.router, prefix="/campaigns", tags=["campaigns"])
 
 @app.get("/")
 def read_root():
