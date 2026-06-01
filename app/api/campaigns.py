@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 import tempfile
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from app.core.database import get_db
 from app.schemas.campaign import (
@@ -181,7 +182,7 @@ async def export_participants(campaign_id: int, db: Session = Depends(get_db)):
         df.to_excel(tmp.name, index=False)
         tmp_path = tmp.name
 
-    return FileResponse(tmp_path, filename=f"participants_campaign_{campaign_id}.xlsx", background=lambda: os.unlink(tmp_path))
+    return FileResponse(tmp_path, filename=f"participants_campaign_{campaign_id}.xlsx", background=BackgroundTask(os.unlink, tmp_path))
 
 # Winners
 @router.get("/{campaign_id}/winners", response_model=List[CampaignWinnerResponse])
