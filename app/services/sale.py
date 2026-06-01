@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
@@ -96,8 +97,9 @@ class SaleService:
                 db,
                 product_id=item.product_id,
                 size=item.size,
-                
-                quantity_change=-item.quantity  # Decrease stock by sold quantity
+                quantity_change=-item.quantity,  # Decrease stock by sold quantity
+                commit=False,
+                send_notification=False,
             )
 
         # Update day management record
@@ -123,44 +125,53 @@ class SaleService:
     def get_sale(self, db: Session, sale_id: int) -> Optional[Sale]:
         return db.query(Sale).filter(Sale.id == sale_id).first()
 
-    def get_all_sales(self, db: Session) -> List[Sale]:
+    def get_all_sales(self, db: Session, skip: int = 0, limit: int = 100) -> List[Sale]:
         return db.query(Sale).options(
             joinedload(Sale.customer),
             joinedload(Sale.payment_type),
             joinedload(Sale.delivery_type),
             selectinload(Sale.sale_items),
-        ).all()
+        ).order_by(Sale.id.desc()).offset(skip).limit(limit).all()
 
     def get_recent_sales(self, db: Session, limit: int = 10) -> List[Sale]:
         return db.query(Sale).options(joinedload(Sale.customer)).order_by(Sale.date.desc()).limit(limit).all()
 
     def get_most_sold_items(self, db: Session) -> Dict[int, Dict]:
         """Get a summary of most sold items with product details"""
-        sales_items = db.query(SaleItem).all()
-        item_stats = {}
-        
-        for item in sales_items:
-            if item.product_id not in item_stats:
-                item_stats[item.product_id] = {
-                    'product_name': item.product_name,
-                    'product_category': item.product_category,
-                    'total_quantity': 0,
-                    'total_revenue': 0.0
-                }
-            
-            stats = item_stats[item.product_id]
-            stats['total_quantity'] += item.quantity
-            stats['total_revenue'] += item.total_price
-        
-        return item_stats
+        rows = (
+            db.query(
+                SaleItem.product_id,
+                SaleItem.product_name,
+                SaleItem.product_category,
+                func.coalesce(func.sum(SaleItem.quantity), 0).label("total_quantity"),
+                func.coalesce(func.sum(SaleItem.total_price), 0.0).label("total_revenue"),
+            )
+            .group_by(SaleItem.product_id, SaleItem.product_name, SaleItem.product_category)
+            .all()
+        )
+
+        return {
+            product_id: {
+                "product_name": product_name,
+                "product_category": product_category,
+                "total_quantity": int(total_quantity or 0),
+                "total_revenue": float(total_revenue or 0.0),
+            }
+            for product_id, product_name, product_category, total_quantity, total_revenue in rows
+        }
 
     def get_total_sales(self, db: Session) -> dict:
         """Get total sales summary"""
-        sales = db.query(Sale).all()
+        totals = db.query(
+            func.count(Sale.id),
+            func.coalesce(func.sum(Sale.total_price), 0.0),
+            func.coalesce(func.sum(Sale.total_quantity), 0),
+        ).one()
+
         return {
-            'total_count': len(sales),
-            'total_revenue': sum(sale.total_price for sale in sales),
-            'total_items_sold': sum(sale.total_quantity for sale in sales)
+            'total_count': int(totals[0] or 0),
+            'total_revenue': float(totals[1] or 0.0),
+            'total_items_sold': int(totals[2] or 0)
         }
 
     def update_sale_status(self, db: Session, sale_id: int, status: str) -> Optional[Sale]:
@@ -189,7 +200,9 @@ class SaleService:
                     db,
                     product_id=item.product_id,
                     size=item.size,
-                    quantity_change=item.quantity
+                    quantity_change=item.quantity,
+                    commit=False,
+                    send_notification=False,
                 )
         # If transitioning FROM cancelled, add to day and reduce stock
         elif old_status == SaleStatus.CANCELLED and new_status != SaleStatus.CANCELLED:
@@ -204,7 +217,9 @@ class SaleService:
                     db,
                     product_id=item.product_id,
                     size=item.size,
-                    quantity_change=-item.quantity
+                    quantity_change=-item.quantity,
+                    commit=False,
+                    send_notification=False,
                 )
 
         db.commit()
@@ -232,7 +247,9 @@ class SaleService:
                     db,
                     product_id=item.product_id,
                     size=item.size,
-                    quantity_change=item.quantity  # Increase stock by cancelled quantity
+                    quantity_change=item.quantity,  # Increase stock by cancelled quantity
+                    commit=False,
+                    send_notification=False,
                 )
             
             # Update day management record (subtract sale amount)
@@ -286,7 +303,9 @@ class SaleService:
                     db,
                     product_id=item.product_id,
                     size=item.size,
-                    quantity_change=item.quantity
+                    quantity_change=item.quantity,
+                    commit=False,
+                    send_notification=False,
                 )
 
         # Clear existing sale items
@@ -315,7 +334,9 @@ class SaleService:
                     db,
                     product_id=item.product_id,
                     size=item.size,
-                    quantity_change=-item.quantity
+                    quantity_change=-item.quantity,
+                    commit=False,
+                    send_notification=False,
                 )
 
         # Update day management record

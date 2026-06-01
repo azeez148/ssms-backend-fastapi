@@ -183,7 +183,9 @@ class ProductService:
         db: Session,
         product_id: int,
         size: str,
-        quantity_change: int
+        quantity_change: int,
+        commit: bool = True,
+        send_notification: bool = True,
     ) -> Optional[ProductSize]:
         product_size = db.query(ProductSize).filter(
             ProductSize.product_id == product_id,
@@ -199,15 +201,19 @@ class ProductService:
             logger.error(f"Insufficient stock for product_id {product_id} and size {size}")
             raise HTTPException(status_code=400, detail="Insufficient stock")
         
-        db.commit()
-        db.refresh(product_size)
+        if commit:
+            db.commit()
+            db.refresh(product_size)
+        else:
+            db.flush()
 
-        try:
-            product = db.query(Product).filter(Product.id == product_id).first()
-            if product:
-                self.email_notification.send_product_stock_updated_notification(product, size, quantity_change)
-        except Exception as e:
-            logger.error(f"Failed to send product stock update notification: {str(e)}")
+        if send_notification:
+            try:
+                product = db.query(Product).filter(Product.id == product_id).first()
+                if product:
+                    self.email_notification.send_product_stock_updated_notification(product, size, quantity_change)
+            except Exception as e:
+                logger.error(f"Failed to send product stock update notification: {str(e)}")
 
         return product_size
 

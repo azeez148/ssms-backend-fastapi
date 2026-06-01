@@ -33,12 +33,28 @@ class ReportService:
         total_revenue = sum(sale.total_price for sale in active_sales)
         total_quantity = sum(sale.total_quantity for sale in active_sales)
 
+        product_ids = {
+            item.product_id
+            for sale in active_sales
+            for item in sale.sale_items
+            if item.product_id is not None
+        }
+        product_rows = (
+            db.query(Product.id, Product.unit_price)
+            .filter(Product.id.in_(product_ids))
+            .all()
+            if product_ids
+            else []
+        )
+        product_unit_price_map = {
+            product_id: float(unit_price or 0.0) for product_id, unit_price in product_rows
+        }
+
         total_profit = 0.0
         sale_item_details = []
         for sale in active_sales:
             for item in sale.sale_items:
-                product = db.query(Product).filter(Product.id == item.product_id).first()
-                unit_price = product.unit_price if product else 0.0
+                unit_price = float(product_unit_price_map.get(item.product_id, 0.0))
                 item_profit = (item.sale_price - unit_price) * item.quantity
                 total_profit += item_profit
 

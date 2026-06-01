@@ -1,5 +1,5 @@
 from http.client import HTTPException
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -18,8 +18,12 @@ async def add_sale(
     return sale_service.create_sale(db, sale)
 
 @router.get("/all", response_model=List[SaleResponse])
-async def get_all_sales(db: Session = Depends(get_db)):
-    sales = sale_service.get_all_sales(db)
+async def get_all_sales(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db)
+):
+    sales = sale_service.get_all_sales(db, skip=skip, limit=limit)
     return sales
 
 @router.get("/recent", response_model=List[SaleResponse])
