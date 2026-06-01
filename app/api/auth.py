@@ -120,3 +120,13 @@ async def admin_login(login_data: LoginRequest, db: Session = Depends(get_db)):
         expires_delta=timedelta(days=7)
     )
     return AuthResponse(token=access_token, user=user)
+
+async def get_current_user_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operation not permitted"
+        )
+    return current_user
