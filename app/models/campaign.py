@@ -30,6 +30,30 @@ class RecipientType(str, enum.Enum):
     ALL = "all"
     INDIVIDUAL = "individual"
 
+# V2 Enums
+class CampaignTypeV2(str, enum.Enum):
+    PREDICTION = "PREDICTION"
+    GIVEAWAY = "GIVEAWAY"
+    LUCKY_DRAW = "LUCKY_DRAW"
+    SURVEY = "SURVEY"
+
+class CampaignStatusV2(str, enum.Enum):
+    ACTIVE = "ACTIVE"
+    CLOSED = "CLOSED"
+    RESULTS_ANNOUNCED = "RESULTS_ANNOUNCED"
+
+class FieldType(str, enum.Enum):
+    text = "text"
+    number = "number"
+    email = "email"
+    select = "select"
+    textarea = "textarea"
+
+class ParticipationStatus(str, enum.Enum):
+    SUBMITTED = "SUBMITTED"
+    WINNER = "WINNER"
+    PARTICIPATED = "PARTICIPATED"
+
 class Campaign(BaseModel):
     __tablename__ = "campaigns"
 
@@ -115,3 +139,49 @@ class CampaignCommunication(BaseModel):
     recipient_count = Column(Integer)
 
     campaign = relationship("Campaign", back_populates="communications")
+
+# V2 Models
+from sqlalchemy.sql import func
+
+class CampaignV2(BaseModel):
+    __tablename__ = "campaigns_v2"
+
+    id = Column(String, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    type = Column(Enum(CampaignTypeV2))
+    status = Column(Enum(CampaignStatusV2), default=CampaignStatusV2.ACTIVE)
+    start_date = Column(DateTime)
+    end_date = Column(DateTime)
+    image_url = Column(String)
+    rules = Column(JSON) # Array of strings
+    terms_and_conditions = Column(Text)
+    winners = Column(JSON) # List of winner names/IDs
+    results_summary = Column(Text)
+
+    fields = relationship("CampaignField", back_populates="campaign", cascade="all, delete-orphan")
+    participations = relationship("CampaignParticipation", back_populates="campaign", cascade="all, delete-orphan")
+
+class CampaignField(BaseModel):
+    __tablename__ = "campaign_fields"
+
+    id = Column(String, primary_key=True, index=True) # Unique key for response object
+    campaign_id = Column(String, ForeignKey("campaigns_v2.id"))
+    label = Column(String, nullable=False)
+    type = Column(Enum(FieldType))
+    required = Column(Boolean, default=True)
+    options = Column(JSON) # Array of strings for select type
+
+    campaign = relationship("CampaignV2", back_populates="fields")
+
+class CampaignParticipation(BaseModel):
+    __tablename__ = "campaign_participations"
+
+    id = Column(String, primary_key=True, index=True)
+    campaign_id = Column(String, ForeignKey("campaigns_v2.id"))
+    user_id = Column(String, ForeignKey("users.id"))
+    participation_date = Column(DateTime, server_default=func.now())
+    responses = Column(JSON) # Record<string, any>
+    status = Column(Enum(ParticipationStatus), default=ParticipationStatus.SUBMITTED)
+
+    campaign = relationship("CampaignV2", back_populates="participations")

@@ -15,7 +15,8 @@ from app.schemas.campaign import (
     CampaignQuestionCreate, CampaignQuestionResponse,
     CampaignParticipantResponse, CampaignWinnerCreate, CampaignWinnerResponse,
     CampaignCommunicationCreate, CampaignCommunicationResponse, CampaignStats,
-    CampaignSubmission, CampaignParticipantBase
+    CampaignSubmission, CampaignParticipantBase, CampaignListResponse,
+    CampaignParticipantListResponse
 )
 from app.services.campaign import CampaignService
 from app.core.logging import logger
@@ -23,7 +24,7 @@ from app.core.logging import logger
 router = APIRouter()
 campaign_service = CampaignService()
 
-@router.get("/all")
+@router.get("/all", response_model=CampaignListResponse)
 async def get_all_campaigns(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
@@ -72,7 +73,7 @@ async def update_campaign_status(campaign_id: int, status_update: CampaignStatus
         raise HTTPException(status_code=404, detail="Campaign not found")
     return updated_campaign
 
-@router.post("/{campaign_id}/upload-banner")
+@router.post("/{campaign_id}/upload-banner", response_model=CampaignResponse)
 async def upload_banner(
     campaign_id: int,
     banner_type: str = Query(..., regex="^(desktop|mobile)$"),
@@ -95,7 +96,7 @@ async def upload_banner(
         raise HTTPException(status_code=404, detail="Campaign not found")
     return updated_campaign
 
-@router.post("/{campaign_id}/upload-image")
+@router.post("/{campaign_id}/upload-image", response_model=CampaignResponse)
 async def upload_promotional_image(
     campaign_id: int,
     file: UploadFile = File(...),
@@ -131,7 +132,7 @@ async def save_campaign_questions(campaign_id: int, questions: List[CampaignQues
 async def add_participant(campaign_id: int, participant: CampaignParticipantBase, db: Session = Depends(get_db)):
     return campaign_service.add_participant(db, campaign_id, participant.model_dump())
 
-@router.get("/{campaign_id}/participants")
+@router.get("/{campaign_id}/participants", response_model=CampaignParticipantListResponse)
 async def get_campaign_participants(
     campaign_id: int,
     page: int = Query(1, ge=1),

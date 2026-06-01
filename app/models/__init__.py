@@ -15,7 +15,10 @@ from .user import User  # Add the User model import
 from .tag import Tag, product_tags
 from .category_discount import CategoryDiscount
 from .pricelist import Pricelist
-from .campaign import Campaign, CampaignQuestion, CampaignParticipant, CampaignWinner, CampaignCommunication
+from .campaign import (
+    Campaign, CampaignQuestion, CampaignParticipant, CampaignWinner, CampaignCommunication,
+    CampaignV2, CampaignField, CampaignParticipation
+)
 
 __all__ = [
     "Category",
@@ -44,5 +47,8 @@ __all__ = [
     "CampaignQuestion",
     "CampaignParticipant",
     "CampaignWinner",
-    "CampaignCommunication"
+    "CampaignCommunication",
+    "CampaignV2",
+    "CampaignField",
+    "CampaignParticipation"
 ]

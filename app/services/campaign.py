@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from app.models.campaign import (
     Campaign, CampaignQuestion, CampaignParticipant,
-    CampaignWinner, CampaignCommunication, CampaignStatus, SubmissionStatus
+    CampaignWinner, CampaignCommunication, CampaignStatus, SubmissionStatus,
+    CampaignV2, CampaignField, CampaignParticipation, CampaignStatusV2
 )
 from app.schemas.campaign import (
     CampaignCreate, CampaignUpdate, CampaignQuestionCreate,
@@ -272,6 +273,69 @@ class CampaignService:
     def get_communications(self, db: Session, campaign_id: int) -> List[CampaignCommunication]:
         return db.query(CampaignCommunication).filter(CampaignCommunication.campaign_id == campaign_id).all()
 
+    # V2 Service Methods
+    def get_campaigns_v2(self, db: Session, status: Optional[str] = None) -> List[CampaignV2]:
+        query = db.query(CampaignV2)
+        if status:
+            query = query.filter(CampaignV2.status == status)
+        return query.all()
+
+    def get_active_campaigns_v2(self, db: Session) -> List[CampaignV2]:
+        return db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.ACTIVE).all()
+
+    def get_campaign_v2_by_id(self, db: Session, campaign_id: str) -> Optional[CampaignV2]:
+        return db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+
+    def participate_v2(self, db: Session, campaign_id: str, user_id: str, responses: dict) -> CampaignParticipation:
+        import uuid
+        db_campaign = self.get_campaign_v2_by_id(db, campaign_id)
+        if not db_campaign:
+            raise Exception("Campaign not found")
+
+        if db_campaign.status != CampaignStatusV2.ACTIVE:
+            raise Exception("Campaign is not active")
+
+        if db_campaign.end_date and datetime.now() > db_campaign.end_date:
+            raise Exception("Campaign has ended")
+
+        # Check if already participated
+        existing = db.query(CampaignParticipation).filter(
+            CampaignParticipation.campaign_id == campaign_id,
+            CampaignParticipation.user_id == user_id
+        ).first()
+        if existing:
+            raise Exception("Already participated")
+
+        db_participation = CampaignParticipation(
+            id=str(uuid.uuid4()),
+            campaign_id=campaign_id,
+            user_id=user_id,
+            responses=responses,
+            participation_date=datetime.now()
+        )
+        db.add(db_participation)
+        db.commit()
+        db.refresh(db_participation)
+        return db_participation
+
+    def get_my_participations_v2(self, db: Session, user_id: str) -> List[CampaignParticipation]:
+        return db.query(CampaignParticipation).filter(CampaignParticipation.user_id == user_id).all()
+
+    def get_my_participation_v2(self, db: Session, campaign_id: str, user_id: str) -> Optional[CampaignParticipation]:
+        return db.query(CampaignParticipation).filter(
+            CampaignParticipation.campaign_id == campaign_id,
+            CampaignParticipation.user_id == user_id
+        ).first()
+
+    def get_campaign_results_v2(self, db: Session, campaign_id: str) -> Optional[dict]:
+        db_campaign = self.get_campaign_v2_by_id(db, campaign_id)
+        if not db_campaign:
+            return None
+        return {
+            "winners": db_campaign.winners or [],
+            "results_summary": db_campaign.results_summary
+        }
+
     def update_campaign_image(self, db: Session, campaign_id: int, image_url: str, image_type: str) -> Optional[Campaign]:
         db_campaign = self.get_campaign_by_id(db, campaign_id)
         if not db_campaign:
@@ -282,13 +346,14 @@ class CampaignService:
         elif image_type == 'mobile':
             db_campaign.mobile_banner = image_url
         elif image_type == 'promotional':
-            if not db_campaign.promotional_images:
-                db_campaign.promotional_images = []
-            # Make sure it's a list (JSON column might return list or str depending on DB/SQLAlchemy config)
-            if isinstance(db_campaign.promotional_images, list):
-                db_campaign.promotional_images.append(image_url)
-            else:
-                db_campaign.promotional_images = [image_url]
+            # Make sure it's a list and create a copy to trigger SQLAlchemy update
+            current_images = db_campaign.promotional_images or []
+            if not isinstance(current_images, list):
+                current_images = []
+
+            new_images = list(current_images)
+            new_images.append(image_url)
+            db_campaign.promotional_images = new_images
 
         db.commit()
         db.refresh(db_campaign)

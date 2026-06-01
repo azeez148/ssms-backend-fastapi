@@ -1,9 +1,66 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from datetime import datetime
 from app.schemas.base import BaseSchema
-from app.models.campaign import CampaignStatus, SubmissionStatus, WinnerType, CommunicationChannel, RecipientType
+from app.models.campaign import (
+    CampaignStatus, SubmissionStatus, WinnerType, CommunicationChannel, RecipientType,
+    CampaignTypeV2, CampaignStatusV2, FieldType, ParticipationStatus
+)
 
+# V2 Schemas
+class CampaignFieldSchema(BaseModel):
+    id: str
+    label: str
+    type: FieldType
+    required: bool = True
+    options: Optional[List[str]] = None
+
+    class Config:
+        from_attributes = True
+
+class CampaignV2Response(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    type: CampaignTypeV2
+    status: CampaignStatusV2
+    start_date: Optional[datetime] = Field(None, alias="startDate")
+    end_date: Optional[datetime] = Field(None, alias="endDate")
+    image_url: Optional[str] = Field(None, alias="imageUrl")
+    rules: Optional[List[str]] = None
+    terms_and_conditions: Optional[str] = Field(None, alias="termsAndConditions")
+    fields: List[CampaignFieldSchema]
+    winners: Optional[List[str]] = None
+    results_summary: Optional[str] = Field(None, alias="resultsSummary")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+class CampaignParticipationCreate(BaseModel):
+    responses: Dict[str, Any]
+
+class CampaignParticipationResponse(BaseModel):
+    id: str
+    campaign_id: str = Field(..., alias="campaignId")
+    user_id: str = Field(..., alias="userId")
+    participation_date: datetime = Field(..., alias="participationDate")
+    responses: Dict[str, Any]
+    status: str
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+class CampaignResultsResponse(BaseModel):
+    winners: List[str]
+    results_summary: Optional[str] = Field(None, alias="resultsSummary")
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
+# V1 Schemas
 class CampaignQuestionBase(BaseModel):
     question_text: str = Field(..., alias="questionText")
     question_type: Optional[str] = Field(None, alias="questionType")
@@ -40,8 +97,6 @@ class CampaignParticipantResponse(CampaignParticipantBase):
 
 class CampaignSubmission(BaseModel):
     participant_id: int = Field(..., alias="participantId")
-    # In a real app this might include answers to questions
-    # but for now we just want to update status and total_submissions
 
 class CampaignWinnerBase(BaseModel):
     participant_id: Optional[int] = Field(None, alias="participantId")
@@ -126,6 +181,24 @@ class CampaignResponse(CampaignBase, BaseSchema):
     total_participants: int = Field(0, alias="totalParticipants")
     total_submissions: int = Field(0, alias="totalSubmissions")
     questions: Optional[List[CampaignQuestionResponse]] = None
+
+class CampaignListResponse(BaseModel):
+    items: List[CampaignResponse]
+    total: int
+    page: int
+    size: int
+
+    class Config:
+        populate_by_name = True
+
+class CampaignParticipantListResponse(BaseModel):
+    items: List[CampaignParticipantResponse]
+    total: int
+    page: int
+    size: int
+
+    class Config:
+        populate_by_name = True
 
 class CampaignStats(BaseModel):
     total_campaigns: int = Field(..., alias="totalCampaigns")

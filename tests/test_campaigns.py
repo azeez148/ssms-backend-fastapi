@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.core.database import Base, get_db
+from app.models.campaign import Campaign, CampaignQuestion, CampaignParticipant, CampaignWinner, CampaignCommunication
 import os
 
 # Setup test database
