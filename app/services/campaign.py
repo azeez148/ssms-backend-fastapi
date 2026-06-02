@@ -6,7 +6,8 @@ from sqlalchemy import or_, func
 from app.models.campaign import (
     Campaign, CampaignQuestion, CampaignParticipant,
     CampaignWinner, CampaignCommunication, CampaignStatus, SubmissionStatus,
-    CampaignV2, CampaignField, CampaignParticipation, CampaignStatusV2, ParticipationStatus
+    CampaignV2, CampaignField, CampaignParticipation, CampaignStatusV2, ParticipationStatus,
+    CampaignTypeV2, FieldType
 )
 from app.schemas.campaign import (
     CampaignCreate, CampaignUpdate, CampaignQuestionCreate,
@@ -330,94 +331,167 @@ class CampaignService:
 
     def create_campaign_v2(self, db: Session, campaign_data: dict, user_id: Optional[str] = None) -> CampaignV2:
         import uuid
-        questions = campaign_data.pop('questions', [])
+        try:
+            questions = campaign_data.pop('questions', []) or []
 
-        # Map starts_at/ends_at to start_date/end_date
-        if 'starts_at' in campaign_data:
-            campaign_data['start_date'] = campaign_data.pop('starts_at')
-        if 'ends_at' in campaign_data:
-            campaign_data['end_date'] = campaign_data.pop('ends_at')
+            # Map keys
+            rename_map = {
+                "starts_at": "start_date",
+                "ends_at": "end_date",
+                "metadata": "meta_data"
+            }
+            for old_key, new_key in rename_map.items():
+                if old_key in campaign_data:
+                    campaign_data[new_key] = campaign_data.pop(old_key)
 
-        if 'metadata' in campaign_data:
-            campaign_data['meta_data'] = campaign_data.pop('metadata')
+            # Enum conversion
+            if 'type' in campaign_data and campaign_data['type']:
+                campaign_data['type'] = CampaignTypeV2(campaign_data['type'])
+            if 'status' in campaign_data and campaign_data['status']:
+                campaign_data['status'] = CampaignStatusV2(campaign_data['status'])
 
-        campaign_id = str(uuid.uuid4())
-        db_campaign = CampaignV2(id=campaign_id, **campaign_data, created_by=user_id)
-        db.add(db_campaign)
+            # Allowed fields whitelist
+            allowed_fields = {
+                "title", "description", "type", "status",
+                "start_date", "end_date", "image_url",
+                "rules", "terms_and_conditions", "meta_data",
+                "winners", "results_summary"
+            }
+            filtered_data = {k: v for k, v in campaign_data.items() if k in allowed_fields}
 
-        for q in questions:
-            field_id = str(uuid.uuid4())
-            db_field = CampaignField(id=field_id, campaign_id=campaign_id, **q)
-            db.add(db_field)
+            campaign_id = str(uuid.uuid4())
+            db_campaign = CampaignV2(id=campaign_id, **filtered_data, created_by=user_id)
+            db.add(db_campaign)
 
-        db.commit()
-        db.refresh(db_campaign)
-        return self.get_campaign_v2_by_id(db, campaign_id)
-
-    def update_campaign_v2(self, db: Session, campaign_id: str, campaign_data: dict, user_id: Optional[str] = None) -> Optional[CampaignV2]:
-        db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
-        if not db_campaign:
-            return None
-
-        questions = campaign_data.pop('questions', None)
-
-        if 'starts_at' in campaign_data:
-            campaign_data['start_date'] = campaign_data.pop('starts_at')
-        if 'ends_at' in campaign_data:
-            campaign_data['end_date'] = campaign_data.pop('ends_at')
-
-        if 'metadata' in campaign_data:
-            campaign_data['meta_data'] = campaign_data.pop('metadata')
-
-        for key, value in campaign_data.items():
-            setattr(db_campaign, key, value)
-
-        db_campaign.updated_by = user_id
-
-        if questions is not None:
-            # Overwrite fields
-            db.query(CampaignField).filter(CampaignField.campaign_id == campaign_id).delete()
-            import uuid
             for q in questions:
                 field_id = str(uuid.uuid4())
+                if 'type' in q and q['type']:
+                    q['type'] = FieldType(q['type'])
                 db_field = CampaignField(id=field_id, campaign_id=campaign_id, **q)
                 db.add(db_field)
 
-        db.commit()
-        db.refresh(db_campaign)
-        return self.get_campaign_v2_by_id(db, campaign_id)
+            db.commit()
+            db.refresh(db_campaign)
+            return self.get_campaign_v2_by_id(db, campaign_id)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error creating campaign v2: {str(e)}")
+            raise e
+
+    def update_campaign_v2(self, db: Session, campaign_id: str, campaign_data: dict, user_id: Optional[str] = None) -> Optional[CampaignV2]:
+        try:
+            db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+            if not db_campaign:
+                return None
+
+            questions = campaign_data.pop('questions', None)
+
+            # Map keys
+            rename_map = {
+                "starts_at": "start_date",
+                "ends_at": "end_date",
+                "metadata": "meta_data"
+            }
+            for old_key, new_key in rename_map.items():
+                if old_key in campaign_data:
+                    campaign_data[new_key] = campaign_data.pop(old_key)
+
+            # Enum conversion
+            if 'type' in campaign_data and campaign_data['type']:
+                campaign_data['type'] = CampaignTypeV2(campaign_data['type'])
+            if 'status' in campaign_data and campaign_data['status']:
+                campaign_data['status'] = CampaignStatusV2(campaign_data['status'])
+
+            # Allowed fields whitelist
+            allowed_fields = {
+                "title", "description", "type", "status",
+                "start_date", "end_date", "image_url",
+                "rules", "terms_and_conditions", "meta_data",
+                "winners", "results_summary"
+            }
+
+            for key, value in campaign_data.items():
+                if key in allowed_fields:
+                    setattr(db_campaign, key, value)
+
+            db_campaign.updated_by = user_id
+
+            if questions is not None:
+                # Overwrite fields
+                db.query(CampaignField).filter(CampaignField.campaign_id == campaign_id).delete(synchronize_session=False)
+                import uuid
+                for q in questions:
+                    field_id = str(uuid.uuid4())
+                    if 'type' in q and q['type']:
+                        q['type'] = FieldType(q['type'])
+                    db_field = CampaignField(id=field_id, campaign_id=campaign_id, **q)
+                    db.add(db_field)
+
+            db.commit()
+            db.refresh(db_campaign)
+            return self.get_campaign_v2_by_id(db, campaign_id)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error updating campaign v2: {str(e)}")
+            raise e
 
     def patch_campaign_v2(self, db: Session, campaign_id: str, patch_data: dict, user_id: Optional[str] = None) -> Optional[CampaignV2]:
-        db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
-        if not db_campaign:
-            return None
+        try:
+            db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+            if not db_campaign:
+                return None
 
-        if 'starts_at' in patch_data:
-            patch_data['start_date'] = patch_data.pop('starts_at')
-        if 'ends_at' in patch_data:
-            patch_data['end_date'] = patch_data.pop('ends_at')
+            # Map keys
+            rename_map = {
+                "starts_at": "start_date",
+                "ends_at": "end_date",
+                "metadata": "meta_data"
+            }
+            for old_key, new_key in rename_map.items():
+                if old_key in patch_data:
+                    patch_data[new_key] = patch_data.pop(old_key)
 
-        if 'metadata' in patch_data:
-            patch_data['meta_data'] = patch_data.pop('metadata')
+            # Enum conversion
+            if 'status' in patch_data and patch_data['status']:
+                patch_data['status'] = CampaignStatusV2(patch_data['status'])
+            if 'type' in patch_data and patch_data['type']:
+                patch_data['type'] = CampaignTypeV2(patch_data['type'])
 
-        force = patch_data.pop('force', False)
+            force = patch_data.pop('force', False)
 
-        for key, value in patch_data.items():
-            if value is not None:
-                setattr(db_campaign, key, value)
+            # Allowed fields whitelist
+            allowed_fields = {
+                "title", "description", "type", "status",
+                "start_date", "end_date", "image_url",
+                "rules", "terms_and_conditions", "meta_data",
+                "winners", "results_summary"
+            }
 
-        db_campaign.updated_by = user_id
-        db.commit()
-        db.refresh(db_campaign)
-        return self.get_campaign_v2_by_id(db, campaign_id)
+            for key, value in patch_data.items():
+                if key in allowed_fields and value is not None:
+                    setattr(db_campaign, key, value)
+
+            db_campaign.updated_by = user_id
+            db.commit()
+            db.refresh(db_campaign)
+            return self.get_campaign_v2_by_id(db, campaign_id)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error patching campaign v2: {str(e)}")
+            raise e
 
     def delete_campaign_v2(self, db: Session, campaign_id: str) -> bool:
-        db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
-        if not db_campaign:
-            return False
-        db.delete(db_campaign)
-        db.commit()
-        return True
+        try:
+            db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+            if not db_campaign:
+                return False
+            db.delete(db_campaign)
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error deleting campaign v2: {str(e)}")
+            raise e
 
     def get_campaign_stats_v2(self, db: Session) -> dict:
         total_campaigns = db.query(CampaignV2).count()
@@ -441,63 +515,74 @@ class CampaignService:
         success = []
         failed = []
 
-        for campaign_id in ids:
-            try:
-                db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
-                if not db_campaign:
-                    failed.append({"id": campaign_id, "error": "Not found"})
-                    continue
+        try:
+            for campaign_id in ids:
+                try:
+                    db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+                    if not db_campaign:
+                        failed.append({"id": campaign_id, "error": "Not found"})
+                        continue
 
-                if action == 'publish':
-                    db_campaign.status = CampaignStatusV2.ACTIVE
-                elif action == 'unpublish':
-                    db_campaign.status = CampaignStatusV2.PAUSED
-                elif action == 'pause':
-                    db_campaign.status = CampaignStatusV2.PAUSED
-                elif action == 'delete':
-                    db.delete(db_campaign)
+                    if action == 'publish':
+                        db_campaign.status = CampaignStatusV2.ACTIVE
+                    elif action == 'unpublish':
+                        db_campaign.status = CampaignStatusV2.PAUSED
+                    elif action == 'pause':
+                        db_campaign.status = CampaignStatusV2.PAUSED
+                    elif action == 'delete':
+                        db.delete(db_campaign)
 
-                if db_campaign:
-                    db_campaign.updated_by = user_id
+                    if action != 'delete' and db_campaign:
+                        db_campaign.updated_by = user_id
 
-                success.append(campaign_id)
-            except Exception as e:
-                failed.append({"id": campaign_id, "error": str(e)})
+                    success.append(campaign_id)
+                except Exception as e:
+                    failed.append({"id": campaign_id, "error": str(e)})
 
-        db.commit()
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error performing bulk action v2: {str(e)}")
+            return {"success": [], "failed": [{"id": "all", "error": str(e)}]}
+
         return {"success": success, "failed": failed}
 
     def participate_v2(self, db: Session, campaign_id: str, user_id: str, responses: dict) -> CampaignParticipation:
         import uuid
-        db_campaign = self.get_campaign_v2_by_id(db, campaign_id)
-        if not db_campaign:
-            raise Exception("Campaign not found")
+        try:
+            db_campaign = self.get_campaign_v2_by_id(db, campaign_id)
+            if not db_campaign:
+                raise Exception("Campaign not found")
 
-        if db_campaign.status != CampaignStatusV2.ACTIVE:
-            raise Exception("Campaign is not active")
+            if db_campaign.status != CampaignStatusV2.ACTIVE:
+                raise Exception("Campaign is not active")
 
-        if db_campaign.end_date and datetime.now() > db_campaign.end_date:
-            raise Exception("Campaign has ended")
+            if db_campaign.end_date and datetime.now() > db_campaign.end_date:
+                raise Exception("Campaign has ended")
 
-        # Check if already participated
-        existing = db.query(CampaignParticipation).filter(
-            CampaignParticipation.campaign_id == campaign_id,
-            CampaignParticipation.user_id == user_id
-        ).first()
-        if existing:
-            raise Exception("Already participated")
+            # Check if already participated
+            existing = db.query(CampaignParticipation).filter(
+                CampaignParticipation.campaign_id == campaign_id,
+                CampaignParticipation.user_id == user_id
+            ).first()
+            if existing:
+                raise Exception("Already participated")
 
-        db_participation = CampaignParticipation(
-            id=str(uuid.uuid4()),
-            campaign_id=campaign_id,
-            user_id=user_id,
-            responses=responses,
-            participation_date=datetime.now()
-        )
-        db.add(db_participation)
-        db.commit()
-        db.refresh(db_participation)
-        return db_participation
+            db_participation = CampaignParticipation(
+                id=str(uuid.uuid4()),
+                campaign_id=campaign_id,
+                user_id=user_id,
+                responses=responses,
+                participation_date=datetime.now()
+            )
+            db.add(db_participation)
+            db.commit()
+            db.refresh(db_participation)
+            return db_participation
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error participating in campaign v2: {str(e)}")
+            raise e
 
     def get_my_participations_v2(self, db: Session, user_id: str) -> List[CampaignParticipation]:
         return db.query(CampaignParticipation).filter(CampaignParticipation.user_id == user_id).all()
