@@ -14,6 +14,7 @@ class CampaignFieldSchema(BaseModel):
     type: FieldType
     required: bool = True
     options: Optional[List[str]] = None
+    order: Optional[int] = 0
 
     class Config:
         from_attributes = True
@@ -32,10 +33,68 @@ class CampaignV2Response(BaseModel):
     fields: List[CampaignFieldSchema]
     winners: Optional[List[str]] = None
     results_summary: Optional[str] = Field(None, alias="resultsSummary")
+    metadata: Optional[Dict[str, Any]] = Field(None, alias="metadata", validation_alias="meta_data")
+    participation_count: Optional[int] = Field(0, alias="participationCount")
+    submission_count: Optional[int] = Field(0, alias="submissionCount")
+    created_by: Optional[str] = Field(None, alias="createdBy")
+    created_at: Optional[datetime] = Field(None, alias="createdAt")
+    updated_by: Optional[str] = Field(None, alias="updatedBy")
+    updated_at: Optional[datetime] = Field(None, alias="updatedAt")
 
     class Config:
         populate_by_name = True
         from_attributes = True
+
+class CampaignQuestionV2(BaseModel):
+    type: FieldType
+    label: str
+    options: Optional[List[str]] = None
+    required: bool = True
+    order: Optional[int] = 0
+
+class CreateCampaignRequestV2(BaseModel):
+    title: str
+    description: str
+    type: CampaignTypeV2
+    status: CampaignStatusV2
+    starts_at: datetime = Field(..., alias="starts_at")
+    ends_at: datetime = Field(..., alias="ends_at")
+    metadata: Optional[Dict[str, Any]] = None
+    questions: Optional[List[CampaignQuestionV2]] = None
+
+    class Config:
+        populate_by_name = True
+
+class UpdateCampaignRequestV2(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[CampaignTypeV2] = None
+    status: Optional[CampaignStatusV2] = None
+    starts_at: Optional[datetime] = Field(None, alias="starts_at")
+    ends_at: Optional[datetime] = Field(None, alias="ends_at")
+    metadata: Optional[Dict[str, Any]] = None
+    questions: Optional[List[CampaignQuestionV2]] = None
+
+    class Config:
+        populate_by_name = True
+
+class PatchCampaignRequestV2(BaseModel):
+    status: Optional[CampaignStatusV2] = None
+    starts_at: Optional[datetime] = Field(None, alias="starts_at")
+    ends_at: Optional[datetime] = Field(None, alias="ends_at")
+    force: Optional[bool] = False
+
+    class Config:
+        populate_by_name = True
+
+class CampaignListResponseV2(BaseModel):
+    items: List[CampaignV2Response]
+    page: int
+    per_page: int = Field(..., alias="per_page")
+    total: int
+
+    class Config:
+        populate_by_name = True
 
 class CampaignParticipationCreate(BaseModel):
     responses: Dict[str, Any]
@@ -52,6 +111,16 @@ class CampaignParticipationResponse(BaseModel):
         populate_by_name = True
         from_attributes = True
 
+class CampaignResultsV2(BaseModel):
+    campaign_id: str = Field(..., alias="campaign_id")
+    total_participations: int = Field(..., alias="total_participations")
+    responses: Dict[str, Dict[str, int]]
+    from_date: Optional[str] = Field(None, alias="from")
+    to_date: Optional[str] = Field(None, alias="to")
+
+    class Config:
+        populate_by_name = True
+
 class CampaignResultsResponse(BaseModel):
     winners: List[str]
     results_summary: Optional[str] = Field(None, alias="resultsSummary")
@@ -59,6 +128,25 @@ class CampaignResultsResponse(BaseModel):
     class Config:
         populate_by_name = True
         from_attributes = True
+
+class CampaignStatsV2(BaseModel):
+    totalCampaigns: int
+    activeCampaigns: int
+    draftCampaigns: int
+    totalParticipations: int
+    completionRate: float
+
+    class Config:
+        populate_by_name = True
+
+class BulkActionRequestV2(BaseModel):
+    ids: List[str]
+    action: str # 'publish' | 'unpublish' | 'delete' | 'pause'
+    force: Optional[bool] = False
+
+class BulkActionResponseV2(BaseModel):
+    success: List[str]
+    failed: List[Dict[str, str]] # [{id: string, error: string}]
 
 # V1 Schemas
 class CampaignQuestionBase(BaseModel):

@@ -32,15 +32,22 @@ class RecipientType(str, enum.Enum):
 
 # V2 Enums
 class CampaignTypeV2(str, enum.Enum):
-    PREDICTION = "PREDICTION"
-    GIVEAWAY = "GIVEAWAY"
-    LUCKY_DRAW = "LUCKY_DRAW"
-    SURVEY = "SURVEY"
+    SURVEY = "survey"
+    GIVEAWAY = "giveaway"
+    DISCOUNT = "discount"
+    # Keeping old ones for backward compatibility if needed, but the task implies a transition
+    PREDICTION = "prediction"
+    LUCKY_DRAW = "lucky_draw"
 
 class CampaignStatusV2(str, enum.Enum):
-    ACTIVE = "ACTIVE"
-    CLOSED = "CLOSED"
-    RESULTS_ANNOUNCED = "RESULTS_ANNOUNCED"
+    DRAFT = "draft"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    ENDED = "ended"
+    SCHEDULED = "scheduled"
+    # Keeping old ones
+    CLOSED = "closed"
+    RESULTS_ANNOUNCED = "results_announced"
 
 class FieldType(str, enum.Enum):
     text = "text"
@@ -48,6 +55,7 @@ class FieldType(str, enum.Enum):
     email = "email"
     select = "select"
     textarea = "textarea"
+    choice = "choice"
 
 class ParticipationStatus(str, enum.Enum):
     SUBMITTED = "SUBMITTED"
@@ -150,7 +158,7 @@ class CampaignV2(BaseModel):
     title = Column(String, nullable=False)
     description = Column(Text)
     type = Column(Enum(CampaignTypeV2))
-    status = Column(Enum(CampaignStatusV2), default=CampaignStatusV2.ACTIVE)
+    status = Column(Enum(CampaignStatusV2), default=CampaignStatusV2.DRAFT)
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     image_url = Column(String)
@@ -158,6 +166,7 @@ class CampaignV2(BaseModel):
     terms_and_conditions = Column(Text)
     winners = Column(JSON) # List of winner names/IDs
     results_summary = Column(Text)
+    meta_data = Column(JSON)
 
     fields = relationship("CampaignField", back_populates="campaign", cascade="all, delete-orphan")
     participations = relationship("CampaignParticipation", back_populates="campaign", cascade="all, delete-orphan")
@@ -171,6 +180,7 @@ class CampaignField(BaseModel):
     type = Column(Enum(FieldType))
     required = Column(Boolean, default=True)
     options = Column(JSON) # Array of strings for select type
+    order = Column(Integer, default=0)
 
     campaign = relationship("CampaignV2", back_populates="fields")
 

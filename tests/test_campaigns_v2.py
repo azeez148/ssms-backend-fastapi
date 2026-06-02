@@ -58,8 +58,10 @@ client = TestClient(app)
 def test_list_campaigns():
     response = client.get("/api/campaigns")
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["title"] == "Predict and Win"
+    data = response.json()
+    assert "items" in data
+    assert len(data["items"]) == 1
+    assert data["items"][0]["title"] == "Predict and Win"
 
 def test_get_active_campaigns():
     response = client.get("/api/campaigns/active")
@@ -100,4 +102,6 @@ def test_get_my_campaign_participation():
 def test_get_results():
     response = client.get("/api/campaigns/camp1/results")
     assert response.status_code == 200
-    assert "winners" in response.json()
+    data = response.json()
+    assert "responses" in data
+    assert "total_participations" in data

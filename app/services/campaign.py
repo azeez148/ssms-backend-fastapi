@@ -6,7 +6,7 @@ from sqlalchemy import or_, func
 from app.models.campaign import (
     Campaign, CampaignQuestion, CampaignParticipant,
     CampaignWinner, CampaignCommunication, CampaignStatus, SubmissionStatus,
-    CampaignV2, CampaignField, CampaignParticipation, CampaignStatusV2
+    CampaignV2, CampaignField, CampaignParticipation, CampaignStatusV2, ParticipationStatus
 )
 from app.schemas.campaign import (
     CampaignCreate, CampaignUpdate, CampaignQuestionCreate,
@@ -278,13 +278,194 @@ class CampaignService:
         query = db.query(CampaignV2)
         if status:
             query = query.filter(CampaignV2.status == status)
-        return query.all()
+
+        campaigns = query.all()
+        for c in campaigns:
+            c.participation_count = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == c.id).count()
+            c.submission_count = db.query(CampaignParticipation).filter(
+                CampaignParticipation.campaign_id == c.id,
+                CampaignParticipation.status == ParticipationStatus.SUBMITTED
+            ).count()
+        return campaigns
+
+    def get_campaigns_v2_admin(self, db: Session, page: int = 1, per_page: int = 10,
+                             status: Optional[str] = None, search: Optional[str] = None) -> Tuple[List[CampaignV2], int]:
+        query = db.query(CampaignV2)
+        if status:
+            query = query.filter(CampaignV2.status == status)
+        if search:
+            query = query.filter(CampaignV2.title.ilike(f"%{search}%"))
+
+        total = query.count()
+        campaigns = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        for c in campaigns:
+            c.participation_count = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == c.id).count()
+            c.submission_count = db.query(CampaignParticipation).filter(
+                CampaignParticipation.campaign_id == c.id,
+                CampaignParticipation.status == ParticipationStatus.SUBMITTED
+            ).count()
+
+        return campaigns, total
 
     def get_active_campaigns_v2(self, db: Session) -> List[CampaignV2]:
-        return db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.ACTIVE).all()
+        campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.ACTIVE).all()
+        for c in campaigns:
+            c.participation_count = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == c.id).count()
+            c.submission_count = db.query(CampaignParticipation).filter(
+                CampaignParticipation.campaign_id == c.id,
+                CampaignParticipation.status == ParticipationStatus.SUBMITTED
+            ).count()
+        return campaigns
 
     def get_campaign_v2_by_id(self, db: Session, campaign_id: str) -> Optional[CampaignV2]:
-        return db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+        c = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+        if c:
+            c.participation_count = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == c.id).count()
+            c.submission_count = db.query(CampaignParticipation).filter(
+                CampaignParticipation.campaign_id == c.id,
+                CampaignParticipation.status == ParticipationStatus.SUBMITTED
+            ).count()
+        return c
+
+    def create_campaign_v2(self, db: Session, campaign_data: dict, user_id: Optional[str] = None) -> CampaignV2:
+        import uuid
+        questions = campaign_data.pop('questions', [])
+
+        # Map starts_at/ends_at to start_date/end_date
+        if 'starts_at' in campaign_data:
+            campaign_data['start_date'] = campaign_data.pop('starts_at')
+        if 'ends_at' in campaign_data:
+            campaign_data['end_date'] = campaign_data.pop('ends_at')
+
+        if 'metadata' in campaign_data:
+            campaign_data['meta_data'] = campaign_data.pop('metadata')
+
+        campaign_id = str(uuid.uuid4())
+        db_campaign = CampaignV2(id=campaign_id, **campaign_data, created_by=user_id)
+        db.add(db_campaign)
+
+        for q in questions:
+            field_id = str(uuid.uuid4())
+            db_field = CampaignField(id=field_id, campaign_id=campaign_id, **q)
+            db.add(db_field)
+
+        db.commit()
+        db.refresh(db_campaign)
+        return self.get_campaign_v2_by_id(db, campaign_id)
+
+    def update_campaign_v2(self, db: Session, campaign_id: str, campaign_data: dict, user_id: Optional[str] = None) -> Optional[CampaignV2]:
+        db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+        if not db_campaign:
+            return None
+
+        questions = campaign_data.pop('questions', None)
+
+        if 'starts_at' in campaign_data:
+            campaign_data['start_date'] = campaign_data.pop('starts_at')
+        if 'ends_at' in campaign_data:
+            campaign_data['end_date'] = campaign_data.pop('ends_at')
+
+        if 'metadata' in campaign_data:
+            campaign_data['meta_data'] = campaign_data.pop('metadata')
+
+        for key, value in campaign_data.items():
+            setattr(db_campaign, key, value)
+
+        db_campaign.updated_by = user_id
+
+        if questions is not None:
+            # Overwrite fields
+            db.query(CampaignField).filter(CampaignField.campaign_id == campaign_id).delete()
+            import uuid
+            for q in questions:
+                field_id = str(uuid.uuid4())
+                db_field = CampaignField(id=field_id, campaign_id=campaign_id, **q)
+                db.add(db_field)
+
+        db.commit()
+        db.refresh(db_campaign)
+        return self.get_campaign_v2_by_id(db, campaign_id)
+
+    def patch_campaign_v2(self, db: Session, campaign_id: str, patch_data: dict, user_id: Optional[str] = None) -> Optional[CampaignV2]:
+        db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+        if not db_campaign:
+            return None
+
+        if 'starts_at' in patch_data:
+            patch_data['start_date'] = patch_data.pop('starts_at')
+        if 'ends_at' in patch_data:
+            patch_data['end_date'] = patch_data.pop('ends_at')
+
+        if 'metadata' in patch_data:
+            patch_data['meta_data'] = patch_data.pop('metadata')
+
+        force = patch_data.pop('force', False)
+
+        for key, value in patch_data.items():
+            if value is not None:
+                setattr(db_campaign, key, value)
+
+        db_campaign.updated_by = user_id
+        db.commit()
+        db.refresh(db_campaign)
+        return self.get_campaign_v2_by_id(db, campaign_id)
+
+    def delete_campaign_v2(self, db: Session, campaign_id: str) -> bool:
+        db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+        if not db_campaign:
+            return False
+        db.delete(db_campaign)
+        db.commit()
+        return True
+
+    def get_campaign_stats_v2(self, db: Session) -> dict:
+        total_campaigns = db.query(CampaignV2).count()
+        active_campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.ACTIVE).count()
+        draft_campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.DRAFT).count()
+        total_participations = db.query(CampaignParticipation).count()
+
+        # Calculate completion rate
+        total_submissions = db.query(CampaignParticipation).filter(CampaignParticipation.status == ParticipationStatus.SUBMITTED).count()
+        completion_rate = (total_submissions / total_participations * 100) if total_participations > 0 else 0
+
+        return {
+            "totalCampaigns": total_campaigns,
+            "activeCampaigns": active_campaigns,
+            "draftCampaigns": draft_campaigns,
+            "totalParticipations": total_participations,
+            "completionRate": completion_rate
+        }
+
+    def bulk_action_v2(self, db: Session, ids: List[str], action: str, force: bool = False, user_id: Optional[str] = None) -> dict:
+        success = []
+        failed = []
+
+        for campaign_id in ids:
+            try:
+                db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+                if not db_campaign:
+                    failed.append({"id": campaign_id, "error": "Not found"})
+                    continue
+
+                if action == 'publish':
+                    db_campaign.status = CampaignStatusV2.ACTIVE
+                elif action == 'unpublish':
+                    db_campaign.status = CampaignStatusV2.PAUSED
+                elif action == 'pause':
+                    db_campaign.status = CampaignStatusV2.PAUSED
+                elif action == 'delete':
+                    db.delete(db_campaign)
+
+                if db_campaign:
+                    db_campaign.updated_by = user_id
+
+                success.append(campaign_id)
+            except Exception as e:
+                failed.append({"id": campaign_id, "error": str(e)})
+
+        db.commit()
+        return {"success": success, "failed": failed}
 
     def participate_v2(self, db: Session, campaign_id: str, user_id: str, responses: dict) -> CampaignParticipation:
         import uuid
@@ -331,9 +512,22 @@ class CampaignService:
         db_campaign = self.get_campaign_v2_by_id(db, campaign_id)
         if not db_campaign:
             return None
+
+        participations = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == campaign_id).all()
+
+        results = {} # Field ID -> {Option -> Count}
+        for p in participations:
+            for field_id, response in p.responses.items():
+                if field_id not in results:
+                    results[field_id] = {}
+
+                resp_str = str(response)
+                results[field_id][resp_str] = results[field_id].get(resp_str, 0) + 1
+
         return {
-            "winners": db_campaign.winners or [],
-            "results_summary": db_campaign.results_summary
+            "campaign_id": campaign_id,
+            "total_participations": len(participations),
+            "responses": results
         }
 
     def update_campaign_image(self, db: Session, campaign_id: int, image_url: str, image_type: str) -> Optional[Campaign]:
