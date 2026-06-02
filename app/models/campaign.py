@@ -32,22 +32,17 @@ class RecipientType(str, enum.Enum):
 
 # V2 Enums
 class CampaignTypeV2(str, enum.Enum):
-    SURVEY = "survey"
-    GIVEAWAY = "giveaway"
-    DISCOUNT = "discount"
-    # Keeping old ones for backward compatibility if needed, but the task implies a transition
-    PREDICTION = "prediction"
-    LUCKY_DRAW = "lucky_draw"
+    survey = "survey"
+    prediction = "prediction"
+    contest = "contest"
 
 class CampaignStatusV2(str, enum.Enum):
-    DRAFT = "draft"
-    ACTIVE = "active"
-    PAUSED = "paused"
-    ENDED = "ended"
-    SCHEDULED = "scheduled"
-    # Keeping old ones
-    CLOSED = "closed"
-    RESULTS_ANNOUNCED = "results_announced"
+    draft = "draft"
+    active = "active"
+    paused = "paused"
+    ended = "ended"
+    scheduled = "scheduled"
+
 
 class FieldType(str, enum.Enum):
     text = "text"
@@ -158,7 +153,7 @@ class CampaignV2(BaseModel):
     title = Column(String, nullable=False)
     description = Column(Text)
     type = Column(Enum(CampaignTypeV2))
-    status = Column(Enum(CampaignStatusV2), default=CampaignStatusV2.DRAFT)
+    status = Column(Enum(CampaignStatusV2), default=CampaignStatusV2.draft)
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     image_url = Column(String)
