@@ -310,7 +310,7 @@ class CampaignService:
         return campaigns, total
 
     def get_active_campaigns_v2(self, db: Session) -> List[CampaignV2]:
-        campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.ACTIVE).all()
+        campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.active).all()
         for c in campaigns:
             c.participation_count = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == c.id).count()
             c.submission_count = db.query(CampaignParticipation).filter(

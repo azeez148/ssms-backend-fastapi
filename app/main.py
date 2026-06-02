@@ -86,8 +86,7 @@ app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(pricelist.router, prefix="/pricelists", tags=["pricelists"])
-app.include_router(campaigns.router, prefix="/campaigns", tags=["campaigns"])
-app.include_router(campaign_v2.router, prefix="/api/campaigns", tags=["campaigns-v2"])
+app.include_router(campaign_v2.router, prefix="/campaigns", tags=["campaigns-v2"])
 
 @app.get("/")
 def read_root():
