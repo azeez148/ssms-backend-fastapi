@@ -495,8 +495,8 @@ class CampaignService:
 
     def get_campaign_stats_v2(self, db: Session) -> dict:
         total_campaigns = db.query(CampaignV2).count()
-        active_campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.ACTIVE).count()
-        draft_campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.DRAFT).count()
+        active_campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.active).count()
+        draft_campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.draft).count()
         total_participations = db.query(CampaignParticipation).count()
 
         # Calculate completion rate
@@ -524,11 +524,11 @@ class CampaignService:
                         continue
 
                     if action == 'publish':
-                        db_campaign.status = CampaignStatusV2.ACTIVE
+                        db_campaign.status = CampaignStatusV2.active
                     elif action == 'unpublish':
-                        db_campaign.status = CampaignStatusV2.PAUSED
+                        db_campaign.status = CampaignStatusV2.paused
                     elif action == 'pause':
-                        db_campaign.status = CampaignStatusV2.PAUSED
+                        db_campaign.status = CampaignStatusV2.paused
                     elif action == 'delete':
                         db.delete(db_campaign)
 
@@ -554,7 +554,7 @@ class CampaignService:
             if not db_campaign:
                 raise Exception("Campaign not found")
 
-            if db_campaign.status != CampaignStatusV2.ACTIVE:
+            if db_campaign.status != CampaignStatusV2.active:
                 raise Exception("Campaign is not active")
 
             if db_campaign.end_date and datetime.now() > db_campaign.end_date:
