@@ -604,25 +604,57 @@ class CampaignService:
         ).first()
 
     def get_campaign_results_v2(self, db: Session, campaign_id: str) -> Optional[dict]:
+        from app.models.user import User
+        from app.models.customer import Customer
         db_campaign = self.get_campaign_v2_by_id(db, campaign_id)
         if not db_campaign:
             return None
 
-        participations = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == campaign_id).all()
+        query = db.query(
+            CampaignParticipation,
+            User.email.label("user_email"),
+            User.mobile.label("user_mobile"),
+            Customer.first_name,
+            Customer.last_name
+        ).join(
+            User, CampaignParticipation.user_id == User.id
+        ).outerjoin(
+            Customer, User.customer_id == Customer.id
+        ).filter(CampaignParticipation.campaign_id == campaign_id)
+
+        results_data = query.all()
 
         results = {} # Field ID -> {Option -> Count}
-        for p in participations:
-            for field_id, response in p.responses.items():
+        participants_list = []
+
+        for p, user_email, user_mobile, first_name, last_name in results_data:
+            # Aggregate responses
+            for field_id, response in (p.responses or {}).items():
                 if field_id not in results:
                     results[field_id] = {}
 
                 resp_str = str(response)
                 results[field_id][resp_str] = results[field_id].get(resp_str, 0) + 1
 
+            # Formulate participant name
+            user_name = "N/A"
+            if first_name or last_name:
+                user_name = f"{first_name or ''} {last_name or ''}".strip()
+
+            participants_list.append({
+                "userId": p.user_id,
+                "name": user_name,
+                "email": user_email,
+                "mobile": user_mobile,
+                "participationDate": p.participation_date,
+                "responses": p.responses
+            })
+
         return {
             "campaign_id": campaign_id,
-            "total_participations": len(participations),
-            "responses": results
+            "total_participations": len(results_data),
+            "responses": results,
+            "participants": participants_list
         }
 
     def update_campaign_image(self, db: Session, campaign_id: int, image_url: str, image_type: str) -> Optional[Campaign]:
