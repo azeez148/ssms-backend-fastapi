@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List
 from app.models.purchase import Purchase, PurchaseItem
@@ -76,8 +77,8 @@ class PurchaseService:
 
         return db_purchase
 
-    def get_all_purchases(self, db: Session) -> List[Purchase]:
-        return db.query(Purchase).all()
+    def get_all_purchases(self, db: Session, skip: int = 0, limit: int = 100) -> List[Purchase]:
+        return db.query(Purchase).order_by(Purchase.id.desc()).offset(skip).limit(limit).all()
 
     def get_purchase_by_id(self, db: Session, purchase_id: int) -> Purchase:
         return db.query(Purchase).filter(Purchase.id == purchase_id).first()
@@ -87,9 +88,14 @@ class PurchaseService:
 
     def get_total_purchases(self, db: Session) -> dict:
         """Get total purchases summary"""
-        purchases = self.get_all_purchases(db)
+        totals = db.query(
+            func.count(Purchase.id),
+            func.coalesce(func.sum(Purchase.total_price), 0.0),
+            func.coalesce(func.sum(Purchase.total_quantity), 0),
+        ).one()
+
         return {
-            'total_count': len(purchases),
-            'total_cost': sum(purchase.total_price for purchase in purchases),
-            'total_items_purchased': sum(purchase.total_quantity for purchase in purchases)
+            'total_count': int(totals[0] or 0),
+            'total_cost': float(totals[1] or 0.0),
+            'total_items_purchased': int(totals[2] or 0)
         }
