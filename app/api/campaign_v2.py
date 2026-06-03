@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import shutil
+from pathlib import Path
+import os
 
 from app.core.database import get_db
 from app.api.auth import get_current_user
@@ -207,3 +210,44 @@ async def bulk_pause(request: BulkActionRequestV2, db: Session = Depends(get_db)
 @router.post("/bulk/action", response_model=BulkActionResponseV2)
 async def bulk_action(request: BulkActionRequestV2, db: Session = Depends(get_db), current_user: User = Depends(get_current_user_admin)):
     return campaign_service.bulk_action_v2(db, request.ids, request.action, request.force, str(current_user.id))
+
+@router.post("/{id}/upload-image", response_model=CampaignV2Response)
+async def upload_campaign_image(
+    id: str,
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_admin)
+):
+    # Define the directory to store the image
+    upload_dir = Path(f"images/campaigns/{id}")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Delete any existing files in the directory to keep it clean
+    for existing_file in upload_dir.iterdir():
+        if existing_file.is_file():
+            existing_file.unlink()
+
+    # Get sanitized original filename or use a default
+    original_filename = os.path.basename(image.filename)
+    file_ext = Path(original_filename).suffix
+    if not file_ext:
+        file_ext = ".jpg" # Default extension if none found
+
+    new_filename = f"image{file_ext}"
+    file_path = upload_dir / new_filename
+
+    # Save the file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+
+    # Update the campaign's image_url in the database
+    image_url = str(file_path).replace("\\", "/")
+    updated_campaign = campaign_service.update_campaign_v2_image(db, id, image_url)
+
+    if not updated_campaign:
+        # Cleanup file if campaign not found
+        if file_path.exists():
+            file_path.unlink()
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    return updated_campaign

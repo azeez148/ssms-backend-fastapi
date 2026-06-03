@@ -36,8 +36,8 @@ def setup_db():
     camp = CampaignV2(
         id="camp1",
         title="Predict and Win",
-        type=CampaignTypeV2.PREDICTION,
-        status=CampaignStatusV2.ACTIVE,
+        type=CampaignTypeV2.prediction,
+        status=CampaignStatusV2.active,
         start_date=datetime.now() - timedelta(days=1),
         end_date=datetime.now() + timedelta(days=1),
         fields=[],
