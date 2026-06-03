@@ -158,7 +158,7 @@ async def unpublish_campaign(
     db: Session = Depends(get_db)
 ):
     from app.models.campaign import CampaignStatusV2
-    updated = campaign_service.patch_campaign_v2(db, id, {"status": CampaignStatusV2.PAUSED}, str(current_user.id))
+    updated = campaign_service.patch_campaign_v2(db, id, {"status": CampaignStatusV2.paused}, str(current_user.id))
     if not updated:
         raise HTTPException(status_code=404, detail="Campaign not found")
     return updated
