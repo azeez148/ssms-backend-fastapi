@@ -90,6 +90,16 @@ class CampaignService:
         db.refresh(db_campaign)
         return db_campaign
 
+    def update_campaign_v2_image(self, db: Session, campaign_id: str, image_url: str) -> Optional[CampaignV2]:
+        db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+        if not db_campaign:
+            return None
+
+        db_campaign.image_url = image_url
+        db.commit()
+        db.refresh(db_campaign)
+        return self.get_campaign_v2_by_id(db, campaign_id)
+
     def update_campaign_status(self, db: Session, campaign_id: int, status: str) -> Optional[Campaign]:
         db_campaign = self.get_campaign_by_id(db, campaign_id)
         if not db_campaign:
