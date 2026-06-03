@@ -165,18 +165,45 @@ async def unpublish_campaign(
 
 @router.get("/{id}/export")
 async def export_campaign_data(id: str, format: str = "csv", db: Session = Depends(get_db), current_user: User = Depends(get_current_user_admin)):
-    from app.models.campaign import CampaignParticipation
-    participations = db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == id).all()
+    from app.models.campaign import CampaignParticipation, CampaignV2
+    from app.models.user import User
+    from app.models.customer import Customer
+
+    query = db.query(
+        CampaignParticipation,
+        CampaignV2.title.label("campaign_name"),
+        User.email.label("user_email"),
+        User.mobile.label("user_mobile"),
+        Customer.first_name,
+        Customer.last_name
+    ).join(
+        CampaignV2, CampaignParticipation.campaign_id == CampaignV2.id
+    ).outerjoin(
+        User, CampaignParticipation.user_id == User.id
+    ).outerjoin(
+        Customer, User.customer_id == Customer.id
+    ).filter(CampaignParticipation.campaign_id == id)
+
+    results = query.all()
 
     data = []
-    for p in participations:
+    for p, campaign_name, user_email, user_mobile, first_name, last_name in results:
+        user_name = "N/A"
+        if first_name or last_name:
+            user_name = f"{first_name or ''} {last_name or ''}".strip()
+
         row = {
             "participation_id": p.id,
+            "campaign_name": campaign_name,
             "user_id": p.user_id,
+            "user_name": user_name,
+            "user_email": user_email,
+            "user_mobile": user_mobile,
             "participation_date": p.participation_date,
             "status": p.status
         }
-        row.update(p.responses)
+        if p.responses:
+            row.update(p.responses)
         data.append(row)
 
     df = pd.DataFrame(data)
