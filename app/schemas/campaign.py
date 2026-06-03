@@ -111,10 +111,23 @@ class CampaignParticipationResponse(BaseModel):
         populate_by_name = True
         from_attributes = True
 
+class CampaignParticipantDetailV2(BaseModel):
+    user_id: str = Field(..., alias="userId")
+    name: Optional[str] = None
+    email: Optional[str] = None
+    mobile: Optional[str] = None
+    participation_date: datetime = Field(..., alias="participationDate")
+    responses: Dict[str, Any]
+
+    class Config:
+        populate_by_name = True
+        from_attributes = True
+
 class CampaignResultsV2(BaseModel):
     campaign_id: str = Field(..., alias="campaign_id")
     total_participations: int = Field(..., alias="total_participations")
     responses: Dict[str, Dict[str, int]]
+    participants: Optional[List[CampaignParticipantDetailV2]] = None
     from_date: Optional[str] = Field(None, alias="from")
     to_date: Optional[str] = Field(None, alias="to")
 
