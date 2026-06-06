@@ -1,4 +1,6 @@
 import os
+import time
+import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +10,22 @@ from app.core.logging import logger
 from dotenv import load_dotenv
 
 app = FastAPI(title="SSMS API")
+
+slow_api_logger = logging.getLogger("slow_api")
+
+@app.middleware("http")
+async def log_request_time(request: Request, call_next):
+    start = time.time()
+
+    response = await call_next(request)
+
+    duration = time.time() - start
+
+    slow_api_logger.info(
+        f"{request.method} {request.url.path} completed in {duration:.2f}s"
+    )
+
+    return response
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
