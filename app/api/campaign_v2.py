@@ -15,6 +15,7 @@ from app.schemas.campaign import (
     CampaignStatsV2, BulkActionRequestV2, BulkActionResponseV2
 )
 from app.services.campaign import CampaignService
+from app.services.storage import StorageService
 from app.api.auth import get_current_user_admin
 import pandas as pd
 import tempfile
@@ -24,6 +25,7 @@ from starlette.background import BackgroundTask
 
 router = APIRouter()
 campaign_service = CampaignService()
+storage_service = StorageService()
 
 @router.get("", response_model=CampaignListResponseV2)
 async def list_campaigns(
@@ -245,36 +247,19 @@ async def upload_campaign_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_admin)
 ):
-    # Define the directory to store the image
-    upload_dir = Path(f"images/campaigns/{id}")
-    os.makedirs(upload_dir, exist_ok=True)
+    # Get existing campaign to check for old image
+    campaign = campaign_service.get_campaign_v2_by_id(db, id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
 
-    # Delete any existing files in the directory to keep it clean
-    for existing_file in upload_dir.iterdir():
-        if existing_file.is_file():
-            existing_file.unlink()
+    # Delete old image from R2 if it exists
+    if campaign.image_url and campaign.image_url.startswith("http"):
+        await storage_service.delete_image(campaign.image_url)
 
-    # Get sanitized original filename or use a default
-    original_filename = os.path.basename(image.filename)
-    file_ext = Path(original_filename).suffix
-    if not file_ext:
-        file_ext = ".jpg" # Default extension if none found
-
-    new_filename = f"image{file_ext}"
-    file_path = upload_dir / new_filename
-
-    # Save the file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
+    # Upload new image to R2
+    image_url = await storage_service.upload_image(image, folder="campaigns")
 
     # Update the campaign's image_url in the database
-    image_url = str(file_path).replace("\\", "/")
     updated_campaign = campaign_service.update_campaign_v2_image(db, id, image_url)
-
-    if not updated_campaign:
-        # Cleanup file if campaign not found
-        if file_path.exists():
-            file_path.unlink()
-        raise HTTPException(status_code=404, detail="Campaign not found")
 
     return updated_campaign

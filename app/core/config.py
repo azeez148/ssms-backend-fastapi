@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
+    # Cloudflare R2 Settings
+    R2_ACCOUNT_ID: Optional[str] = os.getenv("R2_ACCOUNT_ID")
+    R2_ACCESS_KEY_ID: Optional[str] = os.getenv("R2_ACCESS_KEY_ID")
+    R2_SECRET_ACCESS_KEY: Optional[str] = os.getenv("R2_SECRET_ACCESS_KEY")
+    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "ssms-images")
+    R2_PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "")
+
 
     class Config:
         env_file = ".env"
