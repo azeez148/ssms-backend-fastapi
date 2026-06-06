@@ -79,7 +79,8 @@ from app.api import (
     pricelist,
     report,
     campaigns,
-    campaign_v2
+    campaign_v2,
+    storage
 )
 
 # Include all routers
@@ -106,6 +107,7 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(pricelist.router, prefix="/pricelists", tags=["pricelists"])
 app.include_router(campaign_v2.router, prefix="/campaigns", tags=["campaigns-v2"])
 app.include_router(campaign_v2.router, prefix="/api/campaigns", tags=["campaigns-v2"])
+app.include_router(storage.router, prefix="/storage", tags=["storage"])
 
 
 @app.get("/")
