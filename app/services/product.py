@@ -97,7 +97,8 @@ class ProductService:
 
     def get_all_products(self, db: Session) -> List[Product]:
         products = db.query(Product).options(
-            joinedload(Product.shops),
+            joinedload(Product.category),
+            selectinload(Product.shops),
             selectinload(Product.tags)
         ).all()
         return products

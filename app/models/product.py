@@ -30,7 +30,7 @@ class Product(BaseModel):
         ProductSize,  # Direct class reference instead of string
         cascade="all, delete-orphan",
         backref="product",
-        lazy="joined"  # This will load the sizes eagerly with the product
+        lazy="selectin"  # Load sizes separately to avoid Cartesian products
     )
     shops = relationship("Shop", secondary="shop_products", back_populates="products")
     tags = relationship("Tag", secondary="product_tags", back_populates="products")
