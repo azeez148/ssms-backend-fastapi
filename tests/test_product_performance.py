@@ -20,17 +20,25 @@ class TestProductEagerLoading(unittest.TestCase):
         query.options.return_value = options_query
         options_query.all.return_value = []
 
-        mock_joinedload.return_value = "shops_loader"
-        mock_selectinload.return_value = "tags_loader"
+        # Side effect to handle multiple calls to joinedload and selectinload
+        def mock_joinedload_side_effect(attr):
+            return f"joined_{attr}"
+        def mock_selectinload_side_effect(attr):
+            return f"selectin_{attr}"
+
+        mock_joinedload.side_effect = mock_joinedload_side_effect
+        mock_selectinload.side_effect = mock_selectinload_side_effect
 
         # Act
         self.product_service.get_all_products(self.db)
 
         # Assert
         self.db.query.assert_called_once_with(Product)
-        query.options.assert_called_once_with("shops_loader", "tags_loader")
-        mock_joinedload.assert_called_once_with(Product.shops)
-        mock_selectinload.assert_called_once_with(Product.tags)
+        query.options.assert_called_once_with(
+            f"joined_{Product.category}",
+            f"selectin_{Product.shops}",
+            f"selectin_{Product.tags}"
+        )
         options_query.all.assert_called_once()
 
 
