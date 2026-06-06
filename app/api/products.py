@@ -27,9 +27,11 @@ from app.schemas.stock import ClearStockRequest, StockResponse
 from app.services.product import ProductService
 from app.services.category import CategoryService
 from app.services.stock import StockService
+from app.services.storage import StorageService
 
 router = APIRouter()
 product_service = ProductService()
+storage_service = StorageService()
 category_service = CategoryService()
 
 @router.post("/addProduct", response_model=ProductResponse)
@@ -162,31 +164,21 @@ async def upload_product_images(
     image: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    # Define the directory to store the image
-    upload_dir = Path(f"images/products/{product_id}")
-    os.makedirs(upload_dir, exist_ok=True)
-
-    # Delete any existing files in the directory
-    for existing_file in upload_dir.iterdir():
-        if existing_file.is_file():
-            existing_file.unlink()
-
-    # Rename the uploaded file to product_id with its original extension
-    file_ext = Path(image.filename).suffix
-    new_filename = f"{product_id}{file_ext}"
-    file_path = upload_dir / new_filename
-
-    # Save the file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
-
-    # Update the product's image_url in the database
-    image_url = str(file_path).replace("\\", "/")
-    updated_product = product_service.update_product_image_url(db, product_id, image_url)
-
-    if not updated_product:
+    # Get existing product to check for old image
+    product = product_service.get_product_by_id(db, product_id)
+    if not product:
         logger.error(f"Product with id {product_id} not found")
         raise HTTPException(status_code=404, detail="Product not found")
+
+    # Delete old image from R2 if it exists
+    if product.image_url and product.image_url.startswith("http"):
+        await storage_service.delete_image(product.image_url)
+
+    # Upload new image to R2
+    image_url = await storage_service.upload_image(image, folder="products")
+
+    # Update the product's image_url in the database
+    updated_product = product_service.update_product_image_url(db, product_id, image_url)
 
     return updated_product
 
