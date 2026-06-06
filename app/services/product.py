@@ -103,6 +103,25 @@ class ProductService:
         ).all()
         return products
 
+    def get_all_products_minimal(self, db: Session) -> List[Product]:
+        products = db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops)
+        ).all()
+
+        for p in products:
+            p.category_name = p.category.name if p.category else None
+
+        return products
+
+    def get_all_products_paginated(self, db: Session, skip: int = 0, limit: int = 100) -> List[Product]:
+        products = db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags)
+        ).offset(skip).limit(limit).all()
+        return products
+
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         product = db.query(Product).options(joinedload(Product.shops)).filter(Product.id == product_id).first()
         return product

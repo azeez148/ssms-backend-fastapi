@@ -14,6 +14,7 @@ from app.schemas.product import (
     CategoryDiscountUpdateRequest,
     ProductCreate,
     ProductResponse,
+    ProductMinimalResponse,
     ProductTransferRequest,
     ProductUpdate,
     UpdateSizeMapRequest,
@@ -49,8 +50,18 @@ async def add_bulk_products(
     return product_service.create_bulk_products(db, products)
 
 @router.get("/all", response_model=List[ProductResponse])
-async def get_all_products(db: Session = Depends(get_db)):
+async def get_all_products(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: Optional[int] = None
+):
+    if limit is not None:
+        return product_service.get_all_products_paginated(db, skip=skip, limit=limit)
     return product_service.get_all_products(db)
+
+@router.get("/all-minimal", response_model=List[ProductMinimalResponse])
+async def get_all_products_minimal(db: Session = Depends(get_db)):
+    return product_service.get_all_products_minimal(db)
 
 @router.post("/updateProduct", response_model=ProductResponse)
 async def update_product(
