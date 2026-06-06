@@ -29,3 +29,15 @@ handler.setFormatter(formatter)
 
 # Add the handler to the logger
 logger.addHandler(handler)
+
+# Configure slow_api logger
+slow_api_logger = logging.getLogger("slow_api")
+slow_api_logger.setLevel(logging.INFO)
+slow_api_log_file = os.path.join(log_dir, "slow_api.log")
+slow_handler = RotatingFileHandler(slow_api_log_file, maxBytes=1024 * 1024, backupCount=5)
+slow_handler.setFormatter(formatter)
+slow_api_logger.addHandler(slow_handler)
+# Also add stream handler to see it in console
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+slow_api_logger.addHandler(stream_handler)
