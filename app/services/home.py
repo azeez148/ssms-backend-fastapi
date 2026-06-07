@@ -4,15 +4,18 @@ from sqlalchemy.orm import Session
 from app.schemas.home import HomeResponse
 from app.services.product import ProductService
 from app.services.event import EventOfferService
+from app.services.category import CategoryService
 from app.models.event import EventOffer
 from app.models.product import Product
-from typing import List
+from app.models.category import Category
+from typing import List, Optional
 import glob as glob_module
 
 class HomeService:
     def __init__(self):
         self.product_service = ProductService()
         self.event_offer_service = EventOfferService()
+        self.category_service = CategoryService()
 
     _home_cache = None
     _last_cache_time = 0
@@ -79,3 +82,19 @@ class HomeService:
         products = offer.products
         # self._populate_product_images(products)
         return products
+
+    def get_categories(self, db: Session) -> List[Category]:
+        return self.category_service.get_all_categories(db)
+
+    def search_products(self, db: Session, search: str) -> List[Product]:
+        products, _ = self.product_service.get_all_products(db, search=search)
+        return products
+
+    def get_new_arrivals(self, db: Session) -> List[Product]:
+        return db.query(Product).order_by(Product.created_date.desc()).limit(20).all()
+
+    def get_offer_products(self, db: Session) -> List[Product]:
+        return db.query(Product).filter(Product.offer_id.isnot(None)).all()
+
+    def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
+        return self.product_service.get_product_by_id(db, product_id)
