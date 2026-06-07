@@ -76,20 +76,18 @@ class R2Migrator:
 
     def migrate_products(self, db: Session):
         print("\n--- Migrating Product Images ---")
-        # Fetch all products with non-empty image_url
         products = db.query(Product).filter(
             Product.image_url.isnot(None),
             Product.image_url != ""
         ).all()
 
-        print(f"Found {len(products)} products to check for migration.")
+        stats = {"total": len(products), "migrated": 0, "skipped": 0, "failed": 0}
+        print(f"Found {stats['total']} products to check for migration.")
 
-        count = 0
         for product in products:
             print(f"Processing Product ID: {product.id}, Name: {product.name}")
             old_path = product.image_url
 
-            # Logic to find the file
             possible_paths = [
                 os.path.join(self.local_base_dir, old_path),
                 os.path.join(self.local_base_dir, "images", "products", old_path) if not old_path.startswith("images") else "",
@@ -103,30 +101,31 @@ class R2Migrator:
                     break
 
             if not local_path:
-                print(f"  Skipping: No local file found for product {product.id} at {old_path}. (Possibly already migrated or external)")
+                print(f"  Skipping: No local file found for product {product.id} at {old_path}.")
+                stats["skipped"] += 1
                 continue
 
             new_key = self.upload_to_r2(local_path, "products")
             if new_key:
                 print(f"  Updating DB: {old_path} -> {new_key}")
                 product.image_url = new_key
-                count += 1
+                stats["migrated"] += 1
             else:
                 print(f"  Failed to upload image for product {product.id}")
+                stats["failed"] += 1
 
-        return count
+        return stats
 
     def migrate_campaigns(self, db: Session):
         print("\n--- Migrating Campaign Images ---")
-        # Fetch all campaigns with non-empty image_url
         campaigns = db.query(CampaignV2).filter(
             CampaignV2.image_url.isnot(None),
             CampaignV2.image_url != ""
         ).all()
 
-        print(f"Found {len(campaigns)} campaigns to check for migration.")
+        stats = {"total": len(campaigns), "migrated": 0, "skipped": 0, "failed": 0}
+        print(f"Found {stats['total']} campaigns to check for migration.")
 
-        count = 0
         for campaign in campaigns:
             print(f"Processing Campaign ID: {campaign.id}, Title: {campaign.title}")
             old_path = campaign.image_url
@@ -144,18 +143,20 @@ class R2Migrator:
                     break
 
             if not local_path:
-                print(f"  Skipping: No local file found for campaign {campaign.id} at {old_path}. (Possibly already migrated or external)")
+                print(f"  Skipping: No local file found for campaign {campaign.id} at {old_path}.")
+                stats["skipped"] += 1
                 continue
 
             new_key = self.upload_to_r2(local_path, "campaigns")
             if new_key:
                 print(f"  Updating DB: {old_path} -> {new_key}")
                 campaign.image_url = new_key
-                count += 1
+                stats["migrated"] += 1
             else:
                 print(f"  Failed to upload image for campaign {campaign.id}")
+                stats["failed"] += 1
 
-        return count
+        return stats
 
 def main():
     try:
@@ -165,13 +166,27 @@ def main():
 
     db = SessionLocal()
     try:
-        product_count = migrator.migrate_products(db)
-        campaign_count = migrator.migrate_campaigns(db)
+        product_stats = migrator.migrate_products(db)
+        campaign_stats = migrator.migrate_campaigns(db)
 
         db.commit()
-        print(f"\nMigration Summary:")
-        print(f"Products migrated: {product_count}")
-        print(f"Campaigns migrated: {campaign_count}")
+        print(f"\n{'='*40}")
+        print(f"{'MIGRATION SUMMARY':^40}")
+        print(f"{'='*40}")
+
+        print(f"\nProducts:")
+        print(f"  Total Checked: {product_stats['total']}")
+        print(f"  Migrated:      {product_stats['migrated']}")
+        print(f"  Skipped:       {product_stats['skipped']} (Already migrated or not found)")
+        print(f"  Failed:        {product_stats['failed']}")
+
+        print(f"\nCampaigns:")
+        print(f"  Total Checked: {campaign_stats['total']}")
+        print(f"  Migrated:      {campaign_stats['migrated']}")
+        print(f"  Skipped:       {campaign_stats['skipped']} (Already migrated or not found)")
+        print(f"  Failed:        {campaign_stats['failed']}")
+
+        print(f"\n{'='*40}")
         print("Migration completed successfully.")
     except Exception as e:
         db.rollback()
