@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from httpcore import request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import shutil
 import os
 import pandas as pd
@@ -14,6 +14,9 @@ from app.schemas.product import (
     CategoryDiscountUpdateRequest,
     ProductCreate,
     ProductResponse,
+    ProductMinimalResponse,
+    ProductListResponse,
+    ProductMinimalListResponse,
     ProductTransferRequest,
     ProductUpdate,
     UpdateSizeMapRequest,
@@ -48,9 +51,53 @@ async def add_bulk_products(
 ):
     return product_service.create_bulk_products(db, products)
 
-@router.get("/all", response_model=List[ProductResponse])
-async def get_all_products(db: Session = Depends(get_db)):
-    return product_service.get_all_products(db)
+@router.get("/all", response_model=ProductListResponse)
+async def get_all_products(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: Optional[int] = None,
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None,
+    search: Optional[str] = None
+):
+    products, total = product_service.get_all_products(
+        db,
+        skip=skip,
+        limit=limit,
+        category_id=category_id,
+        shop_id=shop_id,
+        search=search
+    )
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // (limit or 100)) + 1,
+        "per_page": limit or total
+    }
+
+@router.get("/all-minimal", response_model=ProductMinimalListResponse)
+async def get_all_products_minimal(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: Optional[int] = None,
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None,
+    search: Optional[str] = None
+):
+    products, total = product_service.get_all_products_minimal(
+        db,
+        skip=skip,
+        limit=limit,
+        category_id=category_id,
+        shop_id=shop_id,
+        search=search
+    )
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // (limit or 100)) + 1,
+        "per_page": limit or total
+    }
 
 @router.post("/updateProduct", response_model=ProductResponse)
 async def update_product(

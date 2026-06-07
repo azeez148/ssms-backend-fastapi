@@ -1,17 +1,16 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Optional, List
 from typing_extensions import Annotated
 from app.schemas.base import BaseSchema
 from app.schemas.category import CategoryInDB
 from app.schemas.tag import TagResponse
-from app.schemas.shop import ShopResponse
+from app.schemas.shop import ShopResponse, ShopMinimalResponse
 
 class ProductSizeBase(BaseModel):
     size: str
     quantity: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductSizeCreate(ProductSizeBase):
     pass
@@ -34,9 +33,7 @@ class ProductBase(BaseModel):
     tags: Optional[List[TagResponse]] = None
     shops: Optional[List[ShopResponse]] = None
 
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductCreate(BaseModel):
     name: str
@@ -69,14 +66,41 @@ class ProductUpdate(BaseModel):
     offer_name: Optional[str] = None  # Added for offer name
     shop_ids: Optional[List[int]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductInDB(ProductBase):
     id: int
 
 class ProductResponse(ProductInDB, BaseSchema):
     pass
+
+class ProductMinimalResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    unit_price: int
+    selling_price: int
+    category_id: int
+    is_active: bool
+    can_listed: bool
+    image_url: Optional[str] = None
+    discounted_price: Optional[int] = None
+    category_name: Optional[str] = None
+    shops: Optional[List[ShopMinimalResponse]] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ProductListResponse(BaseModel):
+    items: List[ProductResponse]
+    total: int
+    page: int
+    per_page: int
+
+class ProductMinimalListResponse(BaseModel):
+    items: List[ProductMinimalResponse]
+    total: int
+    page: int
+    per_page: int
 
 class UpdateSizeMapRequest(BaseModel):
     product_id: int
@@ -95,8 +119,7 @@ class CategoryDiscountResponse(BaseModel):
     category_id: int
     discounted_price: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CategoryDiscountUpdateRequest(BaseModel):
     category_id: int
