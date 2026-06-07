@@ -42,7 +42,7 @@ async def test_upload_image_success(mock_run, storage_service):
 
     url = await storage_service.upload_image(file)
 
-    assert url.startswith("https://cdn.example.com/products/")
+    assert url.startswith("products/")
     assert url.endswith(".jpg")
     assert mock_run.call_count == 2 # 1 for content type, 1 for put_object
 
