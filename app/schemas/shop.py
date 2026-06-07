@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from app.schemas.base import BaseSchema
 
@@ -28,3 +28,10 @@ class ShopInDB(ShopBase):
 
 class ShopResponse(ShopInDB, BaseSchema):
     pass
+
+class ShopMinimalResponse(BaseModel):
+    id: int
+    name: str
+    shop_code: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)

@@ -79,7 +79,8 @@ from app.api import (
     pricelist,
     report,
     campaigns,
-    campaign_v2
+    campaign_v2,
+    storage
 )
 
 # Include all routers
@@ -98,7 +99,7 @@ app.include_router(shops.router, prefix="/shops", tags=["shops"])
 app.include_router(payments.router, prefix="/paymentType", tags=["payments"])
 app.include_router(delivery.router, prefix="/deliveryType", tags=["delivery"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
-# app.include_router(home.router, prefix="/public", tags=["public"])
+app.include_router(home.router, prefix="/public", tags=["public"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
@@ -106,6 +107,7 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(pricelist.router, prefix="/pricelists", tags=["pricelists"])
 app.include_router(campaign_v2.router, prefix="/campaigns", tags=["campaigns-v2"])
 app.include_router(campaign_v2.router, prefix="/api/campaigns", tags=["campaigns-v2"])
+app.include_router(storage.router, prefix="/storage", tags=["storage"])
 
 
 @app.get("/")

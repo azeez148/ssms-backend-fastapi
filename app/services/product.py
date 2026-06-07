@@ -95,12 +95,90 @@ class ProductService:
             logger.error(f"Error creating bulk products: {str(e)}")
             raise e
 
-    def get_all_products(self, db: Session) -> List[Product]:
+    def get_all_products(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: Optional[int] = None,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None
+    ) -> tuple[List[Product], int]:
+        query = db.query(Product)
+
+        if category_id is not None:
+            query = query.filter(Product.category_id == category_id)
+
+        if shop_id is not None:
+            query = query.filter(Product.shops.any(id=shop_id))
+
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                (Product.name.ilike(search_filter)) |
+                (Product.description.ilike(search_filter))
+            )
+
+        total = query.count()
+
+        query = query.options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags)
+        ).offset(skip)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all(), total
+
+    def get_all_products_minimal(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: Optional[int] = None,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None
+    ) -> tuple[List[Product], int]:
+        query = db.query(Product)
+
+        if category_id is not None:
+            query = query.filter(Product.category_id == category_id)
+
+        if shop_id is not None:
+            query = query.filter(Product.shops.any(id=shop_id))
+
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                (Product.name.ilike(search_filter)) |
+                (Product.description.ilike(search_filter))
+            )
+
+        total = query.count()
+
+        query = query.options(
+            joinedload(Product.category),
+            selectinload(Product.shops)
+        ).offset(skip)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        products = query.all()
+
+        for p in products:
+            p.category_name = p.category.name if p.category else None
+
+        return products, total
+
+    def get_all_products_paginated(self, db: Session, skip: int = 0, limit: int = 100) -> List[Product]:
         products = db.query(Product).options(
             joinedload(Product.category),
             selectinload(Product.shops),
             selectinload(Product.tags)
-        ).all()
+        ).offset(skip).limit(limit).all()
         return products
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
