@@ -15,7 +15,9 @@ class Product(BaseModel):
     is_active = Column(Boolean, default=False, nullable=False)  # Matches Java default
     can_listed = Column(Boolean, default=False, nullable=False)  # Matches Java default
     image_url = Column(String, nullable=True)
-    
+    is_duplicate = Column(Boolean, default=False, nullable=False)
+    parent_product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+
     category_id = Column(Integer, ForeignKey("categories.id"))
     category = relationship("Category", back_populates="products")
 
@@ -34,6 +36,8 @@ class Product(BaseModel):
     )
     shops = relationship("Shop", secondary="shop_products", back_populates="products")
     tags = relationship("Tag", secondary="product_tags", back_populates="products")
+
+    parent = relationship("Product", remote_side=[id], backref="duplicates")
 
 
 shop_products = Table(
