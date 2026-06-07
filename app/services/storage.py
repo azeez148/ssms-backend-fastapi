@@ -75,11 +75,7 @@ class StorageService:
             # Upload to R2 (running in threadpool as boto3 is blocking)
             await run_in_threadpool(self._put_object, object_key, content, content_type)
 
-            # Construct public URL
-            if self.public_url:
-                return f"{self.public_url}/{object_key}"
-            else:
-                return f"https://{self.bucket_name}.{settings.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/{object_key}"
+            return f"{object_key}"
 
         except Exception as e:
             logger.error(f"Error uploading image to R2: {str(e)}")
