@@ -53,15 +53,33 @@ async def add_bulk_products(
 async def get_all_products(
     db: Session = Depends(get_db),
     skip: int = 0,
-    limit: Optional[int] = None
+    limit: Optional[int] = None,
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None
 ):
-    if limit is not None:
-        return product_service.get_all_products_paginated(db, skip=skip, limit=limit)
-    return product_service.get_all_products(db)
+    return product_service.get_all_products(
+        db,
+        skip=skip,
+        limit=limit,
+        category_id=category_id,
+        shop_id=shop_id
+    )
 
 @router.get("/all-minimal", response_model=List[ProductMinimalResponse])
-async def get_all_products_minimal(db: Session = Depends(get_db)):
-    return product_service.get_all_products_minimal(db)
+async def get_all_products_minimal(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: Optional[int] = None,
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None
+):
+    return product_service.get_all_products_minimal(
+        db,
+        skip=skip,
+        limit=limit,
+        category_id=category_id,
+        shop_id=shop_id
+    )
 
 @router.post("/updateProduct", response_model=ProductResponse)
 async def update_product(

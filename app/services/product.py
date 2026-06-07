@@ -95,19 +95,56 @@ class ProductService:
             logger.error(f"Error creating bulk products: {str(e)}")
             raise e
 
-    def get_all_products(self, db: Session) -> List[Product]:
-        products = db.query(Product).options(
+    def get_all_products(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: Optional[int] = None,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None
+    ) -> List[Product]:
+        query = db.query(Product).options(
             joinedload(Product.category),
             selectinload(Product.shops),
             selectinload(Product.tags)
-        ).all()
-        return products
+        )
 
-    def get_all_products_minimal(self, db: Session) -> List[Product]:
-        products = db.query(Product).options(
+        if category_id:
+            query = query.filter(Product.category_id == category_id)
+
+        if shop_id:
+            query = query.filter(Product.shops.any(id=shop_id))
+
+        query = query.offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all()
+
+    def get_all_products_minimal(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: Optional[int] = None,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None
+    ) -> List[Product]:
+        query = db.query(Product).options(
             joinedload(Product.category),
             selectinload(Product.shops)
-        ).all()
+        )
+
+        if category_id:
+            query = query.filter(Product.category_id == category_id)
+
+        if shop_id:
+            query = query.filter(Product.shops.any(id=shop_id))
+
+        query = query.offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+
+        products = query.all()
 
         for p in products:
             p.category_name = p.category.name if p.category else None
