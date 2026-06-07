@@ -76,16 +76,13 @@ class R2Migrator:
 
     def migrate_products(self, db: Session):
         print("\n--- Migrating Product Images ---")
-        # Find products with local image URLs
-        # We look for image_url that doesn't start with 'http' and isn't already a key (doesn't start with 'products/')
+        # Fetch all products with non-empty image_url
         products = db.query(Product).filter(
             Product.image_url.isnot(None),
-            Product.image_url != "",
-            ~Product.image_url.like("http%"),
-            ~Product.image_url.like("products/%")
+            Product.image_url != ""
         ).all()
 
-        print(f"Found {len(products)} products potentially needing migration.")
+        print(f"Found {len(products)} products to check for migration.")
 
         count = 0
         for product in products:
@@ -106,7 +103,7 @@ class R2Migrator:
                     break
 
             if not local_path:
-                print(f"  Error: Could not find local file for product {product.id} (URL: {old_path})")
+                print(f"  Skipping: No local file found for product {product.id} at {old_path}. (Possibly already migrated or external)")
                 continue
 
             new_key = self.upload_to_r2(local_path, "products")
@@ -121,14 +118,13 @@ class R2Migrator:
 
     def migrate_campaigns(self, db: Session):
         print("\n--- Migrating Campaign Images ---")
+        # Fetch all campaigns with non-empty image_url
         campaigns = db.query(CampaignV2).filter(
             CampaignV2.image_url.isnot(None),
-            CampaignV2.image_url != "",
-            ~CampaignV2.image_url.like("http%"),
-            ~CampaignV2.image_url.like("campaigns/%")
+            CampaignV2.image_url != ""
         ).all()
 
-        print(f"Found {len(campaigns)} campaigns potentially needing migration.")
+        print(f"Found {len(campaigns)} campaigns to check for migration.")
 
         count = 0
         for campaign in campaigns:
@@ -148,7 +144,7 @@ class R2Migrator:
                     break
 
             if not local_path:
-                print(f"  Error: Could not find local file for campaign {campaign.id} (URL: {old_path})")
+                print(f"  Skipping: No local file found for campaign {campaign.id} at {old_path}. (Possibly already migrated or external)")
                 continue
 
             new_key = self.upload_to_r2(local_path, "campaigns")
