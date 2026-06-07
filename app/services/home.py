@@ -26,8 +26,8 @@ class HomeService:
         if self._home_cache and (current_time - self._last_cache_time < self.CACHE_DURATION):
             return self._home_cache
 
-        products = self.product_service.get_all_products(db)
-        self._populate_product_images(products)
+        products, total_count = self.product_service.get_all_products(db)
+        # self._populate_product_images(products)
 
         # Ensure all nested objects are loaded before creating HomeResponse
         # HomeResponse(products=products) will trigger Pydantic to read all fields
@@ -59,14 +59,14 @@ class HomeService:
             except OSError:
                 pass
 
-        for product in products:
-            if not product.image_url:
-                file_name = image_map.get(str(product.id))
-                if file_name:
-                    product.image_url = f"images/products/{product.id}/{file_name}"
-                else:
-                    # Fallback to a default image
-                    product.image_url = "images/products/default.jpg"
+        # for product in products:
+        #     if not product.image_url:
+        #         file_name = image_map.get(str(product.id))
+        #         if file_name:
+        #             product.image_url = f"images/products/{product.id}/{file_name}"
+        #         else:
+        #             # Fallback to a default image
+        #             product.image_url = "images/products/default.jpg"
 
     def get_active_offers(self, db: Session) -> List[EventOffer]:
         return self.event_offer_service.get_active_event_offers(db)
@@ -77,5 +77,5 @@ class HomeService:
             return []
 
         products = offer.products
-        self._populate_product_images(products)
+        # self._populate_product_images(products)
         return products
