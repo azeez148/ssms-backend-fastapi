@@ -15,44 +15,49 @@ class TestProductOptimization(unittest.TestCase):
         limit_query = MagicMock()
 
         self.db.query.return_value = query
+        query.count.return_value = 100
         query.options.return_value = options_query
         options_query.offset.return_value = offset_query
         offset_query.limit.return_value = limit_query
         limit_query.all.return_value = []
 
         # Act
-        self.product_service.get_all_products_paginated(self.db, skip=10, limit=20)
+        items, total = self.product_service.get_all_products(self.db, skip=10, limit=20)
 
         # Assert
+        self.assertEqual(total, 100)
         options_query.offset.assert_called_once_with(10)
         offset_query.limit.assert_called_once_with(20)
 
     def test_get_all_products_filtering(self):
         query = MagicMock()
-        options_query = MagicMock()
-        filter_query = MagicMock()
-        offset_query = MagicMock()
-
         self.db.query.return_value = query
-        query.options.return_value = options_query
-        options_query.filter.return_value = filter_query
+        filter_query = MagicMock()
+        query.filter.return_value = filter_query
         filter_query.filter.return_value = filter_query
-        filter_query.offset.return_value = offset_query
+        filter_query.count.return_value = 10
+
+        options_query = MagicMock()
+        filter_query.options.return_value = options_query
+        offset_query = MagicMock()
+        options_query.offset.return_value = offset_query
         offset_query.all.return_value = []
 
         # Act
-        self.product_service.get_all_products(self.db, category_id=1, shop_id=2)
+        items, total = self.product_service.get_all_products(self.db, category_id=1, shop_id=2)
 
         # Assert
+        self.assertEqual(total, 10)
         # Two filter calls expected: one for category_id, one for shops.any
-        self.assertEqual(options_query.filter.call_count + filter_query.filter.call_count, 2)
+        self.assertEqual(query.filter.call_count + filter_query.filter.call_count, 2)
 
     def test_get_all_products_minimal(self):
         query = MagicMock()
-        options_query = MagicMock()
-        offset_query = MagicMock()
         self.db.query.return_value = query
+        query.count.return_value = 1
+        options_query = MagicMock()
         query.options.return_value = options_query
+        offset_query = MagicMock()
         options_query.offset.return_value = offset_query
 
         mock_product = MagicMock()
@@ -76,13 +81,14 @@ class TestProductOptimization(unittest.TestCase):
         offset_query.all.return_value = [mock_product]
 
         # Act
-        result = self.product_service.get_all_products_minimal(self.db)
+        items, total = self.product_service.get_all_products_minimal(self.db)
 
         # Assert
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].name, "Test")
-        self.assertEqual(result[0].category_name, "Cat")
-        self.assertEqual(result[0].shops[0].name, "Shop")
+        self.assertEqual(total, 1)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].name, "Test")
+        self.assertEqual(items[0].category_name, "Cat")
+        self.assertEqual(items[0].shops[0].name, "Shop")
 
 if __name__ == "__main__":
     unittest.main()

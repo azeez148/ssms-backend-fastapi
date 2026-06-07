@@ -15,6 +15,8 @@ from app.schemas.product import (
     ProductCreate,
     ProductResponse,
     ProductMinimalResponse,
+    ProductListResponse,
+    ProductMinimalListResponse,
     ProductTransferRequest,
     ProductUpdate,
     UpdateSizeMapRequest,
@@ -49,7 +51,7 @@ async def add_bulk_products(
 ):
     return product_service.create_bulk_products(db, products)
 
-@router.get("/all", response_model=List[ProductResponse])
+@router.get("/all", response_model=ProductListResponse)
 async def get_all_products(
     db: Session = Depends(get_db),
     skip: int = 0,
@@ -57,15 +59,21 @@ async def get_all_products(
     category_id: Optional[int] = None,
     shop_id: Optional[int] = None
 ):
-    return product_service.get_all_products(
+    products, total = product_service.get_all_products(
         db,
         skip=skip,
         limit=limit,
         category_id=category_id,
         shop_id=shop_id
     )
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // (limit or 100)) + 1,
+        "per_page": limit or total
+    }
 
-@router.get("/all-minimal", response_model=List[ProductMinimalResponse])
+@router.get("/all-minimal", response_model=ProductMinimalListResponse)
 async def get_all_products_minimal(
     db: Session = Depends(get_db),
     skip: int = 0,
@@ -73,13 +81,19 @@ async def get_all_products_minimal(
     category_id: Optional[int] = None,
     shop_id: Optional[int] = None
 ):
-    return product_service.get_all_products_minimal(
+    products, total = product_service.get_all_products_minimal(
         db,
         skip=skip,
         limit=limit,
         category_id=category_id,
         shop_id=shop_id
     )
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // (limit or 100)) + 1,
+        "per_page": limit or total
+    }
 
 @router.post("/updateProduct", response_model=ProductResponse)
 async def update_product(

@@ -90,6 +90,18 @@ class ProductMinimalResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class ProductListResponse(BaseModel):
+    items: List[ProductResponse]
+    total: int
+    page: int
+    per_page: int
+
+class ProductMinimalListResponse(BaseModel):
+    items: List[ProductMinimalResponse]
+    total: int
+    page: int
+    per_page: int
+
 class UpdateSizeMapRequest(BaseModel):
     product_id: int
     size_map: Dict[str, int]
