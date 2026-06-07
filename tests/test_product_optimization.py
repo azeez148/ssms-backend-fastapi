@@ -51,6 +51,26 @@ class TestProductOptimization(unittest.TestCase):
         # Two filter calls expected: one for category_id, one for shops.any
         self.assertEqual(query.filter.call_count + filter_query.filter.call_count, 2)
 
+    def test_get_all_products_search(self):
+        query = MagicMock()
+        self.db.query.return_value = query
+        filter_query = MagicMock()
+        query.filter.return_value = filter_query
+        filter_query.count.return_value = 5
+
+        options_query = MagicMock()
+        filter_query.options.return_value = options_query
+        offset_query = MagicMock()
+        options_query.offset.return_value = offset_query
+        offset_query.all.return_value = []
+
+        # Act
+        items, total = self.product_service.get_all_products(self.db, search="test")
+
+        # Assert
+        self.assertEqual(total, 5)
+        query.filter.assert_called_once()
+
     def test_get_all_products_minimal(self):
         query = MagicMock()
         self.db.query.return_value = query

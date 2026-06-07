@@ -101,7 +101,8 @@ class ProductService:
         skip: int = 0,
         limit: Optional[int] = None,
         category_id: Optional[int] = None,
-        shop_id: Optional[int] = None
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None
     ) -> tuple[List[Product], int]:
         query = db.query(Product)
 
@@ -110,6 +111,13 @@ class ProductService:
 
         if shop_id is not None:
             query = query.filter(Product.shops.any(id=shop_id))
+
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                (Product.name.ilike(search_filter)) |
+                (Product.description.ilike(search_filter))
+            )
 
         total = query.count()
 
@@ -130,7 +138,8 @@ class ProductService:
         skip: int = 0,
         limit: Optional[int] = None,
         category_id: Optional[int] = None,
-        shop_id: Optional[int] = None
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None
     ) -> tuple[List[Product], int]:
         query = db.query(Product)
 
@@ -139,6 +148,13 @@ class ProductService:
 
         if shop_id is not None:
             query = query.filter(Product.shops.any(id=shop_id))
+
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                (Product.name.ilike(search_filter)) |
+                (Product.description.ilike(search_filter))
+            )
 
         total = query.count()
 

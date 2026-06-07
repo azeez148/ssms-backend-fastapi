@@ -57,14 +57,16 @@ async def get_all_products(
     skip: int = 0,
     limit: Optional[int] = None,
     category_id: Optional[int] = None,
-    shop_id: Optional[int] = None
+    shop_id: Optional[int] = None,
+    search: Optional[str] = None
 ):
     products, total = product_service.get_all_products(
         db,
         skip=skip,
         limit=limit,
         category_id=category_id,
-        shop_id=shop_id
+        shop_id=shop_id,
+        search=search
     )
     return {
         "items": products,
@@ -79,14 +81,16 @@ async def get_all_products_minimal(
     skip: int = 0,
     limit: Optional[int] = None,
     category_id: Optional[int] = None,
-    shop_id: Optional[int] = None
+    shop_id: Optional[int] = None,
+    search: Optional[str] = None
 ):
     products, total = product_service.get_all_products_minimal(
         db,
         skip=skip,
         limit=limit,
         category_id=category_id,
-        shop_id=shop_id
+        shop_id=shop_id,
+        search=search
     )
     return {
         "items": products,
