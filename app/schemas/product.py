@@ -91,6 +91,8 @@ class ProductMinimalResponse(BaseModel):
     discounted_price: Optional[int] = None
     category_name: Optional[str] = None
     shops: Optional[List[ShopMinimalResponse]] = None
+    is_in_stock: Optional[bool] = None
+    offer_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

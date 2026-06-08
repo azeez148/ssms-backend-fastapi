@@ -95,15 +95,18 @@ class ProductService:
             logger.error(f"Error creating bulk products: {str(e)}")
             raise e
 
-    def get_all_products(
+    def _build_product_query(
         self,
         db: Session,
-        skip: int = 0,
-        limit: Optional[int] = None,
         category_id: Optional[int] = None,
         shop_id: Optional[int] = None,
-        search: Optional[str] = None
-    ) -> tuple[List[Product], int]:
+        search: Optional[str] = None,
+        has_image: Optional[bool] = None,
+        is_in_stock: Optional[bool] = None,
+        has_offer: Optional[bool] = None,
+        tag_id: Optional[int] = None,
+        sort_by: str = "newest"
+    ):
         query = db.query(Product)
 
         if category_id is not None:
@@ -119,13 +122,63 @@ class ProductService:
                 (Product.description.ilike(search_filter))
             )
 
+        if has_image is not None:
+            if has_image:
+                query = query.filter(Product.image_url.isnot(None), Product.image_url != "")
+            else:
+                query = query.filter((Product.image_url.is_(None)) | (Product.image_url == ""))
+
+        if is_in_stock is not None:
+            if is_in_stock:
+                query = query.filter(Product.size_map.any(ProductSize.quantity > 0))
+            else:
+                query = query.filter(~Product.size_map.any(ProductSize.quantity > 0))
+
+        if has_offer is not None:
+            if has_offer:
+                query = query.filter(Product.offer_id.isnot(None))
+            else:
+                query = query.filter(Product.offer_id.is_(None))
+
+        if tag_id is not None:
+            query = query.filter(Product.tags.any(id=tag_id))
+
+        # Sort
+        if sort_by == "oldest":
+            query = query.order_by(Product.id.asc())
+        else:  # Default to newest
+            query = query.order_by(Product.id.desc())
+
+        return query
+
+    def get_all_products(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: Optional[int] = None,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None,
+        has_image: Optional[bool] = None,
+        is_in_stock: Optional[bool] = None,
+        has_offer: Optional[bool] = None,
+        tag_id: Optional[int] = None,
+        sort_by: str = "newest"
+    ) -> tuple[List[Product], int]:
+        query = self._build_product_query(
+            db, category_id, shop_id, search, has_image, is_in_stock, has_offer, tag_id, sort_by
+        )
+
         total = query.count()
 
         query = query.options(
             joinedload(Product.category),
             selectinload(Product.shops),
             selectinload(Product.tags)
-        ).offset(skip)
+        )
+
+        # Always apply offset/limit to ensure consistent query building for tests
+        query = query.offset(skip)
 
         if limit is not None:
             query = query.limit(limit)
@@ -139,29 +192,27 @@ class ProductService:
         limit: Optional[int] = None,
         category_id: Optional[int] = None,
         shop_id: Optional[int] = None,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        has_image: Optional[bool] = None,
+        is_in_stock: Optional[bool] = None,
+        has_offer: Optional[bool] = None,
+        tag_id: Optional[int] = None,
+        sort_by: str = "newest"
     ) -> tuple[List[Product], int]:
-        query = db.query(Product)
-
-        if category_id is not None:
-            query = query.filter(Product.category_id == category_id)
-
-        if shop_id is not None:
-            query = query.filter(Product.shops.any(id=shop_id))
-
-        if search:
-            search_filter = f"%{search}%"
-            query = query.filter(
-                (Product.name.ilike(search_filter)) |
-                (Product.description.ilike(search_filter))
-            )
+        query = self._build_product_query(
+            db, category_id, shop_id, search, has_image, is_in_stock, has_offer, tag_id, sort_by
+        )
 
         total = query.count()
 
         query = query.options(
             joinedload(Product.category),
-            selectinload(Product.shops)
-        ).offset(skip)
+            selectinload(Product.shops),
+            selectinload(Product.size_map)
+        )
+
+        # Always apply offset/limit to ensure consistent query building for tests
+        query = query.offset(skip)
 
         if limit is not None:
             query = query.limit(limit)
@@ -170,6 +221,9 @@ class ProductService:
 
         for p in products:
             p.category_name = p.category.name if p.category else None
+            # Add is_in_stock for frontend convenience
+            # p.size_map is now eager-loaded to avoid N+1 queries
+            p.is_in_stock = any(size.quantity > 0 for size in p.size_map)
 
         return products, total
 
