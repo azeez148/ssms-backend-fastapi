@@ -30,6 +30,8 @@ class ProductBase(BaseModel):
     discounted_price: Optional[int] = None
     offer_price: Optional[int] = None
     offer_name: Optional[str] = None  # Added for offer name
+    is_duplicate: bool = False
+    parent_product_id: Optional[int] = None
     tags: Optional[List[TagResponse]] = None
     shops: Optional[List[ShopResponse]] = None
 
@@ -84,6 +86,8 @@ class ProductMinimalResponse(BaseModel):
     is_active: bool
     can_listed: bool
     image_url: Optional[str] = None
+    is_duplicate: bool
+    parent_product_id: Optional[int] = None
     discounted_price: Optional[int] = None
     category_name: Optional[str] = None
     shops: Optional[List[ShopMinimalResponse]] = None
