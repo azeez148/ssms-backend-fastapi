@@ -310,3 +310,10 @@ async def transfer_products(
         request.operation,
         request.destination_shop_id
     )
+
+@router.get("/{product_id}", response_model=ProductResponse)
+async def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
+    product = product_service.get_product_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
