@@ -11,13 +11,16 @@ from app.schemas.product import ProductResponse
 from app.schemas.category import CategoryResponse
 from app.schemas.sale import SaleCreate, SaleResponse
 from app.schemas.stock import StockRequest, StockResponse
+from app.schemas.tag import TagResponse
 from app.services.home import HomeService
 from app.services.stock import StockService
 from app.services.sale import SaleService
+from app.services.tag import TagService
 
 router = APIRouter()
 home_service = HomeService()
 sale_service = SaleService()
+tag_service = TagService()
 
 @router.get("/all", response_model=HomeResponse)
 async def get_home_data(db: Session = Depends(get_db)):
@@ -81,3 +84,7 @@ async def add_sale(
     db: Session = Depends(get_db)
 ):
     return sale_service.create_sale(db, sale)
+
+@router.get("/tags", response_model=List[TagResponse])
+async def get_tags(db: Session = Depends(get_db)):
+    return tag_service.get_all_tags(db)
