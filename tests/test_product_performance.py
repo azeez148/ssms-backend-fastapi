@@ -1,9 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
-
 from app.models.product import Product
 from app.services.product import ProductService
-
 
 class TestProductEagerLoading(unittest.TestCase):
     def setUp(self):
@@ -15,9 +13,12 @@ class TestProductEagerLoading(unittest.TestCase):
     def test_get_all_products_uses_eager_loading_for_shops_and_tags(self, mock_joinedload, mock_selectinload):
         # Arrange
         query = MagicMock()
+        order_query = MagicMock()
         options_query = MagicMock()
         self.db.query.return_value = query
-        query.options.return_value = options_query
+        query.order_by.return_value = order_query
+        order_query.options.return_value = options_query
+        options_query.offset.return_value = options_query
         options_query.all.return_value = []
 
         # Side effect to handle multiple calls to joinedload and selectinload
@@ -34,13 +35,12 @@ class TestProductEagerLoading(unittest.TestCase):
 
         # Assert
         self.db.query.assert_called_once_with(Product)
-        query.options.assert_called_once_with(
+        options_query.offset.assert_called_once()
+        order_query.options.assert_called_once_with(
             f"joined_{Product.category}",
             f"selectin_{Product.shops}",
             f"selectin_{Product.tags}"
         )
-        options_query.all.assert_called_once()
-
 
 if __name__ == "__main__":
     unittest.main()

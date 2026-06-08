@@ -10,13 +10,15 @@ class TestProductOptimization(unittest.TestCase):
 
     def test_get_all_products_paginated(self):
         query = MagicMock()
+        order_query = MagicMock()
         options_query = MagicMock()
         offset_query = MagicMock()
         limit_query = MagicMock()
 
         self.db.query.return_value = query
-        query.count.return_value = 100
-        query.options.return_value = options_query
+        query.order_by.return_value = order_query
+        order_query.count.return_value = 100
+        order_query.options.return_value = options_query
         options_query.offset.return_value = offset_query
         offset_query.limit.return_value = limit_query
         limit_query.all.return_value = []
@@ -35,10 +37,13 @@ class TestProductOptimization(unittest.TestCase):
         filter_query = MagicMock()
         query.filter.return_value = filter_query
         filter_query.filter.return_value = filter_query
-        filter_query.count.return_value = 10
+
+        order_query = MagicMock()
+        filter_query.order_by.return_value = order_query
+        order_query.count.return_value = 10
 
         options_query = MagicMock()
-        filter_query.options.return_value = options_query
+        order_query.options.return_value = options_query
         offset_query = MagicMock()
         options_query.offset.return_value = offset_query
         offset_query.all.return_value = []
@@ -56,10 +61,13 @@ class TestProductOptimization(unittest.TestCase):
         self.db.query.return_value = query
         filter_query = MagicMock()
         query.filter.return_value = filter_query
-        filter_query.count.return_value = 5
+
+        order_query = MagicMock()
+        filter_query.order_by.return_value = order_query
+        order_query.count.return_value = 5
 
         options_query = MagicMock()
-        filter_query.options.return_value = options_query
+        order_query.options.return_value = options_query
         offset_query = MagicMock()
         options_query.offset.return_value = offset_query
         offset_query.all.return_value = []
@@ -74,9 +82,13 @@ class TestProductOptimization(unittest.TestCase):
     def test_get_all_products_minimal(self):
         query = MagicMock()
         self.db.query.return_value = query
-        query.count.return_value = 1
+
+        order_query = MagicMock()
+        query.order_by.return_value = order_query
+        order_query.count.return_value = 1
+
         options_query = MagicMock()
-        query.options.return_value = options_query
+        order_query.options.return_value = options_query
         offset_query = MagicMock()
         options_query.offset.return_value = offset_query
 
@@ -97,6 +109,7 @@ class TestProductOptimization(unittest.TestCase):
         mock_shop.name = "Shop"
         mock_shop.shop_code = "S1"
         mock_product.shops = [mock_shop]
+        mock_product.size_map = []
 
         offset_query.all.return_value = [mock_product]
 
