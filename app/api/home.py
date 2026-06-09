@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.home import HomeResponse, OfferResponse
-from app.schemas.product import ProductMinimalListResponse, ProductResponse
+from app.schemas.product import ProductHomeMinimalListResponse, ProductMinimalListResponse, ProductResponse
 from app.schemas.category import CategoryResponse
 from app.schemas.sale import SaleCreate, SaleResponse
 from app.schemas.stock import StockRequest, StockResponse
@@ -26,7 +26,7 @@ tag_service = TagService()
 async def get_home_data(db: Session = Depends(get_db)):
     return home_service.get_home_data(db)
 
-@router.get("/products", response_model=ProductMinimalListResponse)
+@router.get("/products", response_model=ProductHomeMinimalListResponse)
 async def get_products(db: Session = Depends(get_db), skip: int = 0,
     limit: Optional[int] = 50,
     category_id: Optional[int] = None,
@@ -67,7 +67,7 @@ async def get_weekly_offers(db: Session = Depends(get_db)):
 async def get_categories(db: Session = Depends(get_db)):
     return home_service.get_categories(db)
 
-@router.get("/search", response_model=ProductMinimalListResponse)
+@router.get("/search", response_model=ProductHomeMinimalListResponse)
 async def search_products(search: str, db: Session = Depends(get_db), skip: int = 0,
     limit: Optional[int] = 50,
     category_id: Optional[int] = None,

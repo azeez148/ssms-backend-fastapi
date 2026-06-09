@@ -174,7 +174,8 @@ class ProductService:
         query = query.options(
             joinedload(Product.category),
             selectinload(Product.shops),
-            selectinload(Product.tags)
+            selectinload(Product.tags),
+            selectinload(Product.size_map)
         )
 
         # Always apply offset/limit to ensure consistent query building for tests

@@ -75,7 +75,15 @@ class HomeService:
         return self.event_offer_service.get_active_event_offers(db)
 
     def get_weekly_offers(self, db: Session) -> List[Product]:
-        offer = self.event_offer_service.get_event_offer_by_code(db, "WEEKLY50OFF")
+        offer = db.query(EventOffer).options(
+            selectinload(EventOffer.products).options(
+                joinedload(Product.category),
+                selectinload(Product.shops),
+                selectinload(Product.tags),
+                selectinload(Product.size_map)
+            )
+        ).filter(EventOffer.code == "WEEKLY50OFF").first()
+
         if not offer:
             return []
 
@@ -91,10 +99,20 @@ class HomeService:
     #     return products
 
     def get_new_arrivals(self, db: Session) -> List[Product]:
-        return db.query(Product).order_by(Product.created_date.desc()).limit(20).all()
+        return db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags),
+            selectinload(Product.size_map)
+        ).order_by(Product.created_date.desc()).limit(20).all()
 
     def get_offer_products(self, db: Session) -> List[Product]:
-        return db.query(Product).filter(Product.offer_id.isnot(None)).all()
+        return db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags),
+            selectinload(Product.size_map)
+        ).filter(Product.offer_id.isnot(None)).all()
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         return self.product_service.get_product_by_id(db, product_id)
