@@ -1,6 +1,6 @@
 import os
 import time
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from app.schemas.home import HomeResponse
 from app.services.product import ProductService
 from app.services.event import EventOfferService
@@ -75,7 +75,15 @@ class HomeService:
         return self.event_offer_service.get_active_event_offers(db)
 
     def get_weekly_offers(self, db: Session) -> List[Product]:
-        offer = self.event_offer_service.get_event_offer_by_code(db, "WEEKLY50OFF")
+        offer = db.query(EventOffer).options(
+            selectinload(EventOffer.products).options(
+                joinedload(Product.category),
+                selectinload(Product.shops),
+                selectinload(Product.tags),
+                selectinload(Product.size_map)
+            )
+        ).filter(EventOffer.code == "WEEKLY50OFF").first()
+
         if not offer:
             return []
 
@@ -86,15 +94,40 @@ class HomeService:
     def get_categories(self, db: Session) -> List[Category]:
         return self.category_service.get_all_categories(db)
 
-    def search_products(self, db: Session, search: str) -> List[Product]:
-        products, _ = self.product_service.get_all_products(db, search=search)
-        return products
+    # def search_products(self, db: Session, search: str) -> List[Product]:
+    #     products, _ = self.product_service.get_all_products(db, search=search)
+    #     return products
 
     def get_new_arrivals(self, db: Session) -> List[Product]:
-        return db.query(Product).order_by(Product.created_date.desc()).limit(20).all()
+        return db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags),
+            selectinload(Product.size_map)
+        ).order_by(Product.created_date.desc()).limit(20).all()
 
     def get_offer_products(self, db: Session) -> List[Product]:
-        return db.query(Product).filter(Product.offer_id.isnot(None)).all()
+        return db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags),
+            selectinload(Product.size_map)
+        ).filter(Product.offer_id.isnot(None)).all()
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         return self.product_service.get_product_by_id(db, product_id)
+    
+    def get_products(self, db: Session, skip: int = 0, limit: Optional[int] = 50, category_id: Optional[int] = None, shop_id: Optional[int] = None, search: Optional[str] = None, has_image: Optional[bool] = None, is_in_stock: Optional[bool] = None, has_offer: Optional[bool] = None, tag_id: Optional[int] = None, sort_by: str = "newest") -> List[Product]:
+        return self.product_service.get_all_products_minimal(
+            db,
+            skip=skip,
+            limit=limit,
+            category_id=category_id,
+            shop_id=shop_id,
+            search=search,
+            has_image=has_image,
+            is_in_stock=is_in_stock,
+            has_offer=has_offer,
+            tag_id=tag_id,
+            sort_by=sort_by
+        )

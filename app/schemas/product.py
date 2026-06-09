@@ -108,6 +108,15 @@ class ProductMinimalListResponse(BaseModel):
     page: int
     per_page: int
 
+class ProductHomeMinimalResponse(ProductMinimalResponse):
+    size_map: Optional[List[ProductSizeBase]] = None
+
+class ProductHomeMinimalListResponse(BaseModel):
+    items: List[ProductHomeMinimalResponse]
+    total: int
+    page: int
+    per_page: int
+
 class UpdateSizeMapRequest(BaseModel):
     product_id: int
     size_map: Dict[str, int]

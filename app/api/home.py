@@ -3,11 +3,11 @@ from sqlalchemy.orm import Session
 import os
 from pathlib import Path
 from fastapi.responses import FileResponse
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.home import HomeResponse, OfferResponse
-from app.schemas.product import ProductResponse
+from app.schemas.product import ProductHomeMinimalListResponse, ProductMinimalListResponse, ProductResponse
 from app.schemas.category import CategoryResponse
 from app.schemas.sale import SaleCreate, SaleResponse
 from app.schemas.stock import StockRequest, StockResponse
@@ -26,6 +26,35 @@ tag_service = TagService()
 async def get_home_data(db: Session = Depends(get_db)):
     return home_service.get_home_data(db)
 
+@router.get("/products", response_model=ProductHomeMinimalListResponse)
+async def get_products(db: Session = Depends(get_db), skip: int = 0,
+    limit: Optional[int] = 50,
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None,
+    search: Optional[str] = None,
+    has_image: Optional[bool] = None,
+    is_in_stock: Optional[bool] = None,
+    has_offer: Optional[bool] = None,
+    tag_id: Optional[int] = None,
+    sort_by: str = "newest"):
+    products, total = home_service.get_products(db, skip=skip,
+            limit=limit,
+            category_id=category_id,
+            shop_id=shop_id,
+            search=search,
+            has_image=has_image,
+            is_in_stock=is_in_stock,
+            has_offer=has_offer,
+            tag_id=tag_id,
+            sort_by=sort_by)
+
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // (limit or 100)) + 1,
+        "per_page": limit or total
+    }
+
 @router.get("/offers", response_model=List[OfferResponse])
 async def get_active_offers(db: Session = Depends(get_db)):
     return home_service.get_active_offers(db)
@@ -38,9 +67,32 @@ async def get_weekly_offers(db: Session = Depends(get_db)):
 async def get_categories(db: Session = Depends(get_db)):
     return home_service.get_categories(db)
 
-@router.get("/search", response_model=List[ProductResponse])
-async def search_products(search: str, db: Session = Depends(get_db)):
-    return home_service.search_products(db, search)
+@router.get("/search", response_model=ProductHomeMinimalListResponse)
+async def search_products(search: str, db: Session = Depends(get_db), skip: int = 0,
+    limit: Optional[int] = 50,
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None,
+    has_image: Optional[bool] = None,
+    is_in_stock: Optional[bool] = None,
+    has_offer: Optional[bool] = None,
+    tag_id: Optional[int] = None,
+    sort_by: str = "newest"):
+    products, total = home_service.get_products(db, skip=skip,
+            limit=limit,
+            category_id=category_id,
+            shop_id=shop_id,
+            search=search,
+            has_image=has_image,
+            is_in_stock=is_in_stock,
+            has_offer=has_offer,
+            tag_id=tag_id,
+            sort_by=sort_by)
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // (limit or 100)) + 1,
+        "per_page": limit or total
+    }
 
 @router.get("/new-arrivals", response_model=List[ProductResponse])
 async def get_new_arrivals(db: Session = Depends(get_db)):
