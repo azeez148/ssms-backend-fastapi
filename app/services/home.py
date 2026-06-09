@@ -1,6 +1,6 @@
 import os
 import time
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from app.schemas.home import HomeResponse
 from app.services.product import ProductService
 from app.services.event import EventOfferService
