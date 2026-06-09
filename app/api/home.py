@@ -26,6 +26,10 @@ tag_service = TagService()
 async def get_home_data(db: Session = Depends(get_db)):
     return home_service.get_home_data(db)
 
+@router.get("/products", response_model=List[ProductResponse])
+async def get_home_products(db: Session = Depends(get_db)):
+    return home_service.get_products(db)
+
 @router.get("/offers", response_model=List[OfferResponse])
 async def get_active_offers(db: Session = Depends(get_db)):
     return home_service.get_active_offers(db)
