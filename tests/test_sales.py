@@ -101,9 +101,21 @@ class TestSales(unittest.TestCase):
         # Arrange
         query = MagicMock()
         options_query = MagicMock()
+        order_by_query = MagicMock()
+        offset_query = MagicMock()
+        limit_query = MagicMock()
+
         self.db_session.query.return_value = query
         query.options.return_value = options_query
-        options_query.all.return_value = []
+        options_query.order_by.return_value = order_by_query
+
+        # Total count call
+        order_by_query.count.return_value = 0
+
+        # Paginated fetch
+        order_by_query.offset.return_value = offset_query
+        offset_query.limit.return_value = limit_query
+        limit_query.all.return_value = []
 
         customer_loader = MagicMock(name="customer_loader")
         payment_loader = MagicMock(name="payment_loader")
@@ -113,7 +125,7 @@ class TestSales(unittest.TestCase):
         mock_selectinload.return_value = sale_items_loader
 
         # Act
-        self.sale_service.get_all_sales(self.db_session)
+        sales, total = self.sale_service.get_all_sales(self.db_session)
 
         # Assert
         self.db_session.query.assert_called_once_with(Sale)
@@ -135,7 +147,7 @@ class TestSales(unittest.TestCase):
         self.assertTrue(any(attribute is Sale.payment_type for attribute in called_attributes))
         self.assertTrue(any(attribute is Sale.delivery_type for attribute in called_attributes))
         mock_selectinload.assert_called_once_with(Sale.sale_items)
-        options_query.all.assert_called_once()
+        limit_query.all.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()

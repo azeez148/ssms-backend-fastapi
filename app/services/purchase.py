@@ -77,14 +77,17 @@ class PurchaseService:
 
         return db_purchase
 
-    def get_all_purchases(self, db: Session, skip: int = 0, limit: int = 100) -> List[Purchase]:
-        return db.query(Purchase).order_by(Purchase.id.desc()).offset(skip).limit(limit).all()
+    def get_all_purchases(self, db: Session, skip: int = 0, limit: int = 100) -> tuple[List[Purchase], int]:
+        query = db.query(Purchase).order_by(Purchase.id.desc())
+        total = query.count()
+        items = query.offset(skip).limit(limit).all()
+        return items, total
 
     def get_purchase_by_id(self, db: Session, purchase_id: int) -> Purchase:
         return db.query(Purchase).filter(Purchase.id == purchase_id).first()
 
-    def get_recent_purchases(self, db: Session, limit: int = 10) -> List[Purchase]:
-        return db.query(Purchase).order_by(Purchase.date.desc()).limit(limit).all()
+    def get_recent_purchases(self, db: Session, limit: int = 5) -> List[Purchase]:
+        return db.query(Purchase).order_by(Purchase.date.desc(), Purchase.id.desc()).limit(limit).all()
 
     def get_total_purchases(self, db: Session) -> dict:
         """Get total purchases summary"""

@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate, ResetPasswordRequest
+from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate, ResetPasswordRequest, CustomerListResponse
 from app.services import customer as customer_service
 from app.core.config import settings
 
@@ -17,13 +17,22 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     return customer_service.create_customer(db=db, customer=customer)
 
 
-@router.get("/all", response_model=List[CustomerResponse], summary="Get all customers")
-def read_customers(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db)):
+@router.get("/all", response_model=CustomerListResponse, summary="Get all customers")
+def read_customers(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db)
+):
     """
     Retrieve all customers.
     """
-    customers = customer_service.get_customers(db, skip=skip, limit=limit)
-    return customers
+    customers, total = customer_service.get_customers(db, skip=skip, limit=limit)
+    return {
+        "items": customers,
+        "total": total,
+        "page": (skip // limit) + 1,
+        "per_page": limit
+    }
 
 
 @router.get("/{customer_id}", response_model=CustomerResponse, summary="Get a specific customer")

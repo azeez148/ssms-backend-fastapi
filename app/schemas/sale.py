@@ -72,5 +72,11 @@ class SaleInDB(SaleBase):
 class SaleResponse(SaleInDB, BaseSchema):
     pass
 
+class SaleListResponse(BaseModel):
+    items: List[SaleResponse]
+    total: int
+    page: int
+    per_page: int
+
 class SaleStatusUpdate(BaseModel):
     status: SaleStatus

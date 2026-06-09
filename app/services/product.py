@@ -237,7 +237,10 @@ class ProductService:
         return products
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
-        product = db.query(Product).options(joinedload(Product.shops)).filter(Product.id == product_id).first()
+        product = db.query(Product).options(
+            joinedload(Product.shops),
+            selectinload(Product.size_map)
+        ).filter(Product.id == product_id).first()
         return product
 
     def update_product(self, db: Session, product_update: ProductUpdate) -> Optional[Product]:

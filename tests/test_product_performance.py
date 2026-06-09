@@ -39,7 +39,8 @@ class TestProductEagerLoading(unittest.TestCase):
         order_query.options.assert_called_once_with(
             f"joined_{Product.category}",
             f"selectin_{Product.shops}",
-            f"selectin_{Product.tags}"
+            f"selectin_{Product.tags}",
+            f"selectin_{Product.size_map}"
         )
 
 if __name__ == "__main__":

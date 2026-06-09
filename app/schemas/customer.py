@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from app.schemas.base import BaseSchema
 
 class CustomerBase(BaseModel):
@@ -27,6 +27,12 @@ class CustomerUpdate(CustomerBase):
 
 class CustomerResponse(CustomerBase, BaseSchema):
     id: int
+
+class CustomerListResponse(BaseModel):
+    items: List[CustomerResponse]
+    total: int
+    page: int
+    per_page: int
 
 class ResetPasswordRequest(BaseModel):
     customer_id: int

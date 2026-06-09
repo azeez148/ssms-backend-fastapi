@@ -12,7 +12,10 @@ def get_customer(db: Session, customer_id: int):
     return db.query(Customer).filter(Customer.id == customer_id).first()
 
 def get_customers(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Customer).offset(skip).limit(limit).all()
+    query = db.query(Customer)
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    return items, total
 
 def get_customer_by_email(db: Session, email: str):
     return db.query(Customer).filter(Customer.email == email).first()
