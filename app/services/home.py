@@ -86,9 +86,9 @@ class HomeService:
     def get_categories(self, db: Session) -> List[Category]:
         return self.category_service.get_all_categories(db)
 
-    def search_products(self, db: Session, search: str) -> List[Product]:
-        products, _ = self.product_service.get_all_products(db, search=search)
-        return products
+    # def search_products(self, db: Session, search: str) -> List[Product]:
+    #     products, _ = self.product_service.get_all_products(db, search=search)
+    #     return products
 
     def get_new_arrivals(self, db: Session) -> List[Product]:
         return db.query(Product).order_by(Product.created_date.desc()).limit(20).all()
@@ -98,3 +98,18 @@ class HomeService:
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
         return self.product_service.get_product_by_id(db, product_id)
+    
+    def get_products(self, db: Session, skip: int = 0, limit: Optional[int] = 50, category_id: Optional[int] = None, shop_id: Optional[int] = None, search: Optional[str] = None, has_image: Optional[bool] = None, is_in_stock: Optional[bool] = None, has_offer: Optional[bool] = None, tag_id: Optional[int] = None, sort_by: str = "newest") -> List[Product]:
+        return self.product_service.get_all_products_minimal(
+            db,
+            skip=skip,
+            limit=limit,
+            category_id=category_id,
+            shop_id=shop_id,
+            search=search,
+            has_image=has_image,
+            is_in_stock=is_in_stock,
+            has_offer=has_offer,
+            tag_id=tag_id,
+            sort_by=sort_by
+        )
