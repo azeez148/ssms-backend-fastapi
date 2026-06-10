@@ -1,7 +1,7 @@
 from http.client import HTTPException
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.sale import SaleCreate, SaleResponse, SaleStatusUpdate, SaleListResponse
@@ -21,9 +21,10 @@ async def add_sale(
 async def get_all_sales(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    status: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    sales, total = sale_service.get_all_sales(db, skip=skip, limit=limit)
+    sales, total = sale_service.get_all_sales(db, skip=skip, limit=limit, status=status)
     return {
         "items": sales,
         "total": total,

@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import func, case
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional, Dict
 from app.models.sale import Sale, SaleItem
@@ -125,13 +125,25 @@ class SaleService:
     def get_sale(self, db: Session, sale_id: int) -> Optional[Sale]:
         return db.query(Sale).filter(Sale.id == sale_id).first()
 
-    def get_all_sales(self, db: Session, skip: int = 0, limit: int = 100) -> tuple[List[Sale], int]:
+    def get_all_sales(self, db: Session, skip: int = 0, limit: int = 100, status: Optional[str] = None) -> tuple[List[Sale], int]:
         query = db.query(Sale).options(
             joinedload(Sale.customer),
             joinedload(Sale.payment_type),
             joinedload(Sale.delivery_type),
             selectinload(Sale.sale_items),
-        ).order_by(Sale.id.desc())
+        )
+
+        if status:
+            query = query.filter(Sale.status == status).order_by(Sale.id.desc())
+        else:
+            # When no status is provided, show PENDING first, then others in descending order
+            query = query.order_by(
+                case(
+                    (Sale.status == SaleStatus.PENDING, 0),
+                    else_=1
+                ),
+                Sale.id.desc()
+            )
 
         total = query.count()
         sales = query.offset(skip).limit(limit).all()
