@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from httpcore import request
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -54,8 +54,8 @@ async def add_bulk_products(
 @router.get("/all", response_model=ProductListResponse)
 async def get_all_products(
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: Optional[int] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     category_id: Optional[int] = None,
     shop_id: Optional[int] = None,
     search: Optional[str] = None,
@@ -81,15 +81,15 @@ async def get_all_products(
     return {
         "items": products,
         "total": total,
-        "page": (skip // (limit or 100)) + 1,
-        "per_page": limit or total
+        "page": (skip // limit) + 1,
+        "per_page": limit
     }
 
 @router.get("/all-minimal", response_model=ProductMinimalListResponse)
 async def get_all_products_minimal(
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: Optional[int] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     category_id: Optional[int] = None,
     shop_id: Optional[int] = None,
     search: Optional[str] = None,
@@ -115,8 +115,8 @@ async def get_all_products_minimal(
     return {
         "items": products,
         "total": total,
-        "page": (skip // (limit or 100)) + 1,
-        "per_page": limit or total
+        "page": (skip // limit) + 1,
+        "per_page": limit
     }
 
 @router.post("/updateProduct", response_model=ProductResponse)

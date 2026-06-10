@@ -48,3 +48,9 @@ class PurchaseResponse(PurchaseBase, BaseSchema):
     purchase_items: List[PurchaseItemResponse]
     shops: List[ShopResponse]
     vendor: VendorResponse
+
+class PurchaseListResponse(BaseModel):
+    items: List[PurchaseResponse]
+    total: int
+    page: int
+    per_page: int

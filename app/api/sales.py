@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.schemas.sale import SaleCreate, SaleResponse, SaleStatusUpdate
+from app.schemas.sale import SaleCreate, SaleResponse, SaleStatusUpdate, SaleListResponse
 from app.services.sale import SaleService
 
 router = APIRouter()
@@ -17,14 +17,19 @@ async def add_sale(
 ):
     return sale_service.create_sale(db, sale)
 
-@router.get("/all", response_model=List[SaleResponse])
+@router.get("/all", response_model=SaleListResponse)
 async def get_all_sales(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db)
 ):
-    sales = sale_service.get_all_sales(db, skip=skip, limit=limit)
-    return sales
+    sales, total = sale_service.get_all_sales(db, skip=skip, limit=limit)
+    return {
+        "items": sales,
+        "total": total,
+        "page": (skip // limit) + 1,
+        "per_page": limit
+    }
 
 @router.get("/recent", response_model=List[SaleResponse])
 async def get_recent_sales(db: Session = Depends(get_db)):

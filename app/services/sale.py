@@ -125,18 +125,22 @@ class SaleService:
     def get_sale(self, db: Session, sale_id: int) -> Optional[Sale]:
         return db.query(Sale).filter(Sale.id == sale_id).first()
 
-    def get_all_sales(self, db: Session, skip: int = 0, limit: int = 100) -> List[Sale]:
-        return db.query(Sale).options(
+    def get_all_sales(self, db: Session, skip: int = 0, limit: int = 100) -> tuple[List[Sale], int]:
+        query = db.query(Sale).options(
             joinedload(Sale.customer),
             joinedload(Sale.payment_type),
             joinedload(Sale.delivery_type),
             selectinload(Sale.sale_items),
-        ).order_by(Sale.id.desc()).offset(skip).limit(limit).all()
+        ).order_by(Sale.id.desc())
 
-    def get_recent_sales(self, db: Session, limit: int = 10) -> List[Sale]:
-        return db.query(Sale).options(joinedload(Sale.customer)).order_by(Sale.date.desc()).limit(limit).all()
+        total = query.count()
+        sales = query.offset(skip).limit(limit).all()
+        return sales, total
 
-    def get_most_sold_items(self, db: Session) -> Dict[int, Dict]:
+    def get_recent_sales(self, db: Session, limit: int = 5) -> List[Sale]:
+        return db.query(Sale).options(joinedload(Sale.customer)).order_by(Sale.date.desc(), Sale.id.desc()).limit(limit).all()
+
+    def get_most_sold_items(self, db: Session, limit: int = 5) -> Dict[int, Dict]:
         """Get a summary of most sold items with product details"""
         rows = (
             db.query(
@@ -147,6 +151,8 @@ class SaleService:
                 func.coalesce(func.sum(SaleItem.total_price), 0.0).label("total_revenue"),
             )
             .group_by(SaleItem.product_id, SaleItem.product_name, SaleItem.product_category)
+            .order_by(func.sum(SaleItem.quantity).desc())
+            .limit(limit)
             .all()
         )
 
