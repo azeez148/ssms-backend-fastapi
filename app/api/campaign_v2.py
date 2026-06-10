@@ -118,6 +118,16 @@ async def update_campaign(
         raise HTTPException(status_code=404, detail="Campaign not found")
     return updated
 
+@router.post("/{id}/reset-participants")
+async def reset_campaign_participants(
+    id: str,
+    current_user: User = Depends(get_current_user_admin),
+    db: Session = Depends(get_db)
+):
+    if not campaign_service.reset_participants_v2(db, id):
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return {"message": "All participants have been removed from the campaign"}
+
 @router.patch("/{id}", response_model=CampaignV2Response)
 async def patch_campaign(
     id: str,
