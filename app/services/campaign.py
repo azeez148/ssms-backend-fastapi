@@ -503,6 +503,19 @@ class CampaignService:
             logger.error(f"Error deleting campaign v2: {str(e)}")
             raise e
 
+    def reset_participants_v2(self, db: Session, campaign_id: str) -> bool:
+        try:
+            db_campaign = db.query(CampaignV2).filter(CampaignV2.id == campaign_id).first()
+            if not db_campaign:
+                return False
+            db.query(CampaignParticipation).filter(CampaignParticipation.campaign_id == campaign_id).delete(synchronize_session=False)
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error resetting participants for campaign v2: {str(e)}")
+            raise e
+
     def get_campaign_stats_v2(self, db: Session) -> dict:
         total_campaigns = db.query(CampaignV2).count()
         active_campaigns = db.query(CampaignV2).filter(CampaignV2.status == CampaignStatusV2.active).count()
