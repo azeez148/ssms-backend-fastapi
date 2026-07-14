@@ -18,3 +18,4 @@ pydantic-settings
 pytest
 boto3==1.28.62
 python-magic==0.4.27
+gunicorn
