@@ -1,34 +1,26 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
+from app.schemas.base import BaseSchema
 
 class CategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
+    size_map: Optional[str] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class CategoryCreate(CategoryBase):
     pass
 
-class CategoryInDB(CategoryBase):
-    id: int
-
-class CategoryResponse(CategoryInDB):
-    pass
-
-class CategoryBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class CategoryCreate(CategoryBase):
-    pass
 
 class CategoryInDB(CategoryBase):
     id: int
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
-class CategoryResponse(CategoryInDB):
+class CategoryResponse(CategoryInDB, BaseSchema):
     pass
+
+class SizeMapUpdate(BaseModel):
+    size_map: str

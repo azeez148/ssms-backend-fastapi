@@ -1,23 +1,56 @@
 from pydantic import BaseModel
-from datetime import datetime
-from typing import Optional
+from typing import List, Optional
+from .shop import ShopResponse
+from .vendor import VendorResponse
+from app.schemas.base import BaseSchema
+
+class PurchaseItemBase(BaseModel):
+    product_id: int
+    product_name: str
+    product_category: str
+    size: str
+    quantity_available: int
+    quantity: int
+    purchase_price: float
+    total_price: float
+
+    class Config:
+        from_attributes = True
+
+class PurchaseItemCreate(PurchaseItemBase):
+    pass
+
+class PurchaseItemResponse(PurchaseItemBase, BaseSchema):
+    id: int
 
 class PurchaseBase(BaseModel):
-    quantity: int
-    unit_price: float
+    date: str
+    total_quantity: int
     total_price: float
-    product_id: int
-    shop_id: int
+    payment_type_id: int
+    payment_reference_number: str
+    delivery_type_id: int
+    vendor_id: int
 
     class Config:
         from_attributes = True
 
 class PurchaseCreate(PurchaseBase):
-    pass
+    purchase_items: List[PurchaseItemCreate]
+    shop_ids: List[int]
+    supplier_name: Optional[str] = None
+    supplier_address: Optional[str] = None
+    supplier_mobile: Optional[str] = None
+    supplier_email: Optional[str] = None
 
-class PurchaseInDB(PurchaseBase):
+class PurchaseResponse(PurchaseBase, BaseSchema):
     id: int
-    purchase_date: datetime
+    purchase_items: List[PurchaseItemResponse]
+    shops: List[ShopResponse]
+    vendor: VendorResponse
 
-class PurchaseResponse(PurchaseInDB):
-    pass
+class PurchaseListResponse(BaseModel):
+    items: List[PurchaseResponse]
+    total: int
+    page: int
+    per_page: int

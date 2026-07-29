@@ -1,21 +1,38 @@
-from sqlalchemy.orm import Session
+import os
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 from fastapi import HTTPException
 
+from app.core.logging import logger
 from app.models.product import Product
 from app.models.product_size import ProductSize
-from app.schemas.product import ProductCreate, ProductUpdate, UpdateSizeMapRequest
+from app.models.category_discount import CategoryDiscount
+from app.models.shop import Shop
+from app.schemas.product import (
+    CategoryDiscountUpdateRequest,
+    ProductCreate,
+    ProductUpdate,
+    UpdateSizeMapRequest,
+    CategoryDiscountRequest
+)
+from app.services.notification import EmailNotificationService
 
 class ProductService:
-    def create_product(self, db: Session, product: ProductCreate) -> Product:
+    def __init__(self):
+        self.email_notification = EmailNotificationService()
+
+    def _create_product_instance(self, db: Session, product: ProductCreate) -> Product:
         db_product = Product(
             name=product.name,
             description=product.description,
             unit_price=product.unit_price,
             selling_price=product.selling_price,
+            discounted_price=product.discounted_price,
             category_id=product.category_id,
             is_active=product.is_active,
-            can_listed=product.can_listed
+            can_listed=product.can_listed,
+            created_by="system",
+            updated_by="system"
         )
         
         # Handle size_map separately
@@ -26,25 +43,226 @@ class ProductService:
                     quantity=size_data.quantity
                 )
                 db_product.size_map.append(size)
+
+        # Handle shop associations
+        if product.shop_ids:
+            shops = db.query(Shop).filter(Shop.id.in_(product.shop_ids)).all()
+            db_product.shops = shops
+        else:
+            # Default to Shop ID 1 if no shops provided
+            shop_1 = db.query(Shop).filter(Shop.id == 1).first()
+            if shop_1:
+                db_product.shops.append(shop_1)
+
+        return db_product
+
+    def create_product(self, db: Session, product: ProductCreate) -> Product:
+        db_product = self._create_product_instance(db, product)
+
         db.add(db_product)
         db.commit()
         db.refresh(db_product)
+
+        try:
+            self.email_notification.send_product_added_notification(db_product)
+        except Exception as e:
+            logger.error(f"Failed to send product addition notification: {str(e)}")
+
         return db_product
 
-    def get_all_products(self, db: Session) -> List[Product]:
-        return db.query(Product).all()
+    def create_bulk_products(self, db: Session, products: List[ProductCreate]) -> List[Product]:
+        db_products = []
+        try:
+            for product_data in products:
+                db_product = self._create_product_instance(db, product_data)
+                db.add(db_product)
+                db_products.append(db_product)
+
+            db.commit()
+
+            for db_product in db_products:
+                db.refresh(db_product)
+
+            try:
+                self.email_notification.send_bulk_product_added_notification(db_products)
+            except Exception as e:
+                logger.error(f"Failed to send bulk product addition notification: {str(e)}")
+
+            return db_products
+
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error creating bulk products: {str(e)}")
+            raise e
+
+    def _build_product_query(
+        self,
+        db: Session,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None,
+        has_image: Optional[bool] = None,
+        is_in_stock: Optional[bool] = None,
+        has_offer: Optional[bool] = None,
+        tag_id: Optional[int] = None,
+        sort_by: str = "newest"
+    ):
+        query = db.query(Product)
+
+        if category_id is not None:
+            query = query.filter(Product.category_id == category_id)
+
+        if shop_id is not None:
+            query = query.filter(Product.shops.any(id=shop_id))
+
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                (Product.name.ilike(search_filter)) |
+                (Product.description.ilike(search_filter))
+            )
+
+        if has_image is not None:
+            if has_image:
+                query = query.filter(Product.image_url.isnot(None), Product.image_url != "")
+            else:
+                query = query.filter((Product.image_url.is_(None)) | (Product.image_url == ""))
+
+        if is_in_stock is not None:
+            if is_in_stock:
+                query = query.filter(Product.size_map.any(ProductSize.quantity > 0))
+            else:
+                query = query.filter(~Product.size_map.any(ProductSize.quantity > 0))
+
+        if has_offer is not None:
+            if has_offer:
+                query = query.filter(Product.offer_id.isnot(None))
+            else:
+                query = query.filter(Product.offer_id.is_(None))
+
+        if tag_id is not None:
+            query = query.filter(Product.tags.any(id=tag_id))
+
+        # Sort
+        if sort_by == "oldest":
+            query = query.order_by(Product.id.asc())
+        else:  # Default to newest
+            query = query.order_by(Product.id.desc())
+
+        return query
+
+    def get_all_products(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: Optional[int] = None,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None,
+        has_image: Optional[bool] = None,
+        is_in_stock: Optional[bool] = None,
+        has_offer: Optional[bool] = None,
+        tag_id: Optional[int] = None,
+        sort_by: str = "newest"
+    ) -> tuple[List[Product], int]:
+        query = self._build_product_query(
+            db, category_id, shop_id, search, has_image, is_in_stock, has_offer, tag_id, sort_by
+        )
+
+        total = query.count()
+
+        query = query.options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags),
+            selectinload(Product.size_map)
+        )
+
+        # Always apply offset/limit to ensure consistent query building for tests
+        query = query.offset(skip)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all(), total
+
+    def get_all_products_minimal(
+        self,
+        db: Session,
+        skip: int = 0,
+        limit: Optional[int] = None,
+        category_id: Optional[int] = None,
+        shop_id: Optional[int] = None,
+        search: Optional[str] = None,
+        has_image: Optional[bool] = None,
+        is_in_stock: Optional[bool] = None,
+        has_offer: Optional[bool] = None,
+        tag_id: Optional[int] = None,
+        sort_by: str = "newest"
+    ) -> tuple[List[Product], int]:
+        query = self._build_product_query(
+            db, category_id, shop_id, search, has_image, is_in_stock, has_offer, tag_id, sort_by
+        )
+
+        total = query.count()
+
+        query = query.options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.size_map)
+        )
+
+        # Always apply offset/limit to ensure consistent query building for tests
+        query = query.offset(skip)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        products = query.all()
+
+        for p in products:
+            p.category_name = p.category.name if p.category else None
+            # Add is_in_stock for frontend convenience
+            # p.size_map is now eager-loaded to avoid N+1 queries
+            p.is_in_stock = any(size.quantity > 0 for size in p.size_map)
+
+        return products, total
+
+    def get_all_products_paginated(self, db: Session, skip: int = 0, limit: int = 100) -> List[Product]:
+        products = db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags)
+        ).offset(skip).limit(limit).all()
+        return products
 
     def get_product_by_id(self, db: Session, product_id: int) -> Optional[Product]:
-        return db.query(Product).filter(Product.id == product_id).first()
+        product = db.query(Product).options(
+            joinedload(Product.shops),
+            selectinload(Product.size_map)
+        ).filter(Product.id == product_id).first()
+        return product
 
     def update_product(self, db: Session, product_update: ProductUpdate) -> Optional[Product]:
         db_product = self.get_product_by_id(db, product_update.id)
         if not db_product:
             return None
             
-        for field, value in product_update.dict().items():
+        update_data = product_update.model_dump(exclude_unset=True)
+
+        # Handle shop_ids separately
+        if "shop_ids" in update_data:
+            shop_ids = update_data.pop("shop_ids")
+            if shop_ids is not None:
+                shops = db.query(Shop).filter(Shop.id.in_(shop_ids)).all()
+                db_product.shops = shops
+            else:
+                db_product.shops = []
+
+        for field, value in update_data.items():
             setattr(db_product, field, value)
             
+        db_product.updated_by = "system"
         db.commit()
         db.refresh(db_product)
         return db_product
@@ -75,7 +293,7 @@ class ProductService:
         category_id: Optional[int] = None,
         product_type_filter: Optional[str] = None
     ) -> List[Product]:
-        query = db.query(Product)
+        query = db.query(Product).options(joinedload(Product.shops))
         
         if category_id:
             query = query.filter(Product.category_id == category_id)
@@ -84,4 +302,167 @@ class ProductService:
             # Add any specific filtering logic based on product type
             pass
             
-        return query.all()
+        products = query.all()
+        return products
+
+    def update_product_image_url(self, db: Session, product_id: int, image_url: str) -> Optional[Product]:
+        db_product = self.get_product_by_id(db, product_id)
+        if not db_product:
+            return None
+
+        db_product.image_url = image_url
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+
+    def update_product_stock(
+        self,
+        db: Session,
+        product_id: int,
+        size: str,
+        quantity_change: int,
+        commit: bool = True,
+        send_notification: bool = True,
+    ) -> Optional[ProductSize]:
+        product_size = db.query(ProductSize).filter(
+            ProductSize.product_id == product_id,
+            ProductSize.size == size
+        ).first()
+        
+        if not product_size:
+            logger.error(f"Product size not found for product_id {product_id} and size {size}")
+            raise HTTPException(status_code=404, detail="Product size not found")
+        
+        product_size.quantity += quantity_change
+        if product_size.quantity < 0:
+            logger.error(f"Insufficient stock for product_id {product_id} and size {size}")
+            raise HTTPException(status_code=400, detail="Insufficient stock")
+        
+        if commit:
+            db.commit()
+            db.refresh(product_size)
+        else:
+            db.flush()
+
+        if send_notification:
+            try:
+                product = db.query(Product).filter(Product.id == product_id).first()
+                if product:
+                    self.email_notification.send_product_stock_updated_notification(product, size, quantity_change)
+            except Exception as e:
+                logger.error(f"Failed to send product stock update notification: {str(e)}")
+
+        return product_size
+
+    def add_default_category_discounts(
+        self,
+        db: Session,
+        request: CategoryDiscountRequest
+    ) -> List[CategoryDiscount]:
+        db_discount = db.query(CategoryDiscount).filter(
+            CategoryDiscount.category_id == request.category_id
+        ).first()
+
+        if db_discount:
+            db_discount.discounted_price = request.discounted_price
+            db_discount.updated_by = "system"
+        else:
+            db_discount = CategoryDiscount(
+                category_id=request.category_id,
+                discounted_price=request.discounted_price,
+                created_by="system",
+                updated_by="system"
+            )
+            db.add(db_discount)
+
+        db.commit()
+        db.refresh(db_discount)
+        return self.get_category_discounts(db, request.category_id)
+
+
+    def get_category_discounts(self, db: Session, category_id: int) -> List[CategoryDiscount]:
+        discounts = db.query(CategoryDiscount).filter(
+            CategoryDiscount.category_id == category_id
+        ).all()
+        return discounts
+    
+    def get_default_category_discounts(self, db: Session) -> List[CategoryDiscount]:
+        discounts = db.query(CategoryDiscount).all()
+        return discounts
+    
+    def update_category_discount(self, db: Session, request: CategoryDiscountUpdateRequest) -> List[CategoryDiscount]:
+        db_discount = db.query(CategoryDiscount).filter(
+            CategoryDiscount.id == request.id,
+            CategoryDiscount.category_id == request.category_id
+        ).first()
+
+        if not db_discount:
+            logger.error(f"Category discount not found for id {request.id} and category_id {request.category_id}")
+            raise HTTPException(status_code=404, detail="Category discount not found")
+
+        db_discount.discounted_price = request.discounted_price
+        db_discount.updated_by = "system"
+        db.commit()
+        db.refresh(db_discount)
+
+        return self.get_category_discounts(db, request.category_id)
+
+    def transfer_products(
+        self,
+        db: Session,
+        product_ids: List[int],
+        operation: str,
+        destination_shop_id: int
+    ) -> List[Product]:
+        destination_shop = db.query(Shop).filter(Shop.id == destination_shop_id).first()
+        if not destination_shop:
+            logger.error(f"Destination shop with id {destination_shop_id} not found")
+            raise HTTPException(status_code=404, detail="Destination shop not found")
+
+        products = db.query(Product).options(joinedload(Product.shops)).filter(Product.id.in_(product_ids)).all()
+
+        if len(products) != len(product_ids):
+            found_ids = [p.id for p in products]
+            missing_ids = list(set(product_ids) - set(found_ids))
+            logger.error(f"Products not found: {missing_ids}")
+            raise HTTPException(status_code=404, detail=f"Products not found: {missing_ids}")
+
+        for product in products:
+            if operation == "copy":
+                if destination_shop not in product.shops:
+                    product.shops.append(destination_shop)
+            elif operation == "move":
+                product.shops = [destination_shop]
+            else:
+                logger.error(f"Invalid operation: {operation}")
+                raise HTTPException(status_code=400, detail="Invalid operation. Use 'copy' or 'move'")
+
+            product.updated_by = "system"
+
+        db.commit()
+        for product in products:
+            db.refresh(product)
+
+        try:
+            self.email_notification.send_product_transfer_notification(products, operation, destination_shop)
+        except Exception as e:
+            logger.error(f"Failed to send product transfer notification: {str(e)}")
+
+        return products
+
+    def delete_product(self, db: Session, product_id: int) -> bool:
+        db_product = self.get_product_by_id(db, product_id)
+        if not db_product:
+            return False
+
+        product_name = db_product.name
+        db.delete(db_product)
+        db.commit()
+
+        try:
+            self.email_notification.send_product_deleted_notification(product_id, product_name)
+        except Exception as e:
+            logger.error(f"Failed to send product deletion notification: {str(e)}")
+
+        return True
+    

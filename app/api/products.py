@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from httpcore import request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import shutil
 import os
 import pandas as pd
@@ -8,17 +9,33 @@ from pathlib import Path
 import tempfile
 
 from app.core.database import get_db
+from app.models.category_discount import CategoryDiscount
 from app.schemas.product import (
+    CategoryDiscountUpdateRequest,
     ProductCreate,
     ProductResponse,
+    ProductMinimalResponse,
+    ProductListResponse,
+    ProductMinimalListResponse,
+    ProductTransferRequest,
     ProductUpdate,
     UpdateSizeMapRequest,
-    ProductFilterRequest
+    ProductFilterRequest,
+    CategoryDiscountRequest,
+    CategoryDiscountResponse
 )
+from app.schemas.category import CategoryBase
+from app.core.logging import logger
+from app.schemas.stock import ClearStockRequest, StockResponse
 from app.services.product import ProductService
+from app.services.category import CategoryService
+from app.services.stock import StockService
+from app.services.storage import StorageService
 
 router = APIRouter()
 product_service = ProductService()
+storage_service = StorageService()
+category_service = CategoryService()
 
 @router.post("/addProduct", response_model=ProductResponse)
 async def add_product(
@@ -27,9 +44,80 @@ async def add_product(
 ):
     return product_service.create_product(db, product)
 
-@router.get("/all", response_model=List[ProductResponse])
-async def get_all_products(db: Session = Depends(get_db)):
-    return product_service.get_all_products(db)
+@router.post("/addBulkProducts", response_model=List[ProductResponse])
+async def add_bulk_products(
+    products: List[ProductCreate],
+    db: Session = Depends(get_db)
+):
+    return product_service.create_bulk_products(db, products)
+
+@router.get("/all", response_model=ProductListResponse)
+async def get_all_products(
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None,
+    search: Optional[str] = None,
+    has_image: Optional[bool] = None,
+    is_in_stock: Optional[bool] = None,
+    has_offer: Optional[bool] = None,
+    tag_id: Optional[int] = None,
+    sort_by: str = "newest"
+):
+    products, total = product_service.get_all_products(
+        db,
+        skip=skip,
+        limit=limit,
+        category_id=category_id,
+        shop_id=shop_id,
+        search=search,
+        has_image=has_image,
+        is_in_stock=is_in_stock,
+        has_offer=has_offer,
+        tag_id=tag_id,
+        sort_by=sort_by
+    )
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // limit) + 1,
+        "per_page": limit
+    }
+
+@router.get("/all-minimal", response_model=ProductMinimalListResponse)
+async def get_all_products_minimal(
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    category_id: Optional[int] = None,
+    shop_id: Optional[int] = None,
+    search: Optional[str] = None,
+    has_image: Optional[bool] = None,
+    is_in_stock: Optional[bool] = None,
+    has_offer: Optional[bool] = None,
+    tag_id: Optional[int] = None,
+    sort_by: str = "newest"
+):
+    products, total = product_service.get_all_products_minimal(
+        db,
+        skip=skip,
+        limit=limit,
+        category_id=category_id,
+        shop_id=shop_id,
+        search=search,
+        has_image=has_image,
+        is_in_stock=is_in_stock,
+        has_offer=has_offer,
+        tag_id=tag_id,
+        sort_by=sort_by
+    )
+    return {
+        "items": products,
+        "total": total,
+        "page": (skip // limit) + 1,
+        "per_page": limit
+    }
 
 @router.post("/updateProduct", response_model=ProductResponse)
 async def update_product(
@@ -38,6 +126,7 @@ async def update_product(
 ):
     updated_product = product_service.update_product(db, product_update)
     if not updated_product:
+        logger.error(f"Product with id {product_update.id} not found")
         raise HTTPException(status_code=404, detail="Product not found")
     return updated_product
 
@@ -48,8 +137,20 @@ async def update_size_map(
 ):
     updated_product = product_service.update_size_map(db, update_request)
     if not updated_product:
+        logger.error(f"Product with id {update_request.product_id} not found")
         raise HTTPException(status_code=404, detail="Product not found")
     return updated_product
+
+@router.delete("/deleteProduct/{product_id}", response_model=dict)
+async def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    success = product_service.delete_product(db, product_id)
+    if not success:
+        logger.error(f"Product with id {product_id} not found")
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"message": "Product deleted successfully"}
 
 @router.post("/import-excel", response_model=List[ProductResponse])
 async def import_products_from_excel(
@@ -57,6 +158,7 @@ async def import_products_from_excel(
     db: Session = Depends(get_db)
 ):
     if not file.filename.endswith('.xlsx'):
+        logger.error(f"Invalid file format for {file.filename}")
         raise HTTPException(status_code=400, detail="Only Excel (.xlsx) files are allowed")
     
     # Create a temporary file to store the upload
@@ -77,16 +179,26 @@ async def import_products_from_excel(
                 if quantity > 0:
                     size_map.append({"size": size, "quantity": int(quantity)})
             
+            # Fetch category
+            category_id = int(row['category_id'])
+            category_model = category_service.get_category_by_id(db, category_id)
+            if not category_model:
+                logger.error(f"Category with id {category_id} not found")
+                raise HTTPException(status_code=400, detail=f"Category with id {category_id} not found")
+
+            category_schema = CategoryBase.from_orm(category_model)
+
             # Create product data
             product_data = ProductCreate(
                 name=row['name'],
                 description=row['description'],
                 unit_price=int(row['unit_price']),
                 selling_price=int(row['selling_price']),
-                category_id=int(row['category_id']),
+                category_id=category_id,
                 is_active=bool(row['is_active']),
                 can_listed=bool(row['can_listed']),
-                size_map=size_map
+                size_map=size_map,
+                category=category_schema
             )
             
             # Create product in database
@@ -96,6 +208,7 @@ async def import_products_from_excel(
         return products
         
     except Exception as e:
+        logger.exception(f"Error importing products from excel: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         # Clean up the temporary file
@@ -112,24 +225,95 @@ async def get_filtered_products(
         filter_request.product_type_filter
     )
 
-@router.post("/upload-images")
+@router.post("/upload-images", response_model=ProductResponse)
 async def upload_product_images(
     product_id: int,
-    images: List[UploadFile] = File(...),
+    image: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
+    # Get existing product to check for old image
+    product = product_service.get_product_by_id(db, product_id)
+    if not product:
+        logger.error(f"Product with id {product_id} not found")
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Delete old image from R2 if it exists
+    if product.image_url and product.image_url.startswith("http"):
+        await storage_service.delete_image(product.image_url)
+
+    # Upload new image to R2
+    image_url = await storage_service.upload_image(image, folder="products")
+
+    # Update the product's image_url in the database
+    updated_product = product_service.update_product_image_url(db, product_id, image_url)
+
+    return updated_product
+
+@router.post("/addDefaultCategoryDiscounts", response_model=List[CategoryDiscountResponse])
+async def add_default_category_discounts(
+    request: CategoryDiscountRequest,
+    db: Session = Depends(get_db)
+):
+    return product_service.add_default_category_discounts(db, request)
+
+
+@router.get("/categoryDiscounts/{category_id}", response_model=List[CategoryDiscountResponse])
+async def get_category_discount_for_category(
+    category_id: int,
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.get_category_discounts(db, category_id)
+
+
+@router.get("/getDefaultCategoryDiscounts", response_model=List[CategoryDiscountResponse])
+async def get_default_category_discounts(
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.get_default_category_discounts(db)
+
+@router.post("/updateCategoryDiscount", response_model=List[CategoryDiscountResponse])
+async def update_category_discount_for_category(
+    request: CategoryDiscountUpdateRequest,
+    db: Session = Depends(get_db)
+) -> List[CategoryDiscountResponse]:
+    return product_service.update_category_discount(db, request)
+
+# add api to delete category discount for category
+@router.delete("/deleteDefaultCategoryDiscount/{id}", response_model=CategoryDiscountResponse)
+async def delete_default_category_discount(
+    id: int,
+    db: Session = Depends(get_db)
+):
+    db_discount = db.query(CategoryDiscount).filter(CategoryDiscount.id == id).first()
+    if not db_discount:
+        logger.error(f"Category discount with id {id} not found")
+        raise HTTPException(status_code=404, detail="Category discount not found")
+
+    db.delete(db_discount)
+    db.commit()
+    return db_discount
+
+
+@router.post("/clearStock", response_model=StockResponse)
+def clear_stock(clear_request: ClearStockRequest, db: Session = Depends(get_db)):
+    stock_service = StockService()
+    return stock_service.clear_stock(db, clear_request)
+
+@router.post("/transfer", response_model=List[ProductResponse])
+async def transfer_products(
+    request: ProductTransferRequest,
+    db: Session = Depends(get_db)
+):
+    return product_service.transfer_products(
+        db,
+        request.product_ids,
+        request.operation,
+        request.destination_shop_id
+    )
+
+@router.get("/{product_id}", response_model=ProductResponse)
+async def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
     product = product_service.get_product_by_id(db, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
-    upload_dir = Path("images/products") / str(product_id)
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    
-    saved_files = []
-    for image in images:
-        file_path = upload_dir / image.filename
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-        saved_files.append(str(file_path))
-    
-    return {"message": "Images uploaded successfully", "files": saved_files}
+    return product
