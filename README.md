@@ -82,6 +82,7 @@ Once the server is running, you can access:
 ### Additional Documentation
 - [Pricelist API](docs/PRICELIST_API_DOCUMENTATION.md)
 - [Users API](docs/USERS_API_DOCUMENTATION.md)
+- [Async Architecture Analysis](docs/ASYNC_ARCHITECTURE_ANALYSIS.html)
 
 ## Project Structure
 
