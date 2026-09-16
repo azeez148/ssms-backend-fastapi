@@ -143,11 +143,12 @@ class ProductService:
         if tag_id is not None:
             query = query.filter(Product.tags.any(id=tag_id))
 
-        # Sort
+        # Sort by created_date first so the newest items appear first, with a safe
+        # fallback to id ordering when created_date is missing.
         if sort_by == "oldest":
-            query = query.order_by(Product.id.asc())
+            query = query.order_by(Product.created_date.asc().nulls_last(), Product.id.asc())
         else:  # Default to newest
-            query = query.order_by(Product.id.desc())
+            query = query.order_by(Product.created_date.desc().nulls_last(), Product.id.desc())
 
         return query
 

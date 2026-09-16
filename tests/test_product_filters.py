@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 # Set DATABASE_URL before importing anything that uses it
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 
@@ -78,14 +79,19 @@ def test_product_filters_and_ordering():
         prod1.tags.append(tag)
         db.commit()
 
-        # 2. Test Default Ordering (Newest first)
+        # Set explicit creation times to make newest ordering unambiguous.
+        prod1.created_date = datetime(2024, 1, 1, 12, 0, 0)
+        prod2.created_date = datetime(2025, 1, 1, 12, 0, 0)
+        db.commit()
+
+        # 2. Test Default Ordering (Newest first by created_date)
         products, total = product_service.get_all_products_minimal(db)
         assert len(products) >= 2
-        assert products[0].id > products[1].id
+        assert products[0].created_date >= products[1].created_date
 
         # 3. Test Oldest Ordering
         products, total = product_service.get_all_products_minimal(db, sort_by="oldest")
-        assert products[0].id < products[1].id
+        assert products[0].created_date <= products[1].created_date
 
         # 4. Test has_image filter
         products, total = product_service.get_all_products_minimal(db, has_image=True)
