@@ -28,7 +28,7 @@ class DayManagementService:
 
         target_date = day.start_time.date().isoformat()
         sales = db.query(Sale).options(joinedload(Sale.payment_type)).filter(
-            Sale.date == target_date,
+            Sale.date.like(f"{target_date}%"),
             Sale.status != SaleStatus.CANCELLED,
             Sale.shop_id == day.shop_id
         ).all()
@@ -164,12 +164,29 @@ class DayManagementService:
 
         return db_expense
 
-    def update_day_from_sale(self, db: Session, amount_change: float, payment_type_id: int, shop_id: int):
+    def update_day_from_sale(self, db: Session, amount_change: float, payment_type_id: int, shop_id: int, sale_date: Optional[str] = None):
         """
-        Updates the active day's cash or account balance based on a sale change for a specific shop.
+        Adjusts the stored totals of the day a sale belongs to (identified by sale_date, falling back
+        to the shop's currently active day when no date is given) based on a sale create/edit/cancel.
+
+        This must target the day matching the sale's own date rather than "whatever day is active right
+        now" — otherwise editing a sale that belongs to an already-ended day silently loses the
+        adjustment (and, for a different shop/day being active, could corrupt the wrong day's totals).
+        For an active day, total_cash_sales/total_account_sales/cash_in_hand/cash_in_account are also
+        fully recomputed live on every read (_populate_live_totals), so this incremental adjustment is
+        mainly what keeps an ended day's stored totals correct.
         """
-        active_day = self.get_active_day(db, shop_id)
-        if not active_day:
+        if sale_date:
+            # sale_date may be a plain "YYYY-MM-DD" or a full ISO timestamp (with time/offset);
+            # only the calendar date portion is needed to match it to a Day row.
+            day = db.query(Day).filter(
+                Day.shop_id == shop_id,
+                cast(Day.start_time, Date) == date.fromisoformat(sale_date[:10])
+            ).first()
+        else:
+            day = db.query(Day).filter(Day.shop_id == shop_id, Day.end_time.is_(None)).first()
+
+        if not day:
             return
 
         payment_type = db.query(PaymentType).filter(PaymentType.id == payment_type_id).first()
@@ -177,11 +194,14 @@ class DayManagementService:
             return
 
         if payment_type.name == 'Cash on Delivery':
-            active_day.cash_in_hand = (active_day.cash_in_hand or 0.0) + amount_change
+            day.total_cash_sales = (day.total_cash_sales or 0.0) + amount_change
+            day.cash_in_hand = (day.cash_in_hand or 0.0) + amount_change
         else:
-            active_day.cash_in_account = (active_day.cash_in_account or 0.0) + amount_change
+            day.total_account_sales = (day.total_account_sales or 0.0) + amount_change
+            day.cash_in_account = (day.cash_in_account or 0.0) + amount_change
 
-        active_day.updated_by = "system"
+        day.total_sales = (day.total_sales or 0.0) + amount_change
+        day.updated_by = "system"
 
     def get_expenses_for_day(self, db: Session, day_id: int) -> List[Expense]:
         """
@@ -209,7 +229,7 @@ class DayManagementService:
         # Recalculate sales for the day
         target_date = db_day.start_time.date().isoformat()
         sales_for_day = db.query(Sale).options(joinedload(Sale.payment_type)).filter(
-            Sale.date == target_date,
+            Sale.date.like(f"{target_date}%"),
             Sale.status != SaleStatus.CANCELLED,
             Sale.shop_id == db_day.shop_id
         ).all()
