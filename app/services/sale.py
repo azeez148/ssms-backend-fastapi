@@ -108,7 +108,8 @@ class SaleService:
                 db,
                 amount_change=db_sale.total_price,
                 payment_type_id=db_sale.payment_type_id,
-                shop_id=db_sale.shop_id
+                shop_id=db_sale.shop_id,
+                sale_date=db_sale.date
             )
 
         db.commit()
@@ -211,7 +212,8 @@ class SaleService:
                 db,
                 amount_change=-sale.total_price,
                 payment_type_id=sale.payment_type_id,
-                shop_id=sale.shop_id
+                shop_id=sale.shop_id,
+                sale_date=sale.date
             )
             for item in sale.sale_items:
                 self.product_service.update_product_stock(
@@ -228,7 +230,8 @@ class SaleService:
                 db,
                 amount_change=sale.total_price,
                 payment_type_id=sale.payment_type_id,
-                shop_id=sale.shop_id
+                shop_id=sale.shop_id,
+                sale_date=sale.date
             )
             for item in sale.sale_items:
                 self.product_service.update_product_stock(
@@ -275,7 +278,8 @@ class SaleService:
                 db,
                 amount_change=-sale.total_price,
                 payment_type_id=sale.payment_type_id,
-                shop_id=sale.shop_id
+                shop_id=sale.shop_id,
+                sale_date=sale.date
             )
 
             db.commit()
@@ -297,6 +301,8 @@ class SaleService:
         old_total = sale.total_price
         old_payment_type_id = sale.payment_type_id
         old_status = sale.status
+        old_shop_id = sale.shop_id
+        old_date = sale.date
 
         # Update main sale fields
         update_data = sale_data.model_dump(exclude={'sale_items', 'status'})
@@ -364,7 +370,8 @@ class SaleService:
                 db,
                 amount_change=-old_total,
                 payment_type_id=old_payment_type_id,
-                shop_id=sale.shop_id
+                shop_id=old_shop_id,
+                sale_date=old_date
             )
 
         # 2. Add new sale if it's not cancelled
@@ -373,7 +380,8 @@ class SaleService:
                 db,
                 amount_change=sale.total_price,
                 payment_type_id=sale.payment_type_id,
-                shop_id=sale.shop_id
+                shop_id=sale.shop_id,
+                sale_date=sale.date
             )
 
         db.commit()
