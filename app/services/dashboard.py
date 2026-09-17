@@ -29,10 +29,12 @@ class DashboardService:
                 "total_items_sold": int(res[2] or 0)
             }
 
+        # Sale.date may be stored as a plain "YYYY-MM-DD" or a full ISO timestamp with time/offset,
+        # so match on the date prefix rather than exact equality.
         total_sales = get_sales_summary([Sale.status.in_([SaleStatus.COMPLETED, SaleStatus.SHIPPED])])
-        todays_sales = get_sales_summary([Sale.date == today, Sale.status != SaleStatus.CANCELLED])
-        pending_sales = get_sales_summary([Sale.date == today, Sale.status == SaleStatus.PENDING])
-        shipped_sales = get_sales_summary([Sale.date == today, Sale.status == SaleStatus.SHIPPED])
+        todays_sales = get_sales_summary([Sale.date.like(f"{today}%"), Sale.status != SaleStatus.CANCELLED])
+        pending_sales = get_sales_summary([Sale.date.like(f"{today}%"), Sale.status == SaleStatus.PENDING])
+        shipped_sales = get_sales_summary([Sale.date.like(f"{today}%"), Sale.status == SaleStatus.SHIPPED])
 
         # Purchase Calculations
         def get_purchases_summary(filters):
