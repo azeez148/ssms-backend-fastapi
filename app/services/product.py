@@ -1,4 +1,5 @@
 import os
+import time
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 from fastapi import HTTPException
@@ -294,16 +295,29 @@ class ProductService:
         category_id: Optional[int] = None,
         product_type_filter: Optional[str] = None
     ) -> List[Product]:
-        query = db.query(Product).options(joinedload(Product.shops))
-        
+        # Eager-load every relationship ProductResponse serializes. Without this,
+        # tags/category lazy-load one query per product during serialization (N+1),
+        # which against a remote DB took long enough to trip the Gunicorn worker timeout.
+        query = db.query(Product).options(
+            joinedload(Product.category),
+            selectinload(Product.shops),
+            selectinload(Product.tags),
+            selectinload(Product.size_map)
+        )
+
         if category_id:
             query = query.filter(Product.category_id == category_id)
-            
+
         if product_type_filter:
             # Add any specific filtering logic based on product type
             pass
-            
+
+        start = time.perf_counter()
         products = query.all()
+        logger.info(
+            f"filterProducts: loaded {len(products)} products "
+            f"(category_id={category_id}) in {time.perf_counter() - start:.2f}s"
+        )
         return products
 
     def update_product_image_url(self, db: Session, product_id: int, image_url: str) -> Optional[Product]:
