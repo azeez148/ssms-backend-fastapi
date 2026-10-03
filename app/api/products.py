@@ -214,8 +214,10 @@ async def import_products_from_excel(
         # Clean up the temporary file
         os.unlink(temp_path)
 
+# Plain def: FastAPI runs it in the threadpool, so the blocking DB work cannot
+# stall the event loop (and the Gunicorn heartbeat) for every other request.
 @router.post("/filterProducts", response_model=List[ProductResponse])
-async def get_filtered_products(
+def get_filtered_products(
     filter_request: ProductFilterRequest,
     db: Session = Depends(get_db)
 ):
